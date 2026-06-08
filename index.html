@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Serial Port Communication</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 30px;
+      background-color: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    h2 {
+      color: #a0cfff;
+      margin-top: 0;
+      margin-bottom: 18px;
+      font-size: 1.2em;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border-bottom: 1px solid #2a3a5a;
+      padding-bottom: 8px;
+    }
+
+    .main-layout-container {
+      display: flex;
+      gap: 24px;
+      max-width: 1600px;
+      margin: 0 auto;
+      align-items: flex-start;
+    }
+
+    /* Left column: fixed width */
+    .left-column {
+      flex: 0 0 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Right column: fills remaining space */
+    .right-column {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .panel {
+      background: #16213e;
+      border: 1px solid #2a3a5a;
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .input-group {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    label {
+      min-width: 80px;
+      font-size: 13px;
+      color: #a0b0c8;
+      text-align: right;
+      margin-right: 10px;
+    }
+
+    select {
+      flex: 1;
+      padding: 5px 8px;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #2a4a7a;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    select:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    button {
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background-color: #0f3460;
+      color: #a0cfff;
+      border: 1px solid #2a5a9a;
+      transition: background 0.15s;
+    }
+
+    button:hover:not(:disabled) {
+      background-color: #1a4a7a;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    #connectButton {
+      width: 100%;
+      margin-top: 6px;
+      background-color: #0f5a30;
+      border-color: #1a8a50;
+      color: #80ffb0;
+      font-weight: bold;
+    }
+
+    #connectButton:hover:not(:disabled) {
+      background-color: #1a7a40;
+    }
+
+    /* UART Output */
+    #uartOutput {
+      background-color: #000;
+      color: #2aee2a;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      width: 100%;
+      height: 520px;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #1a3a1a;
+      resize: vertical;
+      overflow-y: auto;
+      display: block;
+    }
+
+    /* Output action buttons */
+    .output-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    #saveButton {
+      background-color: #1a4a1a;
+      border-color: #2a7a2a;
+      color: #80ff80;
+    }
+
+    #clearButton {
+      background-color: #4a1a1a;
+      border-color: #7a2a2a;
+      color: #ff8080;
+    }
+
+    /* Command Input Section */
+    .command-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    #commandInput {
+      flex: 1;
+      padding: 8px 12px;
+      background: #000;
+      color: #2aee2a;
+      border: 1px solid #1a3a1a;
+      border-radius: 5px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+    }
+
+    #commandInput::placeholder {
+      color: #2a6a2a;
+    }
+
+    #commandInput:focus {
+      outline: none;
+      border-color: #2aee2a;
+      box-shadow: 0 0 0 2px rgba(42,238,42,0.15);
+    }
+
+    #sendCommandButton {
+      background-color: #0f3460;
+      border-color: #2a5a9a;
+      color: #a0cfff;
+      white-space: nowrap;
+    }
+
+    /* Command History */
+    #historyList {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .history-tag {
+      background: #0a2a0a;
+      border: 1px solid #1a5a1a;
+      color: #60cc60;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      max-width: 220px;
+    }
+
+    .history-tag:hover {
+      background: #1a4a1a;
+      border-color: #2aee2a;
+      color: #2aee2a;
+    }
+
+    .history-tag span.cmd-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .history-tag .del-btn {
+      color: #5a5a5a;
+      font-size: 14px;
+      line-height: 1;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .history-tag .del-btn:hover {
+      color: #ff6060;
+    }
+
+    .history-empty {
+      font-size: 12px;
+      color: #2a4a2a;
+      font-style: italic;
+    }
+
+    .section-label {
+      font-size: 11px;
+      color: #4a7a6a;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+      margin-top: 2px;
+    }
+
+    #clearHistoryBtn {
+      font-size: 11px;
+      padding: 3px 10px;
+      background: transparent;
+      border-color: #2a3a4a;
+      color: #4a6a8a;
+      margin-left: auto;
+    }
+  </style>
+</head>
+<body>
+
+<div class="main-layout-container">
+
+  <!-- Left: Port Settings -->
+  <div class="left-column">
+    <div class="panel">
+      <h2>Port Settings</h2>
+
+      <div class="input-group">
+        <label for="baudRateSelect">Baud Rate</label>
+        <select id="baudRateSelect">
+          <option value="300">300</option>
+          <option value="600">600</option>
+          <option value="1200">1200</option>
+          <option value="2400">2400</option>
+          <option value="4800">4800</option>
+          <option value="9600" selected>9600</option>
+          <option value="14400">14400</option>
+          <option value="19200">19200</option>
+          <option value="38400">38400</option>
+          <option value="57600">57600</option>
+          <option value="115200">115200</option>
+          <option value="230400">230400</option>
+          <option value="460800">460800</option>
+          <option value="921600">921600</option>
+          <option value="1000000">1000000</option>
+          <option value="1500000">1500000</option>
+          <option value="2000000">2000000</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label for="dataBitsSelect">Data Bits</label>
+        <select id="dataBitsSelect">
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8" selected>8</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label for="stopBitsSelect">Stop Bits</label>
+        <select id="stopBitsSelect">
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label for="paritySelect">Parity</label>
+        <select id="paritySelect">
+          <option value="none" selected>None</option>
+          <option value="even">Even</option>
+          <option value="odd">Odd</option>
+          <option value="mark">Mark</option>
+          <option value="space">Space</option>
+        </select>
+      </div>
+
+      <button id="connectButton">⚡ Connect</button>
+    </div>
+  </div>
+
+  <!-- Right: Output + Command -->
+  <div class="right-column">
+
+    <!-- UART Output -->
+    <div class="panel">
+      <h2>UART Output</h2>
+      <textarea id="uartOutput" readonly></textarea>
+      <div class="output-actions" style="margin-top: 10px;">
+        <button id="saveButton">💾 Save</button>
+        <button id="clearButton">🗑 Clear</button>
+      </div>
+    </div>
+
+    <!-- Command Input -->
+    <div class="panel">
+      <h2>Send Command</h2>
+      <div class="command-row">
+        <input type="text" id="commandInput" placeholder="Type command here..." autocomplete="off" />
+        <button id="sendCommandButton" disabled>▶ Send</button>
+      </div>
+
+      <div style="display:flex; align-items:center; margin-top: 14px;">
+        <div class="section-label" style="margin:0;">History</div>
+        <button id="clearHistoryBtn">Clear all</button>
+      </div>
+      <div id="historyList">
+        <span class="history-empty">No commands sent yet.</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  let port, writer;
+  const HISTORY_KEY = 'serial_cmd_history';
+  const MAX_HISTORY = 30;
+
+  // ── History helpers ──
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+    catch { return []; }
+  }
+
+  function saveHistory(arr) {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
+  }
+
+  function addToHistory(cmd) {
+    let h = loadHistory();
+    h = h.filter(c => c !== cmd);       // remove duplicate
+    h.unshift(cmd);                      // add to front
+    if (h.length > MAX_HISTORY) h = h.slice(0, MAX_HISTORY);
+    saveHistory(h);
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const list = document.getElementById('historyList');
+    const h = loadHistory();
+    if (h.length === 0) {
+      list.innerHTML = '<span class="history-empty">No commands sent yet.</span>';
+      return;
+    }
+    list.innerHTML = h.map((cmd, i) => `
+      <div class="history-tag" data-index="${i}">
+        <span class="cmd-text" title="${escapeHtml(cmd)}">${escapeHtml(cmd)}</span>
+        <span class="del-btn" data-del="${i}" title="Remove">×</span>
+      </div>
+    `).join('');
+
+    // click tag → fill input
+    list.querySelectorAll('.history-tag').forEach(tag => {
+      tag.addEventListener('click', (e) => {
+        if (e.target.classList.contains('del-btn')) return;
+        const idx = parseInt(tag.dataset.index);
+        document.getElementById('commandInput').value = loadHistory()[idx];
+        document.getElementById('commandInput').focus();
+      });
+    });
+
+    // click × → delete entry
+    list.querySelectorAll('.del-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.del);
+        const h = loadHistory();
+        h.splice(idx, 1);
+        saveHistory(h);
+        renderHistory();
+      });
+    });
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Connect ──
+  async function connectToSerialPort() {
+    try {
+      const baudRate = parseInt(document.getElementById('baudRateSelect').value, 10);
+      const dataBits = parseInt(document.getElementById('dataBitsSelect').value, 10);
+      const stopBits = parseInt(document.getElementById('stopBitsSelect').value, 10);
+      const parity   = document.getElementById('paritySelect').value;
+
+      const ports = await navigator.serial.getPorts();
+      port = ports.length > 0 ? ports[0] : await navigator.serial.requestPort({ filters: [] });
+      await port.open({ baudRate, dataBits, stopBits, parity });
+
+      writer = port.writable.getWriter();
+
+      document.getElementById('connectButton').disabled = true;
+      document.getElementById('baudRateSelect').disabled = true;
+      document.getElementById('dataBitsSelect').disabled = true;
+      document.getElementById('stopBitsSelect').disabled = true;
+      document.getElementById('paritySelect').disabled   = true;
+      document.getElementById('sendCommandButton').disabled = false;
+      document.getElementById('connectButton').textContent = '✓ Connected';
+
+      // Read loop
+      const reader = port.readable.getReader();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (value) displayUartOutput(new TextDecoder('utf-8').decode(value));
+      }
+    } catch (err) {
+      console.error('Serial connect error:', err);
+    }
+  }
+
+  async function sendData(command) {
+    if (!writer || writer.locked) return;
+    try {
+      await writer.write(new TextEncoder().encode(command + '\r\n'));
+    } catch (err) {
+      console.error('Send error:', err);
+    }
+  }
+
+  function displayUartOutput(data) {
+    const ta = document.getElementById('uartOutput');
+    ta.value += data;
+    ta.scrollTop = ta.scrollHeight;
+  }
+
+  // ── Send command ──
+  async function handleSend() {
+    const input = document.getElementById('commandInput');
+    const cmd = input.value.trim();
+    if (!cmd) return;
+    await sendData(cmd);
+    addToHistory(cmd);
+    input.value = '';
+    input.focus();
+  }
+
+  // ── Event listeners ──
+  document.getElementById('connectButton').addEventListener('click', connectToSerialPort);
+
+  document.getElementById('sendCommandButton').addEventListener('click', handleSend);
+
+  document.getElementById('commandInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleSend();
+  });
+
+  document.getElementById('saveButton').addEventListener('click', () => {
+    const text = document.getElementById('uartOutput').value;
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([text], { type: 'text/plain' })),
+      download: 'serial_output.txt'
+    });
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  });
+
+  document.getElementById('clearButton').addEventListener('click', () => {
+    document.getElementById('uartOutput').value = '';
+  });
+
+  document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+    saveHistory([]);
+    renderHistory();
+  });
+
+  renderHistory();
+});
+</script>
+</body>
+</html>
