@@ -438,8 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const stopBits = parseInt(document.getElementById('stopBitsSelect').value, 10);
       const parity   = document.getElementById('paritySelect').value;
 
-      const ports = await navigator.serial.getPorts();
-      port = ports.length > 0 ? ports[0] : await navigator.serial.requestPort({ filters: [] });
+      port = await navigator.serial.requestPort({ filters: [] });
       await port.open({ baudRate, dataBits, stopBits, parity });
 
       writer = port.writable.getWriter();
