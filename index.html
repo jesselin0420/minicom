@@ -121,7 +121,13 @@
     #connectButton:hover:not(:disabled) {
       background-color: #1a7a40;
     }
-
+   
+    #connectButton.disconnect {
+      background-color: #5a0f0f;
+      border-color: #8a1a1a;
+      color: #ffb0b0;
+    }
+#connectButton.disconnect:hover:not(:disabled) { background-color: #7a1a1a; }
     /* UART Output */
     #uartOutput {
       background-color: #000;
@@ -366,7 +372,8 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  let port, writer;
+  let port, writer, reader;
+  let isConnected = false;
   const HISTORY_KEY = 'serial_cmd_history';
   const MAX_HISTORY = 30;
 
@@ -432,36 +439,62 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Connect ──
   async function connectToSerialPort() {
+  try {
+    const baudRate = parseInt(document.getElementById('baudRateSelect').value, 10);
+    const dataBits = parseInt(document.getElementById('dataBitsSelect').value, 10);
+    const stopBits = parseInt(document.getElementById('stopBitsSelect').value, 10);
+    const parity   = document.getElementById('paritySelect').value;
+
+    port = await navigator.serial.requestPort({ filters: [] });
+    await port.open({ baudRate, dataBits, stopBits, parity });
+    writer = port.writable.getWriter();
+
+    isConnected = true;
+    const btn = document.getElementById('connectButton');
+    btn.textContent = '✕ Disconnect';
+    btn.classList.add('disconnect');
+    document.getElementById('baudRateSelect').disabled = true;
+    document.getElementById('dataBitsSelect').disabled = true;
+    document.getElementById('stopBitsSelect').disabled = true;
+    document.getElementById('paritySelect').disabled   = true;
+    document.getElementById('sendCommandButton').disabled = false;
+
+    reader = port.readable.getReader();
     try {
-      const baudRate = parseInt(document.getElementById('baudRateSelect').value, 10);
-      const dataBits = parseInt(document.getElementById('dataBitsSelect').value, 10);
-      const stopBits = parseInt(document.getElementById('stopBitsSelect').value, 10);
-      const parity   = document.getElementById('paritySelect').value;
-
-      port = await navigator.serial.requestPort({ filters: [] });
-      await port.open({ baudRate, dataBits, stopBits, parity });
-
-      writer = port.writable.getWriter();
-
-      document.getElementById('connectButton').disabled = true;
-      document.getElementById('baudRateSelect').disabled = true;
-      document.getElementById('dataBitsSelect').disabled = true;
-      document.getElementById('stopBitsSelect').disabled = true;
-      document.getElementById('paritySelect').disabled   = true;
-      document.getElementById('sendCommandButton').disabled = false;
-      document.getElementById('connectButton').textContent = '✓ Connected';
-
-      // Read loop
-      const reader = port.readable.getReader();
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
         if (value) displayUartOutput(new TextDecoder('utf-8').decode(value));
       }
-    } catch (err) {
+    } finally {
+      reader.releaseLock();
+      reader = null;
+    }
+    if (isConnected) await doDisconnect();
+
+  } catch (err) {
+    if (err.name !== 'NotFoundError' && err.name !== 'AbortError') {
       console.error('Serial connect error:', err);
     }
+    await doDisconnect();
   }
+}
+
+async function doDisconnect() {
+  isConnected = false;
+  const btn = document.getElementById('connectButton');
+  btn.textContent = '⚡ Connect';
+  btn.classList.remove('disconnect');
+  document.getElementById('baudRateSelect').disabled = false;
+  document.getElementById('dataBitsSelect').disabled = false;
+  document.getElementById('stopBitsSelect').disabled = false;
+  document.getElementById('paritySelect').disabled   = false;
+  document.getElementById('sendCommandButton').disabled = true;
+
+  try { if (writer) { writer.releaseLock(); writer = null; } } catch {}
+  try { if (reader) { await reader.cancel(); reader = null; } } catch {}
+  try { if (port)   { await port.close();   port   = null; } } catch {}
+}
 
   async function sendData(command) {
     if (!writer || writer.locked) return;
@@ -490,7 +523,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Event listeners ──
-  document.getElementById('connectButton').addEventListener('click', connectToSerialPort);
+  document.getElementById('connectButton').addEventListener('click', () => {
+    if (isConnected) doDisconnect();
+    else connectToSerialPort();
+  });
 
   document.getElementById('sendCommandButton').addEventListener('click', handleSend);
 
