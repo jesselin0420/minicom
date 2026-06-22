@@ -448,6 +448,7 @@ document.addEventListener('DOMContentLoaded', () => {
     port = await navigator.serial.requestPort({ filters: [] });
     await port.open({ baudRate, dataBits, stopBits, parity });
     writer = port.writable.getWriter();
+    ansiBuffer = ''; // reset any leftover partial escape sequence from a previous session
 
     isConnected = true;
     const btn = document.getElementById('connectButton');
@@ -505,9 +506,51 @@ async function doDisconnect() {
     }
   }
 
+  // Strip ANSI escape sequences (color codes, cursor movement, etc.), e.g.
+  // "\x1b[1;34m" or "\x1b[m" which show up as garbage like "[1;34m" in a plain textarea.
+  // Stateful: serial data arrives in arbitrary byte chunks, so an escape sequence
+  // can be split across two reads (e.g. ESC in one chunk, "[1;34m" in the next).
+  // We buffer any trailing incomplete sequence and prepend it to the next chunk.
+  let ansiBuffer = '';
+
+  function stripAnsi(chunk) {
+    const str = ansiBuffer + chunk;
+    ansiBuffer = '';
+    let result = '';
+    let i = 0;
+
+    while (i < str.length) {
+      if (str[i] === '\x1b') {
+        const rest = str.slice(i);
+        const csi = rest.match(/^\x1b\[[0-9;]*[a-zA-Z]/);   // CSI sequence e.g. \x1b[1;34m
+        const osc = rest.match(/^\x1b\][^\x07\x1b]*(\x07|\x1b\\)/); // OSC sequence
+        const match = csi || osc;
+        if (match) {
+          i += match[0].length;
+          continue;
+        }
+        // Could be an incomplete sequence cut off at the end of this chunk.
+        // Only buffer it if it's short enough to plausibly still be incomplete;
+        // otherwise treat the lone ESC as junk and drop just that one byte.
+        if (rest.length < 24) {
+          ansiBuffer = rest;
+          break;
+        } else {
+          i += 1;
+        }
+      } else {
+        result += str[i];
+        i += 1;
+      }
+    }
+
+    // Other stray control chars (keep \t \n \r)
+    return result.replace(/[\x00-\x08\x0e-\x1f]/g, '');
+  }
+
   function displayUartOutput(data) {
     const ta = document.getElementById('uartOutput');
-    ta.value += data;
+    ta.value += stripAnsi(data);
     ta.scrollTop = ta.scrollHeight;
   }
 
