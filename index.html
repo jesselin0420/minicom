@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Serial Port Communication</title>
+  <title>Serial Console</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
 
@@ -30,20 +30,21 @@
     .main-layout-container {
       display: flex;
       gap: 24px;
-      max-width: 1600px;
+      width: 100%;
+      max-width: 100%;
       margin: 0 auto;
       align-items: flex-start;
     }
 
-    /* Left column: fixed width */
+    /* Left column: fixed width (smaller) */
     .left-column {
-      flex: 0 0 280px;
+      flex: 0 0 200px;
       display: flex;
       flex-direction: column;
       gap: 16px;
     }
 
-    /* Right column: fills remaining space */
+    /* Right column: fills remaining space (larger) */
     .right-column {
       flex: 1 1 auto;
       display: flex;
@@ -56,21 +57,21 @@
       background: #16213e;
       border: 1px solid #2a3a5a;
       border-radius: 8px;
-      padding: 18px;
+      padding: 15px;
     }
 
     .input-group {
       display: flex;
-      align-items: center;
-      margin-bottom: 10px;
+      flex-direction: column;
+      align-items: stretch;
+      margin-bottom: 12px;
     }
 
     label {
-      min-width: 80px;
-      font-size: 13px;
+      font-size: 12px;
       color: #a0b0c8;
-      text-align: right;
-      margin-right: 10px;
+      text-align: left;
+      margin-bottom: 4px;
     }
 
     select {
@@ -128,20 +129,26 @@
       color: #ffb0b0;
     }
 #connectButton.disconnect:hover:not(:disabled) { background-color: #7a1a1a; }
-    /* UART Output */
+    /* Console Output */
     #uartOutput {
       background-color: #000;
       color: #2aee2a;
       font-family: 'Courier New', Courier, monospace;
       font-size: 14px;
       width: 100%;
-      height: 520px;
+      height: 700px;
       padding: 10px;
       border-radius: 6px;
       border: 1px solid #1a3a1a;
       resize: vertical;
       overflow-y: auto;
       display: block;
+    }
+
+    #uartOutput:focus {
+      outline: none;
+      border-color: #2aee2a;
+      box-shadow: 0 0 0 2px rgba(42,238,42,0.25);
     }
 
     /* Output action buttons */
@@ -160,41 +167,6 @@
       background-color: #4a1a1a;
       border-color: #7a2a2a;
       color: #ff8080;
-    }
-
-    /* Command Input Section */
-    .command-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    #commandInput {
-      flex: 1;
-      padding: 8px 12px;
-      background: #000;
-      color: #2aee2a;
-      border: 1px solid #1a3a1a;
-      border-radius: 5px;
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 14px;
-    }
-
-    #commandInput::placeholder {
-      color: #2a6a2a;
-    }
-
-    #commandInput:focus {
-      outline: none;
-      border-color: #2aee2a;
-      box-shadow: 0 0 0 2px rgba(42,238,42,0.15);
-    }
-
-    #sendCommandButton {
-      background-color: #0f3460;
-      border-color: #2a5a9a;
-      color: #a0cfff;
-      white-space: nowrap;
     }
 
     /* Command History */
@@ -289,12 +261,12 @@
           <option value="1200">1200</option>
           <option value="2400">2400</option>
           <option value="4800">4800</option>
-          <option value="9600" selected>9600</option>
+          <option value="9600">9600</option>
           <option value="14400">14400</option>
           <option value="19200">19200</option>
           <option value="38400">38400</option>
           <option value="57600">57600</option>
-          <option value="115200">115200</option>
+          <option value="115200" selected>115200</option>
           <option value="230400">230400</option>
           <option value="460800">460800</option>
           <option value="921600">921600</option>
@@ -337,29 +309,21 @@
     </div>
   </div>
 
-  <!-- Right: Output + Command -->
+  <!-- Right: Console -->
   <div class="right-column">
 
-    <!-- UART Output -->
+    <!-- Console -->
     <div class="panel">
-      <h2>UART Output</h2>
-      <textarea id="uartOutput" readonly></textarea>
+      <h2>Console</h2>
+      <textarea id="uartOutput" readonly placeholder="⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom)."></textarea>
       <div class="output-actions" style="margin-top: 10px;">
-        <button id="saveButton">💾 Save</button>
-        <button id="clearButton">🗑 Clear</button>
-      </div>
-    </div>
-
-    <!-- Command Input -->
-    <div class="panel">
-      <h2>Send Command</h2>
-      <div class="command-row">
-        <input type="text" id="commandInput" placeholder="Type command here..." autocomplete="off" />
-        <button id="sendCommandButton" disabled>▶ Send</button>
+        <button id="saveButton">💾 Save Output</button>
+        <button id="clearButton">🗑 Clear Output</button>
       </div>
 
-      <div style="display:flex; align-items:center; margin-top: 14px;">
-        <div class="section-label" style="margin:0;">History</div>
+      <!-- Command History -->
+      <div style="display:flex; align-items:center; margin-top: 18px; border-top: 1px solid #2a3a5a; padding-top: 12px;">
+        <div class="section-label" style="margin:0;">Command History</div>
         <button id="clearHistoryBtn">Clear all</button>
       </div>
       <div id="historyList">
@@ -377,6 +341,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const HISTORY_KEY = 'serial_cmd_history';
   const MAX_HISTORY = 30;
 
+  const ta = document.getElementById('uartOutput');
+
+  let inputBuffer = '';
+  let historyIndex = -1;
+  let tempInput = '';
+
   // ── History helpers ──
   function loadHistory() {
     try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
@@ -389,8 +359,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function addToHistory(cmd) {
     let h = loadHistory();
-    h = h.filter(c => c !== cmd);       // remove duplicate
-    h.unshift(cmd);                      // add to front
+    h = h.filter(c => c !== cmd);
+    h.unshift(cmd);
     if (h.length > MAX_HISTORY) h = h.slice(0, MAX_HISTORY);
     saveHistory(h);
     renderHistory();
@@ -410,17 +380,24 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `).join('');
 
-    // click tag → fill input
     list.querySelectorAll('.history-tag').forEach(tag => {
-      tag.addEventListener('click', (e) => {
+      tag.addEventListener('click', async (e) => {
         if (e.target.classList.contains('del-btn')) return;
+        if (!isConnected || !writer) return;
         const idx = parseInt(tag.dataset.index);
-        document.getElementById('commandInput').value = loadHistory()[idx];
-        document.getElementById('commandInput').focus();
+        const cmd = loadHistory()[idx];
+        
+        if (inputBuffer.length > 0) {
+          await sendRawData('\x08'.repeat(inputBuffer.length));
+          inputBuffer = '';
+        }
+        
+        inputBuffer = cmd;
+        await sendRawData(inputBuffer);
+        ta.focus();
       });
     });
 
-    // click × → delete entry
     list.querySelectorAll('.del-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -439,78 +416,79 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Connect ──
   async function connectToSerialPort() {
-  try {
-    const baudRate = parseInt(document.getElementById('baudRateSelect').value, 10);
-    const dataBits = parseInt(document.getElementById('dataBitsSelect').value, 10);
-    const stopBits = parseInt(document.getElementById('stopBitsSelect').value, 10);
-    const parity   = document.getElementById('paritySelect').value;
-
-    port = await navigator.serial.requestPort({ filters: [] });
-    await port.open({ baudRate, dataBits, stopBits, parity });
-    writer = port.writable.getWriter();
-    ansiBuffer = ''; // reset any leftover partial escape sequence from a previous session
-
-    isConnected = true;
-    const btn = document.getElementById('connectButton');
-    btn.textContent = '✕ Disconnect';
-    btn.classList.add('disconnect');
-    document.getElementById('baudRateSelect').disabled = true;
-    document.getElementById('dataBitsSelect').disabled = true;
-    document.getElementById('stopBitsSelect').disabled = true;
-    document.getElementById('paritySelect').disabled   = true;
-    document.getElementById('sendCommandButton').disabled = false;
-
-    reader = port.readable.getReader();
     try {
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        if (value) displayUartOutput(new TextDecoder('utf-8').decode(value));
+      const baudRate = parseInt(document.getElementById('baudRateSelect').value, 10);
+      const dataBits = parseInt(document.getElementById('dataBitsSelect').value, 10);
+      const stopBits = parseInt(document.getElementById('stopBitsSelect').value, 10);
+      const parity   = document.getElementById('paritySelect').value;
+
+      port = await navigator.serial.requestPort({ filters: [] });
+      await port.open({ baudRate, dataBits, stopBits, parity });
+      writer = port.writable.getWriter();
+      ansiBuffer = '';
+
+      isConnected = true;
+      const btn = document.getElementById('connectButton');
+      btn.textContent = '✕ Disconnect';
+      btn.classList.add('disconnect');
+      document.getElementById('baudRateSelect').disabled = true;
+      document.getElementById('dataBitsSelect').disabled = true;
+      document.getElementById('stopBitsSelect').disabled = true;
+      document.getElementById('paritySelect').disabled   = true;
+
+      ta.placeholder = "⚡ Connected. Type directly in this window to send data to the serial port...";
+      ta.focus();
+
+      reader = port.readable.getReader();
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (value) displayUartOutput(new TextDecoder('utf-8').decode(value));
+        }
+      } finally {
+        reader.releaseLock();
+        reader = null;
       }
-    } finally {
-      reader.releaseLock();
-      reader = null;
-    }
-    if (isConnected) await doDisconnect();
+      if (isConnected) await doDisconnect();
 
-  } catch (err) {
-    if (err.name !== 'NotFoundError' && err.name !== 'AbortError') {
-      console.error('Serial connect error:', err);
+    } catch (err) {
+      if (err.name !== 'NotFoundError' && err.name !== 'AbortError') {
+        console.error('Serial connect error:', err);
+      }
+      await doDisconnect();
     }
-    await doDisconnect();
   }
-}
 
-async function doDisconnect() {
-  isConnected = false;
-  const btn = document.getElementById('connectButton');
-  btn.textContent = '⚡ Connect';
-  btn.classList.remove('disconnect');
-  document.getElementById('baudRateSelect').disabled = false;
-  document.getElementById('dataBitsSelect').disabled = false;
-  document.getElementById('stopBitsSelect').disabled = false;
-  document.getElementById('paritySelect').disabled   = false;
-  document.getElementById('sendCommandButton').disabled = true;
+  async function doDisconnect() {
+    isConnected = false;
+    const btn = document.getElementById('connectButton');
+    btn.textContent = '⚡ Connect';
+    btn.classList.remove('disconnect');
+    document.getElementById('baudRateSelect').disabled = false;
+    document.getElementById('dataBitsSelect').disabled = false;
+    document.getElementById('stopBitsSelect').disabled = false;
+    document.getElementById('paritySelect').disabled   = false;
 
-  try { if (writer) { writer.releaseLock(); writer = null; } } catch {}
-  try { if (reader) { await reader.cancel(); reader = null; } } catch {}
-  try { if (port)   { await port.close();   port   = null; } } catch {}
-}
+    ta.placeholder = "⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom).";
+    
+    inputBuffer = '';
+    historyIndex = -1;
 
-  async function sendData(command) {
+    try { if (writer) { writer.releaseLock(); writer = null; } } catch {}
+    try { if (reader) { await reader.cancel(); reader = null; } } catch {}
+    try { if (port)   { await port.close();   port   = null; } } catch {}
+  }
+
+  async function sendRawData(data) {
     if (!writer || writer.locked) return;
     try {
-      await writer.write(new TextEncoder().encode(command + '\r\n'));
+      await writer.write(new TextEncoder().encode(data));
     } catch (err) {
       console.error('Send error:', err);
     }
   }
 
-  // Strip ANSI escape sequences (color codes, cursor movement, etc.), e.g.
-  // "\x1b[1;34m" or "\x1b[m" which show up as garbage like "[1;34m" in a plain textarea.
-  // Stateful: serial data arrives in arbitrary byte chunks, so an escape sequence
-  // can be split across two reads (e.g. ESC in one chunk, "[1;34m" in the next).
-  // We buffer any trailing incomplete sequence and prepend it to the next chunk.
   let ansiBuffer = '';
 
   function stripAnsi(chunk) {
@@ -522,16 +500,13 @@ async function doDisconnect() {
     while (i < str.length) {
       if (str[i] === '\x1b') {
         const rest = str.slice(i);
-        const csi = rest.match(/^\x1b\[[0-9;]*[a-zA-Z]/);   // CSI sequence e.g. \x1b[1;34m
-        const osc = rest.match(/^\x1b\][^\x07\x1b]*(\x07|\x1b\\)/); // OSC sequence
+        const csi = rest.match(/^\x1b\[[0-9;]*[a-zA-Z]/);
+        const osc = rest.match(/^\x1b\][^\x07\x1b]*(\x07|\x1b\\)/);
         const match = csi || osc;
         if (match) {
           i += match[0].length;
           continue;
         }
-        // Could be an incomplete sequence cut off at the end of this chunk.
-        // Only buffer it if it's short enough to plausibly still be incomplete;
-        // otherwise treat the lone ESC as junk and drop just that one byte.
         if (rest.length < 24) {
           ansiBuffer = rest;
           break;
@@ -544,41 +519,154 @@ async function doDisconnect() {
       }
     }
 
-    // Other stray control chars (keep \t \n \r)
-    return result.replace(/[\x00-\x08\x0e-\x1f]/g, '');
+    return result;
   }
 
   function displayUartOutput(data) {
-    const ta = document.getElementById('uartOutput');
-    ta.value += stripAnsi(data);
+    const cleanData = stripAnsi(data);
+    let val = ta.value;
+    for (let i = 0; i < cleanData.length; i++) {
+      const char = cleanData[i];
+      if (char === '\x08' || char === '\x7f') {
+        val = val.slice(0, -1);
+      } else if (char === '\x00') {
+        continue;
+      } else {
+        val += char;
+      }
+    }
+    ta.value = val;
     ta.scrollTop = ta.scrollHeight;
   }
 
-  // ── Send command ──
-  async function handleSend() {
-    const input = document.getElementById('commandInput');
-    const cmd = input.value.trim();
-    if (!cmd) return;
-    await sendData(cmd);
-    addToHistory(cmd);
-    input.value = '';
-    input.focus();
-  }
+  ta.addEventListener('keydown', async (e) => {
+    if (!isConnected || !writer) return;
 
-  // ── Event listeners ──
+    if (e.ctrlKey && e.key.toLowerCase() === 'c' && window.getSelection().toString() !== '') return;
+    if (e.ctrlKey && e.key.toLowerCase() === 'v') return;
+
+    if (e.ctrlKey && !e.altKey && !e.metaKey) {
+      const key = e.key.toLowerCase();
+      if (key >= 'a' && key <= 'z') {
+        e.preventDefault();
+        const code = key.charCodeAt(0) - 96;
+        await sendRawData(String.fromCharCode(code));
+        return;
+      }
+    }
+
+    const h = loadHistory();
+
+    switch (e.key) {
+      case 'Enter':
+        e.preventDefault();
+        await sendRawData('\r\n');
+        if (inputBuffer.trim()) {
+          addToHistory(inputBuffer);
+        }
+        inputBuffer = '';
+        historyIndex = -1;
+        break;
+      case 'Backspace':
+        e.preventDefault();
+        if (inputBuffer.length > 0) {
+          inputBuffer = inputBuffer.slice(0, -1);
+          await sendRawData('\x08');
+        }
+        break;
+      case 'Delete':
+        e.preventDefault();
+        await sendRawData('\x1b[3~');
+        break;
+      case 'Tab':
+        e.preventDefault();
+        await sendRawData('\x09');
+        break;
+      case 'Escape':
+        e.preventDefault();
+        await sendRawData('\x1b');
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        if (h.length > 0) {
+          if (historyIndex === -1) tempInput = inputBuffer;
+          if (historyIndex < h.length - 1) {
+            historyIndex++;
+            const cmd = h[historyIndex];
+            if (inputBuffer.length > 0) await sendRawData('\x08'.repeat(inputBuffer.length));
+            inputBuffer = cmd;
+            await sendRawData(inputBuffer);
+          }
+        }
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        if (h.length > 0) {
+          if (historyIndex > 0) {
+            historyIndex--;
+            const cmd = h[historyIndex];
+            if (inputBuffer.length > 0) await sendRawData('\x08'.repeat(inputBuffer.length));
+            inputBuffer = cmd;
+            await sendRawData(inputBuffer);
+          } else if (historyIndex === 0) {
+            historyIndex = -1;
+            if (inputBuffer.length > 0) await sendRawData('\x08'.repeat(inputBuffer.length));
+            inputBuffer = tempInput;
+            await sendRawData(inputBuffer);
+          }
+        }
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        await sendRawData('\x1b[C');
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        await sendRawData('\x1b[D');
+        break;
+      case 'Home':
+        e.preventDefault();
+        await sendRawData('\x1b[H');
+        break;
+      case 'End':
+        e.preventDefault();
+        await sendRawData('\x1b[F');
+        break;
+      case 'PageUp':
+        e.preventDefault();
+        await sendRawData('\x1b[5~');
+        break;
+      case 'PageDown':
+        e.preventDefault();
+        await sendRawData('\x1b[6~');
+        break;
+      default:
+        if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          e.preventDefault();
+          inputBuffer += e.key;
+          await sendRawData(e.key);
+        }
+        break;
+    }
+  });
+
+  ta.addEventListener('paste', async (e) => {
+    if (!isConnected || !writer) return;
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    if (text) {
+      inputBuffer += text;
+      await sendRawData(text);
+    }
+  });
+
   document.getElementById('connectButton').addEventListener('click', () => {
     if (isConnected) doDisconnect();
     else connectToSerialPort();
   });
 
-  document.getElementById('sendCommandButton').addEventListener('click', handleSend);
-
-  document.getElementById('commandInput').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') handleSend();
-  });
-
   document.getElementById('saveButton').addEventListener('click', () => {
-    const text = document.getElementById('uartOutput').value;
+    const text = ta.value;
     const a = Object.assign(document.createElement('a'), {
       href: URL.createObjectURL(new Blob([text], { type: 'text/plain' })),
       download: 'serial_output.txt'
@@ -589,7 +677,9 @@ async function doDisconnect() {
   });
 
   document.getElementById('clearButton').addEventListener('click', () => {
-    document.getElementById('uartOutput').value = '';
+    ta.value = '';
+    inputBuffer = '';
+    historyIndex = -1;
   });
 
   document.getElementById('clearHistoryBtn').addEventListener('click', () => {
