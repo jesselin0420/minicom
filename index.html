@@ -347,6 +347,53 @@ document.addEventListener('DOMContentLoaded', () => {
   let historyIndex = -1;
   let tempInput = '';
 
+  const CURSOR_CHAR = '▊';
+  let cursorVisible = false;
+  let isFocused = false;
+  let blinkTimer = null;
+
+  function getBaseText() {
+    let val = ta.value;
+    if (val.endsWith(CURSOR_CHAR)) {
+      val = val.slice(0, -CURSOR_CHAR.length);
+    }
+    return val;
+  }
+
+  function setTerminalText(text) {
+    const scrollTop = ta.scrollTop;
+    if (isFocused && isConnected) {
+      ta.value = text + (cursorVisible ? CURSOR_CHAR : '');
+    } else {
+      ta.value = text;
+    }
+    ta.scrollTop = scrollTop;
+  }
+
+  function startCursorBlink() {
+    if (blinkTimer) clearInterval(blinkTimer);
+    cursorVisible = true;
+    setTerminalText(getBaseText());
+    
+    blinkTimer = setInterval(() => {
+      if (!isConnected) {
+        stopCursorBlink();
+        return;
+      }
+      cursorVisible = !cursorVisible;
+      setTerminalText(getBaseText());
+    }, 500);
+  }
+
+  function stopCursorBlink() {
+    if (blinkTimer) {
+      clearInterval(blinkTimer);
+      blinkTimer = null;
+    }
+    cursorVisible = false;
+    setTerminalText(getBaseText());
+  }
+
   // ── History helpers ──
   function loadHistory() {
     try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
@@ -474,6 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     inputBuffer = '';
     historyIndex = -1;
+    stopCursorBlink();
 
     try { if (writer) { writer.releaseLock(); writer = null; } } catch {}
     try { if (reader) { await reader.cancel(); reader = null; } } catch {}
@@ -524,7 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function displayUartOutput(data) {
     const cleanData = stripAnsi(data);
-    let val = ta.value;
+    let val = getBaseText();
     for (let i = 0; i < cleanData.length; i++) {
       const char = cleanData[i];
       if (char === '\x08' || char === '\x7f') {
@@ -535,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
         val += char;
       }
     }
-    ta.value = val;
+    setTerminalText(val);
     ta.scrollTop = ta.scrollHeight;
   }
 
@@ -660,13 +708,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  ta.addEventListener('focus', () => {
+    isFocused = true;
+    if (isConnected) {
+      startCursorBlink();
+    }
+  });
+
+  ta.addEventListener('blur', () => {
+    isFocused = false;
+    stopCursorBlink();
+  });
+
   document.getElementById('connectButton').addEventListener('click', () => {
     if (isConnected) doDisconnect();
     else connectToSerialPort();
   });
 
   document.getElementById('saveButton').addEventListener('click', () => {
-    const text = ta.value;
+    const text = getBaseText();
     const a = Object.assign(document.createElement('a'), {
       href: URL.createObjectURL(new Blob([text], { type: 'text/plain' })),
       download: 'serial_output.txt'
@@ -680,6 +740,9 @@ document.addEventListener('DOMContentLoaded', () => {
     ta.value = '';
     inputBuffer = '';
     historyIndex = -1;
+    if (isFocused && isConnected) {
+      ta.value = CURSOR_CHAR;
+    }
   });
 
   document.getElementById('clearHistoryBtn').addEventListener('click', () => {
