@@ -345,6 +345,7 @@
     #uartOutput {
       background-color: #000;
       color: #2aee2a;
+      caret-color: #2aee2a;
       font-family: 'Courier New', Courier, monospace;
       font-size: 14px;
       width: 100%;
@@ -603,22 +604,14 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentMode = 'serial'; // 'serial' | 'adb'
   const ta = document.getElementById('uartOutput');
 
-  const CURSOR_CHAR = '▊';
-  let cursorVisible = false;
-  let isFocused = false;
-  let blinkTimer = null;
-
   function getBaseText() {
-    let val = ta.value;
-    if (val.endsWith(CURSOR_CHAR)) val = val.slice(0, -CURSOR_CHAR.length);
-    return val;
+    return ta.value;
   }
 
-  function setTerminalText(text, showCursor) {
+  function setTerminalText(text) {
     const savedScrollTop = ta.scrollTop;
-    const scrolledToBottom = savedScrollTop + ta.clientHeight >= ta.scrollHeight - 2;
-    ta.value = text + ((showCursor !== undefined ? showCursor : (isFocused && cursorVisible)) ? CURSOR_CHAR : '');
-    // Restore scroll: browsers reset scrollTop when .value is set
+    const scrolledToBottom = savedScrollTop + ta.clientHeight >= ta.scrollHeight - 5;
+    ta.value = text;
     if (scrolledToBottom) {
       ta.scrollTop = ta.scrollHeight;
     } else {
@@ -627,7 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function appendOutput(text) {
-    let val = getBaseText();
+    let val = ta.value;
     for (let i = 0; i < text.length; i++) {
       const c = text[i];
       if (c === '\x08' || c === '\x7f') { val = val.slice(0, -1); }
@@ -635,26 +628,10 @@ document.addEventListener('DOMContentLoaded', () => {
       else { val += c; }
     }
     setTerminalText(val);
-    ta.scrollTop = ta.scrollHeight;
   }
 
-  function startCursorBlink() {
-    // ADB mode: PTY already echoes prompt — no cursor char needed
-    if (currentMode === 'adb') return;
-    if (blinkTimer) clearInterval(blinkTimer);
-    cursorVisible = true;
-    setTerminalText(getBaseText());
-    blinkTimer = setInterval(() => {
-      cursorVisible = !cursorVisible;
-      setTerminalText(getBaseText());
-    }, 500);
-  }
-
-  function stopCursorBlink() {
-    if (blinkTimer) { clearInterval(blinkTimer); blinkTimer = null; }
-    cursorVisible = false;
-    setTerminalText(getBaseText());
-  }
+  function startCursorBlink() {}
+  function stopCursorBlink() {}
 
   // ── History helpers ──
   const HISTORY_KEY = 'serial_cmd_history';
