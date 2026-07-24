@@ -1142,12 +1142,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const CHUNK = 16384;
       for (let i = 0; i < pkt.length; i += CHUNK) {
         if (this.closed) return;
-        const result = await this.device.transferOut(
+        let result = await this.device.transferOut(
           this.outEp.endpointNumber, pkt.slice(i, i + CHUNK)
         );
+        if (result.status === 'stall') {
+          try { await this.device.clearHalt('out', this.outEp.endpointNumber); } catch {}
+          result = await this.device.transferOut(
+            this.outEp.endpointNumber, pkt.slice(i, i + CHUNK)
+          );
+        }
         if (result.status !== 'ok') {
-          throw new Error(`USB write failed (status=${result.status}). ` +
-            'On Windows, try installing WinUSB driver via Zadig tool.');
+          throw new Error(`USB write failed (status=${result.status}).`);
         }
       }
     }
@@ -1192,20 +1197,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async _doConnect(onStatus) {
-      if (onStatus) onStatus('Sending CNXN…');
-      appendOutput('[ADB] → Sent CNXN (version handshake)\n');
+      if (onStatus) onStatus('Connecting…');
       await this.transport.sendPacket(A_CNXN, A_VERSION, MAX_PAYLOAD, 'host::\0');
 
       let triedSig = false;
 
       while (true) {
-        appendOutput('[ADB] Waiting for device response…\n');
         const pkt = await this.transport.readPacket();
-        const cmdName = {
-          [A_CNXN]: 'CNXN', [A_AUTH]: 'AUTH',
-          [A_OKAY]: 'OKAY', [A_CLSE]: 'CLSE', [A_WRTE]: 'WRTE'
-        }[pkt.cmd] || `0x${pkt.cmd.toString(16)}`;
-        appendOutput(`[ADB] ← Received ${cmdName} (arg0=${pkt.arg0}, data=${pkt.data.length}b)\n`);
 
         if (pkt.cmd === A_CNXN) {
           this.deviceBanner = new TextDecoder('utf-8', { fatal: false }).decode(pkt.data);
@@ -1217,17 +1215,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pkt.cmd === A_AUTH && pkt.arg0 === ADB_AUTH_TOKEN) {
           if (!triedSig) {
             triedSig = true;
-            if (onStatus) onStatus('Signing token…');
-            appendOutput('[ADB] Signing AUTH token with RSA-2048 PKCS#1v1.5…\n');
-            // Use manual signing — WebCrypto would double-hash the token (bug)
+            if (onStatus) onStatus('Authenticating…');
+            // Use manual signing — WebCrypto would double-hash the token
             const sig = adbRsaSign(this.privateJwk, pkt.data);
-            appendOutput(`[ADB] → Sending SIGNATURE (${sig.length} bytes)\n`);
             await this.transport.sendPacket(A_AUTH, ADB_AUTH_SIGNATURE, 0, sig);
           } else {
-            // Signature not accepted → send public key (device will show dialog)
-            if (onStatus) onStatus('⚠ Please accept the "Allow USB debugging" prompt on your device…');
-            appendOutput('[ADB] Signature not trusted — sending RSA public key to device\n');
-            appendOutput('[ADB] ⚠ A dialog should appear on your phone — tap "Allow"\n');
+            // Signature not in device’s trusted list → ask user to authorize
+            if (onStatus) onStatus('⚠ Check your phone…');
+            appendOutput(
+              '\n[ADB] ⚠ Please authorize on your phone:\n' +
+              '  1. Tap "Allow" in the USB debugging dialog\n' +
+              '  2. ✔ Check "Always allow from this computer"\n' +
+              '     (so you won\'t need to approve again next time)\n\n'
+            );
             const pub = new TextEncoder().encode(this.publicKeyAdb);
             await this.transport.sendPacket(A_AUTH, ADB_AUTH_RSAPUBLICKEY, 0, pub);
             // Keep looping — CNXN arrives after user taps Allow
@@ -1420,10 +1420,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       await device.claimInterface(adbIface.interfaceNumber);
 
-      // Select alternate interface setting 0 (required on some devices)
+      // Clear any previous endpoint stalls (DO NOT call selectAlternateInterface on Linux as it causes endpoint STALL)
       try {
-        await device.selectAlternateInterface(adbIface.interfaceNumber, 0);
-      } catch(_) { /* not all devices need this */ }
+        await device.clearHalt('in', inEp.endpointNumber);
+        await device.clearHalt('out', outEp.endpointNumber);
+      } catch(_) {}
 
       const transport = new AdbUsb(device, inEp, outEp);
       const { privateJwk, publicKeyAdb } = await getOrCreateAdbKey();
@@ -1477,11 +1478,29 @@ document.addEventListener('DOMContentLoaded', () => {
         setAdbStatus('Disconnected', '');
         return;
       }
-      appendOutput(`\n[ADB Error] ${err.message}\n`);
-      setAdbStatus('Error — ' + err.message.slice(0, 30), '');
+
+      // Detect Linux/Ubuntu USB transfer error
+      const isTransferErr = /transfer\s*error|transferout/i.test(err.message);
+      let msg = err.message;
+      if (isTransferErr) {
+        msg = 'USB Transfer Failed.\n\n' +
+              '[⚠ Linux/Ubuntu 解答說明]\n' +
+              '在 Linux 上若已執行 adb kill-server 仍出現傳輸錯誤，通常為 USB 裝置權限 (udev) 問題：\n\n' +
+              '方案 1 (快速測試):\n' +
+              '  在 Terminal 執行： sudo chmod 666 /dev/bus/usb/*/*\n\n' +
+              '方案 2 (永久生效 - 推薦):\n' +
+              '  1. 安裝 udev 規則： sudo apt install android-sdk-platform-tools-common\n' +
+              '  2. 或將當前使用者加入 plugdev 群組： sudo usermod -aG plugdev $USER\n' +
+              '  3. 重新插拔 USB 線。\n';
+        setAdbStatus('⚠ Linux: Check udev permissions', '');
+      } else {
+        setAdbStatus('Error — ' + err.message.slice(0, 28), '');
+      }
+
+      appendOutput(`\n[ADB Error] ${msg}\n`);
       updateAdbUI(false);
       isAdbConnected = false;
-      adbClient = null;
+      if (adbClient) { adbClient.disconnect(); adbClient = null; }
     }
   }
 
