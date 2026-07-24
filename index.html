@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Serial Console</title>
+  <title>Serial &amp; ADB Console</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
 
@@ -110,6 +110,47 @@
       cursor: not-allowed;
     }
 
+    /* ── Mode Tabs ── */
+    .mode-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 5px;
+      background: #0d1929;
+      border-radius: 8px;
+      border: 1px solid #2a3a5a;
+    }
+
+    .mode-tab {
+      flex: 1;
+      padding: 7px 6px;
+      border-radius: 5px;
+      background: transparent;
+      color: #4a6a9a;
+      border: 1px solid transparent;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .mode-tab:hover:not(.active) {
+      background: #0f2040;
+      color: #7090c0;
+      border-color: #2a3a5a;
+    }
+
+    .mode-tab.active {
+      background: #0f3460;
+      color: #a0cfff;
+      border-color: #2a5a9a;
+      font-weight: bold;
+    }
+
+    /* ── Serial & ADB panel visibility ── */
+    .mode-panel { display: none; }
+    .mode-panel.active { display: block; }
+
+    /* ── Connect Button ── */
     #connectButton {
       width: 100%;
       margin-top: 6px;
@@ -122,14 +163,185 @@
     #connectButton:hover:not(:disabled) {
       background-color: #1a7a40;
     }
-   
+
     #connectButton.disconnect {
       background-color: #5a0f0f;
       border-color: #8a1a1a;
       color: #ffb0b0;
     }
-#connectButton.disconnect:hover:not(:disabled) { background-color: #7a1a1a; }
-    /* Console Output */
+    #connectButton.disconnect:hover:not(:disabled) { background-color: #7a1a1a; }
+
+    /* ── ADB Connect Button ── */
+    #adbConnectButton {
+      width: 100%;
+      margin-top: 6px;
+      background-color: #1a3a6a;
+      border-color: #2a6aaa;
+      color: #80c8ff;
+      font-weight: bold;
+    }
+
+    #adbConnectButton:hover:not(:disabled) {
+      background-color: #1a4a8a;
+    }
+
+    #adbConnectButton.disconnect {
+      background-color: #5a0f0f;
+      border-color: #8a1a1a;
+      color: #ffb0b0;
+    }
+    #adbConnectButton.disconnect:hover:not(:disabled) { background-color: #7a1a1a; }
+
+    /* ── ADB Status Badge ── */
+    .adb-status-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      padding: 6px 9px;
+      border-radius: 5px;
+      background: #0d1929;
+      border: 1px solid #2a3a5a;
+      margin-bottom: 10px;
+    }
+
+    .adb-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #3a5a3a;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+
+    .adb-status-dot.connected {
+      background: #2aee2a;
+      box-shadow: 0 0 6px rgba(42,238,42,0.6);
+    }
+
+    .adb-status-dot.waiting {
+      background: #eebb2a;
+      box-shadow: 0 0 6px rgba(238,187,42,0.6);
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .adb-status-text {
+      color: #6a8aaa;
+      font-size: 11px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── ADB Device Info ── */
+    #adbDeviceInfo {
+      font-size: 11px;
+      color: #5a9aaa;
+      background: #0a1f35;
+      border: 1px solid #1a3a5a;
+      border-radius: 5px;
+      padding: 7px 9px;
+      margin-bottom: 10px;
+      font-family: 'Courier New', monospace;
+      word-break: break-all;
+      display: none;
+    }
+
+    /* ── ADB Quick Commands ── */
+    .adb-quick-label {
+      font-size: 11px;
+      color: #4a6a8a;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 6px;
+      margin-top: 4px;
+    }
+
+    .adb-quick-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .adb-quick-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+      background: #0a2040;
+      border: 1px solid #1a4060;
+      color: #5090c0;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+
+    .adb-quick-btn:hover:not(:disabled) {
+      background: #0f3060;
+      color: #80c0f0;
+      border-color: #2a5a9a;
+    }
+
+    .adb-quick-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* ── ADB Command Bar (in right panel) ── */
+    #adbCmdBar {
+      display: none;
+      margin-bottom: 10px;
+      padding: 8px 10px;
+      background: #0d1929;
+      border: 1px solid #2a3a5a;
+      border-radius: 6px;
+      gap: 6px;
+      align-items: center;
+    }
+
+    #adbCmdBar.visible {
+      display: flex;
+    }
+
+    .adb-prompt {
+      font-family: 'Courier New', monospace;
+      color: #2aee2a;
+      font-size: 14px;
+      flex-shrink: 0;
+      padding: 0 4px;
+    }
+
+    #adbCmdInput {
+      flex: 1;
+      padding: 5px 8px;
+      background: #0f1f3a;
+      color: #e0e0e0;
+      border: 1px solid #2a3a5a;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    #adbCmdInput:focus {
+      border-color: #2a5aaa;
+      box-shadow: 0 0 0 2px rgba(42,90,170,0.25);
+    }
+
+    #adbSendBtn {
+      padding: 5px 12px;
+      font-size: 13px;
+      background: #0f3460;
+      border-color: #2a5a9a;
+      color: #80c8ff;
+      flex-shrink: 0;
+    }
+
+    /* ── Console Output ── */
     #uartOutput {
       background-color: #000;
       color: #2aee2a;
@@ -248,9 +460,17 @@
 
 <div class="main-layout-container">
 
-  <!-- Left: Port Settings -->
+  <!-- Left: Mode Tabs + Settings -->
   <div class="left-column">
-    <div class="panel">
+
+    <!-- Mode Tabs -->
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tabSerial" data-mode="serial">📡 Serial</button>
+      <button class="mode-tab"        id="tabAdb"    data-mode="adb">🤖 ADB</button>
+    </div>
+
+    <!-- Serial Panel -->
+    <div class="panel mode-panel active" id="panelSerial">
       <h2>Port Settings</h2>
 
       <div class="input-group">
@@ -307,15 +527,54 @@
 
       <button id="connectButton">⚡ Connect</button>
     </div>
+
+    <!-- ADB Panel -->
+    <div class="panel mode-panel" id="panelAdb">
+      <h2>ADB</h2>
+
+      <div class="adb-status-badge">
+        <div class="adb-status-dot" id="adbStatusDot"></div>
+        <span class="adb-status-text" id="adbStatusText">Disconnected</span>
+      </div>
+
+      <div id="adbDeviceInfo"></div>
+
+      <button id="adbConnectButton">🤖 Connect ADB</button>
+      <button id="adbResetKeyBtn" title="Delete stored RSA key and generate a new one (forces re-authorization on device)" style="width:100%;margin-top:5px;font-size:11px;padding:5px;background:transparent;border-color:#3a2a1a;color:#7a5a3a;">🔑 Reset RSA Key</button>
+
+      <div style="margin-top:14px;">
+        <div class="adb-quick-label">Quick Commands</div>
+        <div class="adb-quick-grid">
+          <button class="adb-quick-btn" data-cmd="getprop ro.product.model" disabled>Model</button>
+          <button class="adb-quick-btn" data-cmd="getprop ro.build.version.release" disabled>Android</button>
+          <button class="adb-quick-btn" data-cmd="getprop ro.serialno" disabled>S/N</button>
+          <button class="adb-quick-btn" data-cmd="df -h /data" disabled>Disk</button>
+          <button class="adb-quick-btn" data-cmd="free -m" disabled>Memory</button>
+          <button class="adb-quick-btn" data-cmd="top -b -n 1 | head -20" disabled>CPU</button>
+          <button class="adb-quick-btn" data-cmd="ip addr show" disabled>IP</button>
+          <button class="adb-quick-btn" data-cmd="pm list packages -3" disabled>Apps</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Right: Console -->
   <div class="right-column">
-
-    <!-- Console -->
     <div class="panel">
-      <h2>Console</h2>
-      <textarea id="uartOutput" readonly placeholder="⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom)."></textarea>
+      <h2 id="consoleTitle">Console</h2>
+
+      <!-- ADB One-shot Command Bar (shown in ADB mode) -->
+      <div id="adbCmdBar">
+        <span class="adb-prompt">$</span>
+        <input type="text" id="adbCmdInput" placeholder="adb shell command (one-shot)…" autocomplete="off" spellcheck="false">
+        <button id="adbSendBtn" disabled>▶ Run</button>
+      </div>
+
+      <textarea id="uartOutput" readonly
+        placeholder="⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom).">
+      </textarea>
+
       <div class="output-actions" style="margin-top: 10px;">
         <button id="saveButton">💾 Save Output</button>
         <button id="clearButton">🗑 Clear Output</button>
@@ -330,22 +589,19 @@
         <span class="history-empty">No commands sent yet.</span>
       </div>
     </div>
-
   </div>
+
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  let port, writer, reader;
-  let isConnected = false;
-  const HISTORY_KEY = 'serial_cmd_history';
-  const MAX_HISTORY = 30;
 
+  // ══════════════════════════════════════════════════════════════
+  // SHARED STATE
+  // ══════════════════════════════════════════════════════════════
+
+  let currentMode = 'serial'; // 'serial' | 'adb'
   const ta = document.getElementById('uartOutput');
-
-  let inputBuffer = '';
-  let historyIndex = -1;
-  let tempInput = '';
 
   const CURSOR_CHAR = '▊';
   let cursorVisible = false;
@@ -354,56 +610,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function getBaseText() {
     let val = ta.value;
-    if (val.endsWith(CURSOR_CHAR)) {
-      val = val.slice(0, -CURSOR_CHAR.length);
-    }
+    if (val.endsWith(CURSOR_CHAR)) val = val.slice(0, -CURSOR_CHAR.length);
     return val;
   }
 
-  function setTerminalText(text) {
-    const scrollTop = ta.scrollTop;
-    if (isFocused && isConnected) {
-      ta.value = text + (cursorVisible ? CURSOR_CHAR : '');
+  function setTerminalText(text, showCursor) {
+    const savedScrollTop = ta.scrollTop;
+    const scrolledToBottom = savedScrollTop + ta.clientHeight >= ta.scrollHeight - 2;
+    ta.value = text + ((showCursor !== undefined ? showCursor : (isFocused && cursorVisible)) ? CURSOR_CHAR : '');
+    // Restore scroll: browsers reset scrollTop when .value is set
+    if (scrolledToBottom) {
+      ta.scrollTop = ta.scrollHeight;
     } else {
-      ta.value = text;
+      ta.scrollTop = savedScrollTop;
     }
-    ta.scrollTop = scrollTop;
+  }
+
+  function appendOutput(text) {
+    let val = getBaseText();
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (c === '\x08' || c === '\x7f') { val = val.slice(0, -1); }
+      else if (c === '\x00') { continue; }
+      else { val += c; }
+    }
+    setTerminalText(val);
+    ta.scrollTop = ta.scrollHeight;
   }
 
   function startCursorBlink() {
+    // ADB mode: PTY already echoes prompt — no cursor char needed
+    if (currentMode === 'adb') return;
     if (blinkTimer) clearInterval(blinkTimer);
     cursorVisible = true;
     setTerminalText(getBaseText());
-    
     blinkTimer = setInterval(() => {
-      if (!isConnected) {
-        stopCursorBlink();
-        return;
-      }
       cursorVisible = !cursorVisible;
       setTerminalText(getBaseText());
     }, 500);
   }
 
   function stopCursorBlink() {
-    if (blinkTimer) {
-      clearInterval(blinkTimer);
-      blinkTimer = null;
-    }
+    if (blinkTimer) { clearInterval(blinkTimer); blinkTimer = null; }
     cursorVisible = false;
     setTerminalText(getBaseText());
   }
 
   // ── History helpers ──
+  const HISTORY_KEY = 'serial_cmd_history';
+  const MAX_HISTORY = 30;
+
   function loadHistory() {
-    try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
-    catch { return []; }
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; }
   }
-
-  function saveHistory(arr) {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
-  }
-
+  function saveHistory(arr) { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); }
   function addToHistory(cmd) {
     let h = loadHistory();
     h = h.filter(c => c !== cmd);
@@ -411,6 +671,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (h.length > MAX_HISTORY) h = h.slice(0, MAX_HISTORY);
     saveHistory(h);
     renderHistory();
+  }
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   function renderHistory() {
@@ -430,18 +693,29 @@ document.addEventListener('DOMContentLoaded', () => {
     list.querySelectorAll('.history-tag').forEach(tag => {
       tag.addEventListener('click', async (e) => {
         if (e.target.classList.contains('del-btn')) return;
-        if (!isConnected || !writer) return;
         const idx = parseInt(tag.dataset.index);
         const cmd = loadHistory()[idx];
-        
-        if (inputBuffer.length > 0) {
-          await sendRawData('\x08'.repeat(inputBuffer.length));
-          inputBuffer = '';
+        if (currentMode === 'serial') {
+          if (!isConnected || !writer) return;
+          if (inputBuffer.length > 0) { await sendRawData('\x08'.repeat(inputBuffer.length)); inputBuffer = ''; }
+          inputBuffer = cmd;
+          await sendRawData(inputBuffer);
+          ta.focus();
+        } else if (currentMode === 'adb') {
+          if (isAdbConnected && adbShellStream) {
+            // Clear current adbInputBuffer from the shell line first
+            if (adbInputBuffer.length > 0) {
+              await adbShellStream.send('\x15'); // Ctrl+U = clear line
+              adbInputBuffer = '';
+            }
+            adbInputBuffer = cmd;
+            await adbShellStream.send(cmd);
+            ta.focus();
+          } else {
+            document.getElementById('adbCmdInput').value = cmd;
+            document.getElementById('adbCmdInput').focus();
+          }
         }
-        
-        inputBuffer = cmd;
-        await sendRawData(inputBuffer);
-        ta.focus();
       });
     });
 
@@ -457,11 +731,70 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function escapeHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  // ── Mode Tabs ──
+  document.querySelectorAll('.mode-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const mode = tab.dataset.mode;
+      if (mode === currentMode) return;
+      currentMode = mode;
+
+      document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+      document.querySelectorAll('.mode-panel').forEach(p => p.classList.toggle('active', p.id === (mode === 'serial' ? 'panelSerial' : 'panelAdb')));
+
+      const adbBar = document.getElementById('adbCmdBar');
+      if (mode === 'adb') {
+        adbBar.classList.add('visible');
+        document.getElementById('consoleTitle').textContent = 'ADB Console';
+        ta.placeholder = '🤖 ADB mode — connect a device, then type commands here or use the command bar above.';
+      } else {
+        adbBar.classList.remove('visible');
+        document.getElementById('consoleTitle').textContent = 'Console';
+        ta.placeholder = '⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom).';
+      }
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // SERIAL MODE
+  // ══════════════════════════════════════════════════════════════
+
+  let port, writer, reader;
+  let isConnected = false;
+  let inputBuffer = '';
+  let historyIndex = -1;
+  let tempInput = '';
+  let ansiBuffer = '';
+
+  function stripAnsi(chunk) {
+    const str = ansiBuffer + chunk;
+    ansiBuffer = '';
+    let result = '';
+    let i = 0;
+    while (i < str.length) {
+      if (str[i] === '\x1b') {
+        const rest = str.slice(i);
+        const csi = rest.match(/^\x1b\[[0-9;]*[a-zA-Z]/);
+        const osc = rest.match(/^\x1b\][^\x07\x1b]*(\x07|\x1b\\)/);
+        const match = csi || osc;
+        if (match) { i += match[0].length; continue; }
+        if (rest.length < 24) { ansiBuffer = rest; break; }
+        else { i += 1; }
+      } else { result += str[i]; i += 1; }
+    }
+    return result;
   }
 
-  // ── Connect ──
+  function displayUartOutput(data) {
+    const cleanData = stripAnsi(data);
+    appendOutput(cleanData);
+  }
+
+  async function sendRawData(data) {
+    if (!writer || writer.locked) return;
+    try { await writer.write(new TextEncoder().encode(data)); }
+    catch (err) { console.error('Send error:', err); }
+  }
+
   async function connectToSerialPort() {
     try {
       const baudRate = parseInt(document.getElementById('baudRateSelect').value, 10);
@@ -482,8 +815,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('dataBitsSelect').disabled = true;
       document.getElementById('stopBitsSelect').disabled = true;
       document.getElementById('paritySelect').disabled   = true;
-
-      ta.placeholder = "⚡ Connected. Type directly in this window to send data to the serial port...";
+      ta.placeholder = '⚡ Connected. Type directly in this window to send data to the serial port…';
       ta.focus();
 
       reader = port.readable.getReader();
@@ -498,11 +830,8 @@ document.addEventListener('DOMContentLoaded', () => {
         reader = null;
       }
       if (isConnected) await doDisconnect();
-
     } catch (err) {
-      if (err.name !== 'NotFoundError' && err.name !== 'AbortError') {
-        console.error('Serial connect error:', err);
-      }
+      if (err.name !== 'NotFoundError' && err.name !== 'AbortError') console.error('Serial connect error:', err);
       await doDisconnect();
     }
   }
@@ -516,78 +845,784 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dataBitsSelect').disabled = false;
     document.getElementById('stopBitsSelect').disabled = false;
     document.getElementById('paritySelect').disabled   = false;
-
-    ta.placeholder = "⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom).";
-    
+    ta.placeholder = '⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom).';
     inputBuffer = '';
     historyIndex = -1;
     stopCursorBlink();
-
     try { if (writer) { writer.releaseLock(); writer = null; } } catch {}
     try { if (reader) { await reader.cancel(); reader = null; } } catch {}
     try { if (port)   { await port.close();   port   = null; } } catch {}
   }
 
-  async function sendRawData(data) {
-    if (!writer || writer.locked) return;
-    try {
-      await writer.write(new TextEncoder().encode(data));
-    } catch (err) {
-      console.error('Send error:', err);
+  // ══════════════════════════════════════════════════════════════
+  // ADB PROTOCOL IMPLEMENTATION (WebUSB)
+  // ══════════════════════════════════════════════════════════════
+
+  const A_CNXN = 0x4e584e43;  // MKID('C','N','X','N')
+  const A_AUTH = 0x48545541;  // MKID('A','U','T','H')  ← was wrong: 0x41555448
+  const A_OPEN = 0x4e45504f;  // MKID('O','P','E','N')
+  const A_OKAY = 0x59414b4f;  // MKID('O','K','A','Y')
+  const A_CLSE = 0x45534c43;  // MKID('C','L','S','E')
+  const A_WRTE = 0x45545257;  // MKID('W','R','T','E')
+
+  const ADB_AUTH_TOKEN       = 1;
+  const ADB_AUTH_SIGNATURE   = 2;
+  const ADB_AUTH_RSAPUBLICKEY = 3;
+
+  const A_VERSION  = 0x01000001;
+  const MAX_PAYLOAD = 256 * 1024;
+
+  const ADB_KEY_JWK  = 'adb_private_key_jwk';
+  const ADB_KEY_PUB  = 'adb_public_key_adb';
+
+  // ── RSA Key management ──
+  async function getOrCreateAdbKey() {
+    const stored = localStorage.getItem(ADB_KEY_JWK);
+    if (stored) {
+      try {
+        const jwk = JSON.parse(stored);
+        const publicKeyAdb = localStorage.getItem(ADB_KEY_PUB);
+        // Validate the JWK has the fields we need for manual signing
+        if (publicKeyAdb && jwk.d && jwk.n && jwk.p && jwk.q && jwk.dp && jwk.dq && jwk.qi) {
+          return { privateJwk: jwk, publicKeyAdb };
+        }
+      } catch(e) { /* fall through to regenerate */ }
+      localStorage.removeItem(ADB_KEY_JWK);
+      localStorage.removeItem(ADB_KEY_PUB);
     }
+    appendOutput('[ADB] Generating new RSA-2048 key pair…\n');
+    // Generate new 2048-bit RSA key pair
+    const kp = await crypto.subtle.generateKey(
+      { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048,
+        publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-1' },
+      true, ['sign', 'verify']
+    );
+    // Export private key as JWK (we need d,p,q,dp,dq,qi for manual signing)
+    const jwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
+    localStorage.setItem(ADB_KEY_JWK, JSON.stringify(jwk));
+
+    const spki = await crypto.subtle.exportKey('spki', kp.publicKey);
+    const publicKeyAdb = spkiToAdbPublicKey(new Uint8Array(spki));
+    localStorage.setItem(ADB_KEY_PUB, publicKeyAdb);
+    appendOutput('[ADB] RSA key pair generated and saved.\n');
+
+    return { privateJwk: jwk, publicKeyAdb };
   }
 
-  let ansiBuffer = '';
+  // ── Manual RSA PKCS#1 v1.5 signing ──
+  // ADB authentication: device sends 20 random bytes as "token".
+  // The host must treat those bytes as a raw SHA-1 digest and sign with PKCS#1 v1.5.
+  // WebCrypto's subtle.sign always re-hashes the input (double-SHA1 → wrong).
+  // So we implement the signing manually using BigInt.
+  function adbRsaSign(jwk, tokenBytes) {
+    function b64urlToBigInt(s) {
+      const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
+      const raw = atob(b64);
+      let n = 0n;
+      for (let i = 0; i < raw.length; i++) n = (n << 8n) | BigInt(raw.charCodeAt(i));
+      return n;
+    }
+    // Fast modular exponentiation (square-and-multiply)
+    function modPow(base, exp, mod) {
+      let result = 1n;
+      base = base % mod;
+      while (exp > 0n) {
+        if (exp & 1n) result = result * base % mod;
+        exp >>= 1n;
+        base = base * base % mod;
+      }
+      return result;
+    }
 
-  function stripAnsi(chunk) {
-    const str = ansiBuffer + chunk;
-    ansiBuffer = '';
-    let result = '';
-    let i = 0;
+    const p  = b64urlToBigInt(jwk.p);
+    const q  = b64urlToBigInt(jwk.q);
+    const dp = b64urlToBigInt(jwk.dp);
+    const dq = b64urlToBigInt(jwk.dq);
+    const qi = b64urlToBigInt(jwk.qi);
+    const n  = p * q;
+    const keyLen = 256; // 2048 / 8
 
-    while (i < str.length) {
-      if (str[i] === '\x1b') {
-        const rest = str.slice(i);
-        const csi = rest.match(/^\x1b\[[0-9;]*[a-zA-Z]/);
-        const osc = rest.match(/^\x1b\][^\x07\x1b]*(\x07|\x1b\\)/);
-        const match = csi || osc;
-        if (match) {
-          i += match[0].length;
+    // PKCS#1 v1.5 DigestInfo for SHA-1 (RFC 3447)
+    // SEQUENCE { SEQUENCE { OID 1.3.14.3.2.26 (sha1), NULL }, OCTET STRING [hash] }
+    const SHA1_DIGESTINFO_PREFIX = new Uint8Array([
+      0x30, 0x21, 0x30, 0x09,
+      0x06, 0x05, 0x2b, 0x0e, 0x03, 0x02, 0x1a,
+      0x05, 0x00,
+      0x04, 0x14
+    ]); // 15 bytes
+
+    // Build T = DigestInfo prefix (15 bytes) + token (20 bytes) = 35 bytes
+    const T = new Uint8Array(35);
+    T.set(SHA1_DIGESTINFO_PREFIX, 0);
+    T.set(tokenBytes, 15);
+
+    // Build EM = 0x00 || 0x01 || PS (0xFF padding) || 0x00 || T
+    // Total = keyLen = 256 bytes; PS length = 256 - 3 - 35 = 218 bytes
+    const EM = new Uint8Array(keyLen);
+    EM[0] = 0x00;
+    EM[1] = 0x01;
+    const psLen = keyLen - 3 - T.length; // 218
+    for (let i = 0; i < psLen; i++) EM[2 + i] = 0xFF;
+    EM[2 + psLen] = 0x00;
+    EM.set(T, 3 + psLen);
+
+    // Convert EM to BigInt (big-endian)
+    let m = 0n;
+    for (const b of EM) m = (m << 8n) | BigInt(b);
+
+    // RSA CRT private key operation
+    // mp = m^dp mod p,  mq = m^dq mod q
+    const mp = modPow(m % p, dp, p);
+    const mq = modPow(m % q, dq, q);
+    // CRT recombination: s = mq + q * ((qi * (mp - mq)) mod p)
+    let diff = mp - mq;
+    if (diff < 0n) diff += p;
+    const h = qi * diff % p;
+    const s = mq + q * h;
+
+    // Convert s to big-endian byte array (256 bytes)
+    const sig = new Uint8Array(keyLen);
+    let tmp = s;
+    for (let i = keyLen - 1; i >= 0; i--) {
+      sig[i] = Number(tmp & 0xFFn);
+      tmp >>= 8n;
+    }
+    return sig;
+  }
+
+  // Convert WebCrypto SPKI → ADB RSAPublicKey binary → base64 string
+  function spkiToAdbPublicKey(spkiBytes) {
+    const modulus = parseSpkiModulus(spkiBytes);
+    const adbKey  = buildAdbRsaPublicKey(modulus);
+    const b64 = btoa(String.fromCharCode(...adbKey));
+    return b64 + ' webserial@browser\n';
+  }
+
+  function parseSpkiModulus(bytes) {
+    let pos = 0;
+    function readLen() {
+      let len = bytes[pos++];
+      if (len & 0x80) {
+        const n = len & 0x7f; len = 0;
+        for (let i = 0; i < n; i++) len = (len << 8) | bytes[pos++];
+      }
+      return len;
+    }
+    // SEQUENCE (outer)
+    pos++; readLen();
+    // AlgorithmIdentifier SEQUENCE
+    pos++; pos += readLen();
+    // BIT STRING
+    pos++; readLen();
+    pos++; // unused bits = 0
+    // RSAPublicKey SEQUENCE
+    pos++; readLen();
+    // modulus INTEGER
+    pos++;
+    let modLen = readLen();
+    if (bytes[pos] === 0x00) { pos++; modLen--; }
+    return bytes.slice(pos, pos + modLen);
+  }
+
+  function buildAdbRsaPublicKey(modulusBytes) {
+    const W = 64; // 2048 / 32
+    let n = 0n;
+    for (const b of modulusBytes) n = (n << 8n) | BigInt(b);
+
+    // n0inv = -(n^-1) mod 2^32
+    const n0 = n & 0xFFFFFFFFn;
+    const inv = modInv(n0, 1n << 32n);
+    const n0inv = Number(((1n << 32n) - inv) & 0xFFFFFFFFn);
+
+    // rr = 2^(64*W) mod n
+    const rr = (1n << BigInt(64 * W)) % n;
+
+    // struct: len(4) + n0inv(4) + n[W*4] + rr[W*4] + exponent(4)
+    const out = new DataView(new ArrayBuffer(4 + 4 + W * 4 + W * 4 + 4));
+    let off = 0;
+    out.setInt32(off, W, true);     off += 4;
+    out.setUint32(off, n0inv, true); off += 4;
+
+    let tmp = n;
+    for (let i = 0; i < W; i++) {
+      out.setUint32(off, Number(tmp & 0xFFFFFFFFn), true); off += 4;
+      tmp >>= 32n;
+    }
+    tmp = rr;
+    for (let i = 0; i < W; i++) {
+      out.setUint32(off, Number(tmp & 0xFFFFFFFFn), true); off += 4;
+      tmp >>= 32n;
+    }
+    out.setInt32(off, 65537, true);
+    return new Uint8Array(out.buffer);
+  }
+
+  function modInv(a, m) {
+    let [r, nr] = [m, a], [s, ns] = [0n, 1n];
+    while (nr !== 0n) {
+      const q = r / nr;
+      [r, nr] = [nr, r - q * nr];
+      [s, ns] = [ns, s - q * ns];
+    }
+    return ((s % m) + m) % m;
+  }
+
+  // ── ADB USB Transport ──
+  class AdbUsb {
+    constructor(device, inEp, outEp) {
+      this.device = device;
+      this.inEp   = inEp;
+      this.outEp  = outEp;
+      this._buf   = new Uint8Array(0);
+      this.closed = false;
+    }
+
+    async _fillBuf(needed) {
+      while (!this.closed && this._buf.length < needed) {
+        let result;
+        try {
+          result = await this.device.transferIn(this.inEp.endpointNumber, 16384);
+        } catch(e) {
+          if (this.closed) return;
+          throw e;
+        }
+        if (result.status === 'stall') {
+          try { await this.device.clearHalt('in', this.inEp.endpointNumber); } catch {}
           continue;
         }
-        if (rest.length < 24) {
-          ansiBuffer = rest;
-          break;
-        } else {
-          i += 1;
+        if (result.data && result.data.byteLength > 0) {
+          const chunk = new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength);
+          const next = new Uint8Array(this._buf.length + chunk.length);
+          next.set(this._buf); next.set(chunk, this._buf.length);
+          this._buf = next;
         }
-      } else {
-        result += str[i];
-        i += 1;
       }
     }
 
-    return result;
-  }
+    async _read(n) {
+      await this._fillBuf(n);
+      const r = this._buf.slice(0, n);
+      this._buf = this._buf.slice(n);
+      return r;
+    }
 
-  function displayUartOutput(data) {
-    const cleanData = stripAnsi(data);
-    let val = getBaseText();
-    for (let i = 0; i < cleanData.length; i++) {
-      const char = cleanData[i];
-      if (char === '\x08' || char === '\x7f') {
-        val = val.slice(0, -1);
-      } else if (char === '\x00') {
-        continue;
-      } else {
-        val += char;
+    async readPacket() {
+      const hdr = await this._read(24);
+      const v = new DataView(hdr.buffer, hdr.byteOffset);
+      const cmd  = v.getUint32(0, true);
+      const arg0 = v.getUint32(4, true);
+      const arg1 = v.getUint32(8, true);
+      const dlen = v.getUint32(12, true);
+      // skip crc(16) and magic(20)
+      const data = dlen > 0 ? await this._read(dlen) : new Uint8Array(0);
+      return { cmd, arg0, arg1, data };
+    }
+
+    async sendPacket(cmd, arg0, arg1, data) {
+      const dataBytes = typeof data === 'string'
+        ? new TextEncoder().encode(data)
+        : (data instanceof Uint8Array ? data : new Uint8Array(0));
+
+      let crc = 0;
+      for (const b of dataBytes) crc = (crc + b) >>> 0;
+
+      const hdr = new DataView(new ArrayBuffer(24));
+      hdr.setUint32(0,  cmd,                    true);
+      hdr.setUint32(4,  arg0,                   true);
+      hdr.setUint32(8,  arg1,                   true);
+      hdr.setUint32(12, dataBytes.length,        true);
+      hdr.setUint32(16, crc,                     true);
+      hdr.setUint32(20, (cmd ^ 0xFFFFFFFF) >>> 0, true);
+
+      const pkt = new Uint8Array(24 + dataBytes.length);
+      pkt.set(new Uint8Array(hdr.buffer));
+      pkt.set(dataBytes, 24);
+
+      // Split into USB-friendly chunks and verify each transfer
+      const CHUNK = 16384;
+      for (let i = 0; i < pkt.length; i += CHUNK) {
+        if (this.closed) return;
+        const result = await this.device.transferOut(
+          this.outEp.endpointNumber, pkt.slice(i, i + CHUNK)
+        );
+        if (result.status !== 'ok') {
+          throw new Error(`USB write failed (status=${result.status}). ` +
+            'On Windows, try installing WinUSB driver via Zadig tool.');
+        }
       }
     }
-    setTerminalText(val);
-    ta.scrollTop = ta.scrollHeight;
+
+    close() { this.closed = true; }
   }
+
+  // ── ADB Client ──
+  class AdbClient {
+    constructor(transport, privateJwk, publicKeyAdb) {
+      this.transport    = transport;
+      this.privateJwk   = privateJwk;   // raw JWK for manual RSA signing
+      this.publicKeyAdb = publicKeyAdb;
+      this._localId = 1;
+      this.streams  = new Map();
+      this.connected = false;
+      this.deviceBanner = '';
+      this._readLoopActive = false;
+    }
+
+    async connect(onStatus) {
+      // Wrap entire connect sequence in a 35-second timeout
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          this.transport.close();
+          reject(new Error(
+            'ADB connection timeout (35s). The device did not respond.\n' +
+            'Possible causes:\n' +
+            '  1. [Windows] The ADB interface needs WinUSB driver.\n' +
+            '     → Download Zadig (zadig.akeo.ie), select the ADB interface,\n' +
+            '       and replace the driver with WinUSB.\n' +
+            '  2. USB Debugging not enabled on the device.\n' +
+            '  3. Phone screen is locked — unlock it and try again.'
+          ));
+        }, 35000);
+
+        this._doConnect(onStatus)
+          .then(resolve)
+          .catch(reject)
+          .finally(() => clearTimeout(timer));
+      });
+    }
+
+    async _doConnect(onStatus) {
+      if (onStatus) onStatus('Sending CNXN…');
+      appendOutput('[ADB] → Sent CNXN (version handshake)\n');
+      await this.transport.sendPacket(A_CNXN, A_VERSION, MAX_PAYLOAD, 'host::\0');
+
+      let triedSig = false;
+
+      while (true) {
+        appendOutput('[ADB] Waiting for device response…\n');
+        const pkt = await this.transport.readPacket();
+        const cmdName = {
+          [A_CNXN]: 'CNXN', [A_AUTH]: 'AUTH',
+          [A_OKAY]: 'OKAY', [A_CLSE]: 'CLSE', [A_WRTE]: 'WRTE'
+        }[pkt.cmd] || `0x${pkt.cmd.toString(16)}`;
+        appendOutput(`[ADB] ← Received ${cmdName} (arg0=${pkt.arg0}, data=${pkt.data.length}b)\n`);
+
+        if (pkt.cmd === A_CNXN) {
+          this.deviceBanner = new TextDecoder('utf-8', { fatal: false }).decode(pkt.data);
+          this.connected = true;
+          this._startReadLoop();
+          return;
+        }
+
+        if (pkt.cmd === A_AUTH && pkt.arg0 === ADB_AUTH_TOKEN) {
+          if (!triedSig) {
+            triedSig = true;
+            if (onStatus) onStatus('Signing token…');
+            appendOutput('[ADB] Signing AUTH token with RSA-2048 PKCS#1v1.5…\n');
+            // Use manual signing — WebCrypto would double-hash the token (bug)
+            const sig = adbRsaSign(this.privateJwk, pkt.data);
+            appendOutput(`[ADB] → Sending SIGNATURE (${sig.length} bytes)\n`);
+            await this.transport.sendPacket(A_AUTH, ADB_AUTH_SIGNATURE, 0, sig);
+          } else {
+            // Signature not accepted → send public key (device will show dialog)
+            if (onStatus) onStatus('⚠ Please accept the "Allow USB debugging" prompt on your device…');
+            appendOutput('[ADB] Signature not trusted — sending RSA public key to device\n');
+            appendOutput('[ADB] ⚠ A dialog should appear on your phone — tap "Allow"\n');
+            const pub = new TextEncoder().encode(this.publicKeyAdb);
+            await this.transport.sendPacket(A_AUTH, ADB_AUTH_RSAPUBLICKEY, 0, pub);
+            // Keep looping — CNXN arrives after user taps Allow
+          }
+        }
+      }
+    }
+
+    _startReadLoop() {
+      if (this._readLoopActive) return;
+      this._readLoopActive = true;
+      (async () => {
+        while (this.connected) {
+          try {
+            const pkt = await this.transport.readPacket();
+            this._dispatch(pkt);
+          } catch(e) {
+            if (this.connected) {
+              console.error('ADB read error:', e);
+              this.connected = false;
+              // Notify streams of closure
+              for (const [, st] of this.streams) {
+                if (st.onClose) st.onClose();
+              }
+              this.streams.clear();
+              if (onAdbDisconnect) onAdbDisconnect('Connection lost: ' + e.message);
+            }
+            break;
+          }
+        }
+        this._readLoopActive = false;
+      })();
+    }
+
+    _dispatch(pkt) {
+      const localId = pkt.arg1;
+      const st = this.streams.get(localId);
+      switch (pkt.cmd) {
+        case A_OKAY:
+          if (st) {
+            st.remoteId = pkt.arg0;
+            if (!st.ready) { st.ready = true; if (st.onReady) st.onReady(); }
+          }
+          break;
+        case A_WRTE:
+          if (st) {
+            const text = new TextDecoder('utf-8', { fatal: false }).decode(pkt.data);
+            if (st.onData) st.onData(text);
+            this.transport.sendPacket(A_OKAY, localId, pkt.arg0, null).catch(() => {});
+          }
+          break;
+        case A_CLSE:
+          if (st) {
+            if (st.onClose) st.onClose();
+            this.streams.delete(localId);
+          }
+          break;
+      }
+    }
+
+    async openStream(destination, onData, onClose) {
+      const localId = this._localId++;
+      return new Promise((resolve, reject) => {
+        const st = {
+          localId, remoteId: 0, ready: false,
+          onData, onClose,
+          onReady: () => resolve(st),
+          send: async (data) => {
+            if (!st.remoteId || !this.connected) return;
+            const bytes = typeof data === 'string'
+              ? new TextEncoder().encode(data)
+              : data;
+            await this.transport.sendPacket(A_WRTE, localId, st.remoteId, bytes);
+          },
+          close: async () => {
+            if (st.remoteId && this.connected) {
+              await this.transport.sendPacket(A_CLSE, localId, st.remoteId, null).catch(() => {});
+            }
+            this.streams.delete(localId);
+          }
+        };
+        this.streams.set(localId, st);
+        this.transport.sendPacket(A_OPEN, localId, 0, destination).catch(reject);
+
+        const t = setTimeout(() => {
+          if (!st.ready) { this.streams.delete(localId); reject(new Error('Stream open timed out')); }
+        }, 15000);
+        st._clearTimeout = () => clearTimeout(t);
+        const origReady = st.onReady;
+        st.onReady = () => { clearTimeout(t); origReady(); };
+      });
+    }
+
+    async runCommand(cmd, onData) {
+      return new Promise((resolve) => {
+        let out = '';
+        this.openStream(
+          `shell:${cmd}\0`,
+          (d) => { out += d; if (onData) onData(d); },
+          () => resolve(out)
+        ).catch(e => { if (onData) onData(`\n[Error: ${e.message}]\n`); resolve(''); });
+      });
+    }
+
+    disconnect() {
+      this.connected = false;
+      this.transport.close();
+      this.streams.clear();
+    }
+  }
+
+  // ── ADB UI State ──
+  let adbClient      = null;
+  let adbShellStream = null;
+  let isAdbConnected = false;
+
+  function onAdbDisconnect(reason) {
+    isAdbConnected = false;
+    adbShellStream = null;
+    adbClient = null;
+    updateAdbUI(false);
+    if (reason) appendOutput(`\n[ADB] ${reason}\n`);
+  }
+
+  function setAdbStatus(text, state) {
+    const dot  = document.getElementById('adbStatusDot');
+    const span = document.getElementById('adbStatusText');
+    span.textContent = text;
+    dot.className = 'adb-status-dot' + (state === 'connected' ? ' connected' : state === 'waiting' ? ' waiting' : '');
+  }
+
+  function updateAdbUI(connected) {
+    const btn = document.getElementById('adbConnectButton');
+    const sendBtn = document.getElementById('adbSendBtn');
+    const info    = document.getElementById('adbDeviceInfo');
+    document.querySelectorAll('.adb-quick-btn').forEach(b => b.disabled = !connected);
+    sendBtn.disabled = !connected;
+
+    if (connected) {
+      btn.textContent = '✕ Disconnect ADB';
+      btn.classList.add('disconnect');
+      setAdbStatus('Connected', 'connected');
+    } else {
+      btn.textContent = '🤖 Connect ADB';
+      btn.classList.remove('disconnect');
+      setAdbStatus('Disconnected', '');
+      info.style.display = 'none';
+      info.textContent = '';
+      stopCursorBlink();
+    }
+  }
+
+  async function connectAdb() {
+    try {
+      setAdbStatus('Requesting device…', 'waiting');
+
+      const device = await navigator.usb.requestDevice({
+        filters: [{ classCode: 0xFF, subclassCode: 0x42, protocolCode: 0x01 }]
+      });
+
+      setAdbStatus('Opening device…', 'waiting');
+      await device.open();
+
+      if (device.configuration === null) {
+        await device.selectConfiguration(1);
+      }
+
+      // Find ADB interface (class=0xFF, subclass=0x42, proto=0x01)
+      let adbIface = null, inEp = null, outEp = null;
+      for (const iface of device.configuration.interfaces) {
+        for (const alt of iface.alternates) {
+          if (alt.interfaceClass === 0xFF && alt.interfaceSubclass === 0x42 && alt.interfaceProtocol === 0x01) {
+            adbIface = iface;
+            for (const ep of alt.endpoints) {
+              if (ep.type === 'bulk') {
+                if (ep.direction === 'in') inEp = ep;
+                else outEp = ep;
+              }
+            }
+            break;
+          }
+        }
+        if (adbIface) break;
+      }
+
+      if (!adbIface || !inEp || !outEp) {
+        await device.close();
+        throw new Error('No ADB interface found. Make sure USB Debugging is enabled on the device.');
+      }
+
+      await device.claimInterface(adbIface.interfaceNumber);
+
+      // Select alternate interface setting 0 (required on some devices)
+      try {
+        await device.selectAlternateInterface(adbIface.interfaceNumber, 0);
+      } catch(_) { /* not all devices need this */ }
+
+      const transport = new AdbUsb(device, inEp, outEp);
+      const { privateJwk, publicKeyAdb } = await getOrCreateAdbKey();
+
+      adbClient = new AdbClient(transport, privateJwk, publicKeyAdb);
+
+      setAdbStatus('Connecting…', 'waiting');
+      appendOutput('\n[ADB] Connecting…\n');
+
+      await adbClient.connect((msg) => {
+        setAdbStatus(msg, 'waiting');
+      });
+
+      isAdbConnected = true;
+      updateAdbUI(true);
+
+      // Parse device banner (e.g. "device::ro.product.name=xxx;...")
+      const banner = adbClient.deviceBanner;
+      const info = document.getElementById('adbDeviceInfo');
+      info.style.display = 'block';
+      const model = banner.match(/ro\.product\.model=([^;]+)/)?.[1]
+                 || banner.match(/ro\.product\.name=([^;]+)/)?.[1]
+                 || 'Android Device';
+      info.textContent = `📱 ${model}`;
+
+      appendOutput(`[ADB] ✓ Connected: ${banner.split('\0')[0]}\n`);
+      appendOutput('[ADB] Opening interactive shell… (type commands directly in the console below)\n');
+
+      // Open interactive shell
+      adbShellStream = await adbClient.openStream(
+        'shell:\0',
+        (data) => {
+          // Strip ANSI codes for clean display
+          const clean = stripAnsi(data);
+          appendOutput(clean);
+        },
+        () => {
+          appendOutput('\n[ADB] Shell closed.\n');
+          adbShellStream = null;
+          if (isAdbConnected) {
+            // Shell closed but still connected — try to reopen
+            openAdbShell();
+          }
+        }
+      );
+
+      ta.focus();
+
+    } catch(err) {
+      if (err.name === 'NotFoundError') {
+        setAdbStatus('Disconnected', '');
+        return;
+      }
+      appendOutput(`\n[ADB Error] ${err.message}\n`);
+      setAdbStatus('Error — ' + err.message.slice(0, 30), '');
+      updateAdbUI(false);
+      isAdbConnected = false;
+      adbClient = null;
+    }
+  }
+
+  async function openAdbShell() {
+    if (!adbClient || !adbClient.connected) return;
+    try {
+      adbShellStream = await adbClient.openStream(
+        'shell:\0',
+        (data) => appendOutput(stripAnsi(data)),
+        () => {
+          appendOutput('\n[ADB] Shell closed.\n');
+          adbShellStream = null;
+        }
+      );
+    } catch(e) {
+      appendOutput(`\n[ADB] Could not open shell: ${e.message}\n`);
+    }
+  }
+
+  async function disconnectAdb() {
+    if (adbShellStream) {
+      await adbShellStream.close().catch(() => {});
+      adbShellStream = null;
+    }
+    if (adbClient) {
+      adbClient.disconnect();
+      adbClient = null;
+    }
+    isAdbConnected = false;
+    updateAdbUI(false);
+    appendOutput('\n[ADB] Disconnected.\n');
+  }
+
+  // ── ADB: Run one-shot command (from command bar or quick buttons) ──
+  async function runAdbCommand(cmd) {
+    if (!adbClient || !adbClient.connected) return;
+    addToHistory(cmd);
+    appendOutput(`\n$ ${cmd}\n`);
+    await adbClient.runCommand(cmd, (data) => appendOutput(stripAnsi(data)));
+  }
+
+  // ── ADB keyboard handler (interactive shell) ──
+  let adbInputBuffer = '';    // tracks what user is typing in interactive shell
+  let adbHistoryIndex = -1;
+  let adbTempInput = '';
+
+  async function handleAdbKeydown(e) {
+    if (!isAdbConnected || !adbShellStream) return;
+
+    // Allow Ctrl+C copy
+    if (e.ctrlKey && e.key.toLowerCase() === 'c' && window.getSelection().toString() !== '') return;
+    if (e.ctrlKey && e.key.toLowerCase() === 'v') return;
+
+    // Ctrl+letter → control code
+    if (e.ctrlKey && !e.altKey && !e.metaKey) {
+      const key = e.key.toLowerCase();
+      if (key >= 'a' && key <= 'z') {
+        e.preventDefault();
+        const code = key.charCodeAt(0) - 96;
+        // Ctrl+U clears line — reset our buffer too
+        if (key === 'u') { adbInputBuffer = ''; adbHistoryIndex = -1; }
+        // Ctrl+C clears line
+        if (key === 'c') { adbInputBuffer = ''; adbHistoryIndex = -1; }
+        await adbShellStream.send(new Uint8Array([code]));
+        return;
+      }
+    }
+
+    const h = loadHistory();
+
+    switch (e.key) {
+      case 'Enter':
+        e.preventDefault();
+        await adbShellStream.send('\r\n');
+        if (adbInputBuffer.trim()) addToHistory(adbInputBuffer);
+        adbInputBuffer = '';
+        adbHistoryIndex = -1;
+        break;
+
+      case 'Backspace':
+        e.preventDefault();
+        await adbShellStream.send('\x08');
+        if (adbInputBuffer.length > 0) adbInputBuffer = adbInputBuffer.slice(0, -1);
+        break;
+
+      case 'ArrowUp':
+        e.preventDefault();
+        if (h.length > 0) {
+          if (adbHistoryIndex === -1) adbTempInput = adbInputBuffer;
+          if (adbHistoryIndex < h.length - 1) {
+            adbHistoryIndex++;
+            const cmd = h[adbHistoryIndex];
+            // Clear current line with Ctrl+U, then send new command
+            if (adbInputBuffer.length > 0) await adbShellStream.send('\x15');
+            adbInputBuffer = cmd;
+            await adbShellStream.send(cmd);
+          }
+        }
+        break;
+
+      case 'ArrowDown':
+        e.preventDefault();
+        if (h.length > 0 && adbHistoryIndex >= 0) {
+          adbHistoryIndex--;
+          const cmd = adbHistoryIndex >= 0 ? h[adbHistoryIndex] : adbTempInput;
+          if (adbInputBuffer.length > 0) await adbShellStream.send('\x15');
+          adbInputBuffer = adbHistoryIndex >= 0 ? cmd : adbTempInput;
+          if (adbInputBuffer) await adbShellStream.send(adbInputBuffer);
+        }
+        break;
+
+      case 'Delete':     e.preventDefault(); await adbShellStream.send('\x1b[3~'); break;
+      case 'Tab':        e.preventDefault(); await adbShellStream.send('\x09'); break;
+      case 'Escape':     e.preventDefault(); await adbShellStream.send('\x1b'); break;
+      case 'ArrowRight': e.preventDefault(); await adbShellStream.send('\x1b[C'); break;
+      case 'ArrowLeft':  e.preventDefault(); await adbShellStream.send('\x1b[D'); break;
+      case 'Home':       e.preventDefault(); await adbShellStream.send('\x1b[H'); break;
+      case 'End':        e.preventDefault(); await adbShellStream.send('\x1b[F'); break;
+      case 'PageUp':     e.preventDefault(); await adbShellStream.send('\x1b[5~'); break;
+      case 'PageDown':   e.preventDefault(); await adbShellStream.send('\x1b[6~'); break;
+      default:
+        if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          e.preventDefault();
+          adbInputBuffer += e.key;
+          await adbShellStream.send(e.key);
+        }
+        break;
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // SHARED EVENT LISTENERS
+  // ══════════════════════════════════════════════════════════════
 
   ta.addEventListener('keydown', async (e) => {
+    if (currentMode === 'adb') {
+      await handleAdbKeydown(e);
+      return;
+    }
+
+    // ── Serial mode ──
     if (!isConnected || !writer) return;
 
     if (e.ctrlKey && e.key.toLowerCase() === 'c' && window.getSelection().toString() !== '') return;
@@ -604,36 +1639,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const h = loadHistory();
-
     switch (e.key) {
       case 'Enter':
         e.preventDefault();
         await sendRawData('\r\n');
-        if (inputBuffer.trim()) {
-          addToHistory(inputBuffer);
-        }
-        inputBuffer = '';
-        historyIndex = -1;
+        if (inputBuffer.trim()) addToHistory(inputBuffer);
+        inputBuffer = ''; historyIndex = -1;
         break;
       case 'Backspace':
         e.preventDefault();
-        if (inputBuffer.length > 0) {
-          inputBuffer = inputBuffer.slice(0, -1);
-          await sendRawData('\x08');
-        }
+        if (inputBuffer.length > 0) { inputBuffer = inputBuffer.slice(0, -1); await sendRawData('\x08'); }
         break;
       case 'Delete':
-        e.preventDefault();
-        await sendRawData('\x1b[3~');
-        break;
+        e.preventDefault(); await sendRawData('\x1b[3~'); break;
       case 'Tab':
-        e.preventDefault();
-        await sendRawData('\x09');
-        break;
+        e.preventDefault(); await sendRawData('\x09'); break;
       case 'Escape':
-        e.preventDefault();
-        await sendRawData('\x1b');
-        break;
+        e.preventDefault(); await sendRawData('\x1b'); break;
       case 'ArrowUp':
         e.preventDefault();
         if (h.length > 0) {
@@ -642,8 +1664,7 @@ document.addEventListener('DOMContentLoaded', () => {
             historyIndex++;
             const cmd = h[historyIndex];
             if (inputBuffer.length > 0) await sendRawData('\x08'.repeat(inputBuffer.length));
-            inputBuffer = cmd;
-            await sendRawData(inputBuffer);
+            inputBuffer = cmd; await sendRawData(inputBuffer);
           }
         }
         break;
@@ -654,55 +1675,36 @@ document.addEventListener('DOMContentLoaded', () => {
             historyIndex--;
             const cmd = h[historyIndex];
             if (inputBuffer.length > 0) await sendRawData('\x08'.repeat(inputBuffer.length));
-            inputBuffer = cmd;
-            await sendRawData(inputBuffer);
+            inputBuffer = cmd; await sendRawData(inputBuffer);
           } else if (historyIndex === 0) {
             historyIndex = -1;
             if (inputBuffer.length > 0) await sendRawData('\x08'.repeat(inputBuffer.length));
-            inputBuffer = tempInput;
-            await sendRawData(inputBuffer);
+            inputBuffer = tempInput; await sendRawData(inputBuffer);
           }
         }
         break;
-      case 'ArrowRight':
-        e.preventDefault();
-        await sendRawData('\x1b[C');
-        break;
-      case 'ArrowLeft':
-        e.preventDefault();
-        await sendRawData('\x1b[D');
-        break;
-      case 'Home':
-        e.preventDefault();
-        await sendRawData('\x1b[H');
-        break;
-      case 'End':
-        e.preventDefault();
-        await sendRawData('\x1b[F');
-        break;
-      case 'PageUp':
-        e.preventDefault();
-        await sendRawData('\x1b[5~');
-        break;
-      case 'PageDown':
-        e.preventDefault();
-        await sendRawData('\x1b[6~');
-        break;
+      case 'ArrowRight': e.preventDefault(); await sendRawData('\x1b[C'); break;
+      case 'ArrowLeft':  e.preventDefault(); await sendRawData('\x1b[D'); break;
+      case 'Home':       e.preventDefault(); await sendRawData('\x1b[H'); break;
+      case 'End':        e.preventDefault(); await sendRawData('\x1b[F'); break;
+      case 'PageUp':     e.preventDefault(); await sendRawData('\x1b[5~'); break;
+      case 'PageDown':   e.preventDefault(); await sendRawData('\x1b[6~'); break;
       default:
         if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
-          e.preventDefault();
-          inputBuffer += e.key;
-          await sendRawData(e.key);
+          e.preventDefault(); inputBuffer += e.key; await sendRawData(e.key);
         }
         break;
     }
   });
 
   ta.addEventListener('paste', async (e) => {
-    if (!isConnected || !writer) return;
     e.preventDefault();
     const text = (e.clipboardData || window.clipboardData).getData('text');
-    if (text) {
+    if (!text) return;
+    if (currentMode === 'adb') {
+      if (isAdbConnected && adbShellStream) await adbShellStream.send(text);
+    } else {
+      if (!isConnected || !writer) return;
       inputBuffer += text;
       await sendRawData(text);
     }
@@ -710,9 +1712,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   ta.addEventListener('focus', () => {
     isFocused = true;
-    if (isConnected) {
-      startCursorBlink();
-    }
+    if (isConnected || isAdbConnected) startCursorBlink();
   });
 
   ta.addEventListener('blur', () => {
@@ -720,34 +1720,68 @@ document.addEventListener('DOMContentLoaded', () => {
     stopCursorBlink();
   });
 
+  // ── Serial buttons ──
   document.getElementById('connectButton').addEventListener('click', () => {
-    if (isConnected) doDisconnect();
-    else connectToSerialPort();
+    if (isConnected) doDisconnect(); else connectToSerialPort();
   });
 
+  // ── ADB buttons ──
+  document.getElementById('adbConnectButton').addEventListener('click', () => {
+    if (isAdbConnected) disconnectAdb(); else connectAdb();
+  });
+
+  document.getElementById('adbResetKeyBtn').addEventListener('click', () => {
+    if (isAdbConnected) {
+      appendOutput('[ADB] Please disconnect first before resetting the key.\n');
+      return;
+    }
+    localStorage.removeItem('adb_private_key_jwk');
+    localStorage.removeItem('adb_public_key_adb');
+    appendOutput('[ADB] RSA key cleared. A new key will be generated on next connect.\n');
+    appendOutput('[ADB] ⚠ You will need to re-authorize this computer on your Android device.\n');
+    setAdbStatus('Key reset — reconnect to re-authorize', '');
+  });
+
+  document.getElementById('adbSendBtn').addEventListener('click', () => {
+    const inp = document.getElementById('adbCmdInput');
+    const cmd = inp.value.trim();
+    if (!cmd) return;
+    inp.value = '';
+    runAdbCommand(cmd);
+  });
+
+  document.getElementById('adbCmdInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('adbSendBtn').click();
+    }
+  });
+
+  // ── ADB Quick Command buttons ──
+  document.querySelectorAll('.adb-quick-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cmd = btn.dataset.cmd;
+      if (cmd) runAdbCommand(cmd);
+    });
+  });
+
+  // ── Shared save / clear ──
   document.getElementById('saveButton').addEventListener('click', () => {
     const text = getBaseText();
     const a = Object.assign(document.createElement('a'), {
       href: URL.createObjectURL(new Blob([text], { type: 'text/plain' })),
-      download: 'serial_output.txt'
+      download: currentMode === 'adb' ? 'adb_output.txt' : 'serial_output.txt'
     });
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   });
 
   document.getElementById('clearButton').addEventListener('click', () => {
     ta.value = '';
-    inputBuffer = '';
-    historyIndex = -1;
-    if (isFocused && isConnected) {
-      ta.value = CURSOR_CHAR;
-    }
+    inputBuffer = ''; historyIndex = -1;
   });
 
   document.getElementById('clearHistoryBtn').addEventListener('click', () => {
-    saveHistory([]);
-    renderHistory();
+    saveHistory([]); renderHistory();
   });
 
   renderHistory();
