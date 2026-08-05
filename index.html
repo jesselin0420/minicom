@@ -438,13 +438,136 @@
       font-style: italic;
     }
 
-    .section-label {
-      font-size: 11px;
-      color: #4a7a6a;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 6px;
-      margin-top: 2px;
+    .script-palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .palette-block {
+      background: #000;
+      border: 1px solid #2a3a5a;
+      color: #2aee2a;
+      cursor: grab;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .palette-block.command-palette { background: #0f2a5a; border-color: #2a5a8a; }
+    .palette-block.delay-palette { background: #4a3618; border-color: #8a6a2a; }
+    .palette-block.repeat-palette { background: #1a5033; border-color: #3a8a5a; }
+    .palette-block.command-palette { background: #0f2a5a; border-color: #2a5a8a; }
+    .palette-block.delay-palette { background: #4a3618; border-color: #8a6a2a; }
+    .palette-block.repeat-palette { background: #1a5033; border-color: #3a8a5a; }
+    .palette-block:active { cursor: grabbing; }
+    .script-canvas {
+      min-height: 180px;
+      padding: 10px;
+      background: #08111f;
+      border: 1px dashed #2a3a5a;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .script-canvas.drag-over {
+      border-color: #4a90ff;
+      background: rgba(74, 144, 255, 0.08);
+    }
+    .script-canvas-empty {
+      font-size: 12px;
+      color: #5a7a9a;
+      padding: 14px;
+      text-align: center;
+    }
+    .script-flow {
+      font-size: 12px;
+      color: #9ac7ff;
+      padding: 8px 10px;
+      border: 1px solid #18335a;
+      border-radius: 8px;
+      background: rgba(14, 25, 47, 0.9);
+      margin-top: 8px;
+    }
+    .script-block-item {
+      background: #112244;
+      border: 1px solid #1f3a6a;
+      border-radius: 8px;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      cursor: grab;
+    }
+    .script-block-command {
+      background: #0f2a5a;
+      border-color: #2a5a8a;
+    }
+    .script-block-delay {
+      background: #4a3618;
+      border-color: #8a6a2a;
+    }
+    .script-block-repeat {
+      background: #1a5033;
+      border-color: #3a8a5a;
+    }
+    .script-block-item.running {
+      box-shadow: 0 0 0 2px rgba(255, 204, 51, 0.35);
+      border-color: #ffcc33;
+      background-color: #223355;
+    }
+    .script-block-item.drag-over {
+      border-color: #6a9cff;
+      box-shadow: 0 0 0 2px rgba(106, 156, 255, 0.08);
+    }
+    .script-block-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #c0d4ff;
+    }
+    .script-block-header .block-title {
+      font-weight: bold;
+    }
+    .script-block-controls {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .script-block-controls input,
+    .script-block-controls textarea,
+    .script-block-controls select {
+      width: 100%;
+      padding: 6px 8px;
+      background: #08121f;
+      color: #2aee2a;
+      border: 1px solid #22447a;
+      border-radius: 5px;
+      font-size: 13px;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .script-block-controls textarea {
+      resize: vertical;
+      min-height: 56px;
+    }
+    .builder-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .builder-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .script-status {
+      font-size: 12px;
+      color: #8aa8bf;
+      min-height: 18px;
     }
 
     #clearHistoryBtn {
@@ -589,6 +712,29 @@
       <div id="historyList">
         <span class="history-empty">No commands sent yet.</span>
       </div>
+
+    </div>
+    <div class="panel">
+      <h2>Script Builder</h2>
+      <div id="scriptBuilder" class="script-builder">
+        <div class="script-palette">
+          <button class="script-block palette-block command-palette" data-block-type="command" draggable="true">⛳ Command</button>
+          <button class="script-block palette-block delay-palette" data-block-type="delay" draggable="true">⏱ Delay</button>
+          <button class="script-block palette-block repeat-palette" data-block-type="repeat" draggable="true">🔁 Loop</button>
+        </div>
+
+        <div id="scriptCanvas" class="script-canvas">
+          <div class="script-canvas-empty">Drop blocks here to build a script.</div>
+        </div>
+
+        <div class="builder-controls">
+          <div class="builder-buttons">
+            <button id="runScriptBtn">▶ Run Script</button>
+            <button id="stopScriptBtn" disabled>■ Stop</button>
+          </div>
+        </div>
+        <div id="scriptStatus" class="script-status">Status: ready.</div>
+      </div>
     </div>
   </div>
 
@@ -661,7 +807,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     list.innerHTML = h.map((cmd, i) => `
-      <div class="history-tag" data-index="${i}">
+      <div class="history-tag" data-index="${i}" draggable="true">
         <span class="cmd-text" title="${escapeHtml(cmd)}">${escapeHtml(cmd)}</span>
         <span class="del-btn" data-del="${i}" title="Remove">×</span>
       </div>
@@ -680,9 +826,8 @@ document.addEventListener('DOMContentLoaded', () => {
           ta.focus();
         } else if (currentMode === 'adb') {
           if (isAdbConnected && adbShellStream) {
-            // Clear current adbInputBuffer from the shell line first
             if (adbInputBuffer.length > 0) {
-              await adbShellStream.send('\x15'); // Ctrl+U = clear line
+              await adbShellStream.send('\x15');
               adbInputBuffer = '';
             }
             adbInputBuffer = cmd;
@@ -693,6 +838,11 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('adbCmdInput').focus();
           }
         }
+      });
+
+      tag.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('block-type', 'command');
+        e.dataTransfer.effectAllowed = 'copy';
       });
     });
 
@@ -1760,6 +1910,308 @@ document.addEventListener('DOMContentLoaded', () => {
       if (cmd) runAdbCommand(cmd);
     });
   });
+
+  // ── Script Builder helpers ──
+  const scriptCanvas = document.getElementById('scriptCanvas');
+  const runScriptBtn = document.getElementById('runScriptBtn');
+  const stopScriptBtn = document.getElementById('stopScriptBtn');
+  const scriptStatus = document.getElementById('scriptStatus');
+  let stopScriptRequested = false;
+  let draggedScriptBlock = null;
+
+  function updateScriptStatus(message) {
+    scriptStatus.textContent = `Status: ${message}`;
+  }
+
+  function createScriptBlock(type, value = '') {
+    const block = document.createElement('div');
+    block.className = 'script-block-item';
+    block.draggable = true;
+    block.dataset.type = type;
+
+    const header = document.createElement('div');
+    header.className = 'script-block-header';
+    const title = document.createElement('div');
+    title.className = 'block-title';
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = '✕';
+    removeBtn.style.cssText = 'font-size:12px;padding:2px 6px;background:#2a1a2a;border:1px solid #3a3a5a;color:#ff9b9b;border-radius:4px;cursor:pointer;';
+    removeBtn.addEventListener('click', () => { block.remove(); if (!scriptCanvas.querySelector('.script-block-item')) showEmptyCanvasHint(); });
+
+    header.appendChild(title);
+    header.appendChild(removeBtn);
+    block.appendChild(header);
+
+    const controls = document.createElement('div');
+    controls.className = 'script-block-controls';
+
+    if (type === 'command') {
+      block.classList.add('script-block-command');
+      title.textContent = 'Command';
+      const textarea = document.createElement('textarea');
+      textarea.placeholder = 'adb/serial command...';
+      textarea.value = value;
+      controls.appendChild(textarea);
+    } else if (type === 'delay') {
+      block.classList.add('script-block-delay');
+      title.textContent = 'Delay';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = '1000us / 1.5ms / 0.100s';
+      input.value = value || '0.100s';
+      input.title = 'Delay value with units (us/ms/s)';
+      controls.appendChild(input);
+    } else if (type === 'repeat') {
+      title.textContent = 'LOOP';
+      block.classList.add('script-block-repeat');
+      const repeatInput = document.createElement('input');
+      repeatInput.type = 'number';
+      repeatInput.min = '1';
+      repeatInput.value = '2';
+      repeatInput.title = 'Repeat count';
+      repeatInput.style.maxWidth = '120px';
+      controls.appendChild(repeatInput);
+
+      const childLabel = document.createElement('div');
+      childLabel.style.color = '#9abcff';
+      childLabel.style.fontSize = '12px';
+      childLabel.textContent = 'Drop actions into this LOOP:';
+      controls.appendChild(childLabel);
+
+      const nested = document.createElement('div');
+      nested.className = 'script-canvas';
+      nested.style.background = '#09131f';
+      nested.style.minHeight = '100px';
+      nested.style.padding = '8px';
+      nested.style.borderRadius = '6px';
+      nested.dataset.nested = 'true';
+      nested.innerHTML = '<div class="script-canvas-empty">Drop blocks here.</div>';
+      makeScriptCanvasDroppable(nested);
+      block.appendChild(nested);
+    }
+
+    block.appendChild(controls);
+    setBlockDragHandlers(block);
+    return block;
+  }
+
+  function showEmptyCanvasHint() {
+    if (!scriptCanvas.querySelector('.script-block-item')) {
+      scriptCanvas.innerHTML = '<div class="script-canvas-empty">Drop blocks here to build a script.</div>';
+    }
+  }
+
+  function makeScriptCanvasDroppable(canvasEl) {
+    canvasEl.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    canvasEl.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const dropTarget = e.target.closest('.script-canvas');
+      if (dropTarget !== canvasEl) return;
+      canvasEl.classList.add('drag-over');
+    });
+    canvasEl.addEventListener('dragleave', (e) => {
+      e.stopPropagation();
+      canvasEl.classList.remove('drag-over');
+    });
+    canvasEl.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const dropTarget = e.target.closest('.script-canvas');
+      if (dropTarget !== canvasEl) return;
+      canvasEl.classList.remove('drag-over');
+      const type = e.dataTransfer.getData('block-type');
+      const commandText = e.dataTransfer.getData('text/plain');
+
+      if (draggedScriptBlock) {
+        const block = draggedScriptBlock;
+        draggedScriptBlock = null;
+        const oldParent = block.parentElement;
+        if (oldParent) {
+          block.remove();
+          if (!oldParent.querySelector('.script-block-item')) {
+            oldParent.innerHTML = '<div class="script-canvas-empty">Drop blocks here.</div>';
+          }
+        }
+        insertBlockIntoCanvas(canvasEl, block);
+        return;
+      }
+
+      if (!type && !commandText) return;
+      if (type === 'command') {
+        const block = createScriptBlock('command', commandText || '');
+        insertBlockIntoCanvas(canvasEl, block);
+      } else if (type) {
+        const block = createScriptBlock(type);
+        insertBlockIntoCanvas(canvasEl, block);
+      } else if (commandText) {
+        const block = createScriptBlock('command', commandText);
+        insertBlockIntoCanvas(canvasEl, block);
+      }
+    });
+  }
+
+  function insertBlockIntoCanvas(canvasEl, block) {
+    const emptyHint = canvasEl.querySelector('.script-canvas-empty');
+    if (emptyHint) emptyHint.remove();
+    canvasEl.appendChild(block);
+  }
+
+  function setBlockDragHandlers(block) {
+    block.addEventListener('dragstart', (e) => {
+      draggedScriptBlock = block;
+      e.dataTransfer.setData('block-type', block.dataset.type);
+      if (block.dataset.type === 'command') {
+        const cmd = block.querySelector('textarea');
+        if (cmd) e.dataTransfer.setData('text/plain', cmd.value);
+      }
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    block.addEventListener('dragend', () => {
+      draggedScriptBlock = null;
+    });
+  }
+
+  function parseDelayValue(text) {
+    const normalized = String(text).trim().toLowerCase();
+    if (!normalized) return NaN;
+    if (normalized.endsWith('us')) return parseFloat(normalized.slice(0, -2)) * 0.001;
+    if (normalized.endsWith('ms')) return parseFloat(normalized.slice(0, -2));
+    if (normalized.endsWith('s')) return parseFloat(normalized.slice(0, -1)) * 1000;
+    return parseFloat(normalized) * 1000;
+  }
+
+  function busyWait(ms) {
+    const start = performance.now();
+    while (performance.now() - start < ms) {
+      // busy loop for sub-millisecond wait
+    }
+  }
+
+  function delay(ms) {
+    if (ms <= 0) return Promise.resolve();
+    const whole = Math.floor(ms);
+    const fraction = ms - whole;
+    return new Promise((resolve) => {
+      if (whole > 0) {
+        setTimeout(() => {
+          if (fraction > 0) busyWait(fraction);
+          resolve();
+        }, whole);
+      } else {
+        busyWait(fraction);
+        resolve();
+      }
+    });
+  }
+
+  function parseScriptCanvas(canvasEl) {
+    const blocks = [];
+    for (const child of canvasEl.children) {
+      if (!child.classList.contains('script-block-item')) continue;
+      const type = child.dataset.type;
+      if (type === 'command') {
+        const cmd = child.querySelector('textarea').value.trim();
+        if (!cmd) continue;
+        blocks.push({ type: 'command', command: cmd, element: child });
+      } else if (type === 'delay') {
+        const raw = child.querySelector('input').value;
+        const ms = parseDelayValue(raw);
+        if (Number.isNaN(ms) || ms < 0) continue;
+        blocks.push({ type: 'delay', ms, element: child });
+      } else if (type === 'repeat') {
+        const repeatInput = child.querySelector('input[type="number"]');
+        const rawCount = repeatInput ? repeatInput.value : child.querySelector('input')?.value;
+        const count = Math.max(1, Number(rawCount) || 1);
+        const nested = child.querySelector('[data-nested]');
+        const nestedActions = nested ? parseScriptCanvas(nested) : [];
+        if (nestedActions.length === 0) continue;
+        blocks.push({ type: 'repeat', count, actions: nestedActions, element: child });
+      }
+    }
+    return blocks;
+  }
+
+  function setActionRunning(action, running) {
+    if (action.element) {
+      action.element.classList.toggle('running', running);
+    }
+  }
+
+  async function executeScriptActions(actions) {
+    for (const action of actions) {
+      if (stopScriptRequested) throw new Error('Script stopped');
+      setActionRunning(action, true);
+      try {
+        if (action.type === 'command') {
+          if (currentMode === 'adb') {
+            if (!isAdbConnected) throw new Error('ADB not connected');
+            await runAdbCommand(action.command);
+          } else {
+            if (!isConnected || !writer) throw new Error('Serial not connected');
+            addToHistory(action.command);
+            appendOutput(`\n> ${action.command}\n`);
+            await sendRawData(action.command + '\r\n');
+          }
+        } else if (action.type === 'delay') {
+          updateScriptStatus(`Waiting ${action.ms / 1000}s...`);
+          await delay(action.ms);
+        } else if (action.type === 'repeat') {
+          const loopCount = Math.max(1, Number(action.count) || 1);
+          updateScriptStatus(`Repeating ${loopCount}×`);
+          for (let i = 0; i < loopCount; i++) {
+            if (stopScriptRequested) throw new Error('Script stopped');
+            await executeScriptActions(action.actions);
+          }
+        }
+      } finally {
+        setActionRunning(action, false);
+      }
+    }
+  }
+
+  runScriptBtn.addEventListener('click', async () => {
+    const actions = parseScriptCanvas(scriptCanvas);
+    if (actions.length === 0) {
+      updateScriptStatus('Add blocks first.');
+      return;
+    }
+    stopScriptRequested = false;
+    runScriptBtn.disabled = true;
+    stopScriptBtn.disabled = false;
+    updateScriptStatus('Running...');
+    try {
+      await executeScriptActions(actions);
+      if (!stopScriptRequested) updateScriptStatus('Completed.');
+    } catch (err) {
+      updateScriptStatus(err.message || 'Error during run.');
+    } finally {
+      stopScriptRequested = false;
+      runScriptBtn.disabled = false;
+      stopScriptBtn.disabled = true;
+    }
+  });
+
+  stopScriptBtn.addEventListener('click', () => {
+    stopScriptRequested = true;
+    updateScriptStatus('Stopping...');
+  });
+
+  document.querySelectorAll('.script-block').forEach(btn => {
+    btn.addEventListener('dragstart', (e) => {
+      const blockType = btn.dataset.blockType;
+      if (blockType) {
+        e.dataTransfer.setData('block-type', blockType);
+      }
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+  });
+
+  makeScriptCanvasDroppable(scriptCanvas);
+  showEmptyCanvasHint();
 
   // ── Shared save / clear ──
   document.getElementById('saveButton').addEventListener('click', () => {
