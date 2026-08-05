@@ -446,94 +446,124 @@
     }
     .palette-block {
       background: #000;
-      border: 1px solid #2a3a5a;
-      color: #2aee2a;
+      border: 2px solid #2a3a5a;
+      color: #fff;
       cursor: grab;
-      padding: 8px 12px;
-      border-radius: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
       font-size: 13px;
       font-family: 'Courier New', Courier, monospace;
+      font-weight: bold;
+      transition: all 0.2s ease;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
     }
-    .palette-block.command-palette { background: #0f2a5a; border-color: #2a5a8a; }
-    .palette-block.delay-palette { background: #4a3618; border-color: #8a6a2a; }
-    .palette-block.read-palette { background: #3a3d12; border-color: #8a8e3a; }
-    .palette-block.print-palette { background: #4a2a4a; border-color: #8a5a8a; }
-    .palette-block.condition-palette { background: #3a2a50; border-color: #7a5a8a; }
-    .palette-block.repeat-palette { background: #1a5033; border-color: #3a8a5a; }
-    .palette-block.command-palette { background: #0f2a5a; border-color: #2a5a8a; }
-    .palette-block.delay-palette { background: #4a3618; border-color: #8a6a2a; }
-    .palette-block.repeat-palette { background: #1a5033; border-color: #3a8a5a; }
-    .palette-block:active { cursor: grabbing; }
+    .palette-block:hover {
+      transform: translateY(-2px) scale(1.05);
+      filter: brightness(1.3);
+    }
+    .palette-block.command-palette { background: #2962ff; border-color: #448aff; color: #e3f2fd; box-shadow: 0 2px 12px rgba(41,121,255,0.35); }
+    .palette-block.delay-palette { background: #e65100; border-color: #ffab40; color: #fff3e0; box-shadow: 0 2px 12px rgba(255,145,0,0.35); }
+    .palette-block.read-palette { background: #9e9d24; border-color: #eeff41; color: #f9fbe7; box-shadow: 0 2px 12px rgba(198,255,0,0.3); }
+    .palette-block.print-palette { background: #aa00ff; border-color: #ea80fc; color: #f3e5f5; box-shadow: 0 2px 12px rgba(224,64,251,0.35); }
+    .palette-block.condition-palette { background: #6200ea; border-color: #b388ff; color: #ede7f6; box-shadow: 0 2px 12px rgba(179,136,255,0.35); }
+    .palette-block.repeat-palette { background: #00c853; border-color: #69f0ae; color: #e0f2f1; box-shadow: 0 2px 12px rgba(0,230,118,0.35); }
+    .palette-block:active { cursor: grabbing; transform: scale(0.97); }
     .script-canvas {
       min-height: 180px;
-      padding: 10px;
-      background: #08111f;
-      border: 1px dashed #2a3a5a;
-      border-radius: 8px;
+      padding: 12px;
+      background: #081020;
+      border: 2px dashed #2a4a7a;
+      border-radius: 10px;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      transition: all 0.25s ease;
     }
     .script-canvas.drag-over {
-      border-color: #4a90ff;
-      background: rgba(74, 144, 255, 0.08);
+      border-color: #448aff;
+      background: rgba(68, 138, 255, 0.12);
+      box-shadow: inset 0 0 20px rgba(68, 138, 255, 0.1);
     }
     .script-canvas-empty {
-      font-size: 12px;
-      color: #5a7a9a;
-      padding: 14px;
+      font-size: 13px;
+      color: #6a9ac0;
+      padding: 18px;
       text-align: center;
+      font-style: italic;
     }
     .script-flow {
       font-size: 12px;
-      color: #9ac7ff;
+      color: #b0d8ff;
       padding: 8px 10px;
-      border: 1px solid #18335a;
+      border: 1px solid #2a5090;
       border-radius: 8px;
-      background: rgba(14, 25, 47, 0.9);
+      background: rgba(20, 40, 80, 0.7);
       margin-top: 8px;
+      backdrop-filter: blur(4px);
     }
     .script-block-item {
       background: #112244;
-      border: 1px solid #1f3a6a;
-      border-radius: 8px;
+      border: 2px solid #1f3a6a;
+      border-radius: 10px;
       padding: 10px;
       display: grid;
       gap: 8px;
       cursor: grab;
+      transition: all 0.2s ease;
+      border-left-width: 5px;
+    }
+    .script-block-item:hover {
+      filter: brightness(1.15);
     }
     .script-block-command {
-      background: #0f2a5a;
-      border-color: #2a5a8a;
+      background: #0d2a6a;
+      border-color: #448aff;
+      border-left-color: #2979ff;
+      box-shadow: 0 1px 8px rgba(41,121,255,0.15);
     }
     .script-block-delay {
-      background: #4a3618;
-      border-color: #8a6a2a;
+      background: #4a2a00;
+      border-color: #ff9100;
+      border-left-color: #ff6d00;
+      box-shadow: 0 1px 8px rgba(255,145,0,0.15);
     }
     .script-block-read {
-      background: #3a3d12;
-      border-color: #8a8e3a;
+      background: #2a3000;
+      border-color: #c6ff00;
+      border-left-color: #aeea00;
+      box-shadow: 0 1px 8px rgba(198,255,0,0.12);
     }
     .script-block-print {
-      background: #4a2a4a;
-      border-color: #8a5a8a;
+      background: #3a0a4a;
+      border-color: #e040fb;
+      border-left-color: #d500f9;
+      box-shadow: 0 1px 8px rgba(224,64,251,0.15);
     }
     .script-block-condition {
-      background: #3a2a50;
-      border-color: #7a5a8a;
+      background: #2a1a50;
+      border-color: #b388ff;
+      border-left-color: #7c4dff;
+      box-shadow: 0 1px 8px rgba(179,136,255,0.15);
     }
     .script-block-repeat {
-      background: #1a5033;
-      border-color: #3a8a5a;
+      background: #0a3a2a;
+      border-color: #00e676;
+      border-left-color: #00c853;
+      box-shadow: 0 1px 8px rgba(0,230,118,0.15);
     }
     .script-block-item.running {
-      box-shadow: 0 0 0 2px rgba(255, 204, 51, 0.35);
-      border-color: #ffcc33;
-      background-color: #223355;
+      box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.5), 0 0 16px rgba(255, 215, 0, 0.2);
+      border-color: #ffd700;
+      background-color: #2a3355;
+      animation: runPulse 1.2s infinite;
+    }
+    @keyframes runPulse {
+      0%,100% { box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.5), 0 0 16px rgba(255, 215, 0, 0.2); }
+      50% { box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.7), 0 0 24px rgba(255, 215, 0, 0.35); }
     }
     .script-block-item.drag-over {
-      border-color: #6a9cff;
-      box-shadow: 0 0 0 2px rgba(106, 156, 255, 0.08);
+      border-color: #82b1ff;
+      box-shadow: 0 0 0 2px rgba(130, 177, 255, 0.25);
     }
     .script-block-header {
       display: flex;
@@ -541,10 +571,13 @@
       align-items: center;
       gap: 10px;
       font-size: 12px;
-      color: #c0d4ff;
+      color: #e0eaff;
     }
     .script-block-header .block-title {
       font-weight: bold;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
     .script-block-controls {
       display: flex;
@@ -555,13 +588,21 @@
     .script-block-controls textarea,
     .script-block-controls select {
       width: 100%;
-      padding: 6px 8px;
-      background: #08121f;
-      color: #2aee2a;
-      border: 1px solid #22447a;
-      border-radius: 5px;
+      padding: 7px 10px;
+      background: rgba(5, 10, 25, 0.8);
+      color: #40ff80;
+      border: 1px solid rgba(100, 180, 255, 0.25);
+      border-radius: 6px;
       font-size: 13px;
       font-family: 'Courier New', Courier, monospace;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .script-block-controls input:focus,
+    .script-block-controls textarea:focus,
+    .script-block-controls select:focus {
+      border-color: #448aff;
+      box-shadow: 0 0 0 2px rgba(68, 138, 255, 0.2);
+      outline: none;
     }
     .script-block-controls textarea {
       resize: vertical;
@@ -581,8 +622,10 @@
     }
     .script-status {
       font-size: 12px;
-      color: #8aa8bf;
+      color: #90c8e8;
       min-height: 18px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
     }
 
     #clearHistoryBtn {
@@ -749,6 +792,9 @@
           <div class="builder-buttons">
             <button id="runScriptBtn">▶ Run Script</button>
             <button id="stopScriptBtn" disabled>■ Stop</button>
+            <button id="exportScriptBtn" title="Export script as JSON">📤 Export</button>
+            <button id="importScriptBtn" title="Import script from JSON">📥 Import</button>
+            <input type="file" id="importScriptFile" accept=".json" style="display:none">
           </div>
         </div>
         <div id="scriptStatus" class="script-status">Status: ready.</div>
@@ -2040,6 +2086,23 @@ document.addEventListener('DOMContentLoaded', () => {
       lengthInput.style.maxWidth = '80px';
       controls.appendChild(lengthInput);
 
+      // Data type selector: treat read value as text or number (hex/dec)
+      const dataTypeLabel = document.createElement('label');
+      dataTypeLabel.textContent = 'Data Type:';
+      dataTypeLabel.style.fontSize = '12px';
+      dataTypeLabel.style.marginTop = '4px';
+      controls.appendChild(dataTypeLabel);
+
+      const dataTypeSelect = document.createElement('select');
+      dataTypeSelect.className = 'read-datatype';
+      [['text', 'Text (String)'], ['hex', 'Number - Hex'], ['dec', 'Number - Dec']].forEach(([val, label]) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        dataTypeSelect.appendChild(opt);
+      });
+      controls.appendChild(dataTypeSelect);
+
       const debugLabel = document.createElement('div');
       debugLabel.className = 'read-value';
       debugLabel.style.fontSize = '12px';
@@ -2049,43 +2112,35 @@ document.addEventListener('DOMContentLoaded', () => {
       title.textContent = 'Print';
       block.classList.add('script-block-print');
 
-      const printType = document.createElement('select');
-      printType.className = 'print-type';
-      ['string', 'variable'].forEach(val => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = val === 'string' ? 'String' : 'Variable';
-        printType.appendChild(opt);
-      });
-      printType.style.maxWidth = '120px';
-      controls.appendChild(printType);
+      const templateInput = document.createElement('textarea');
+      templateInput.className = 'print-template';
+      templateInput.placeholder = 'Mix text and variables: e.g. Result is ${myVar} done';
+      templateInput.title = 'Use ${variableName} to embed variables in text';
+      controls.appendChild(templateInput);
 
-      const stringInput = document.createElement('textarea');
-      stringInput.className = 'print-text';
-      stringInput.placeholder = 'Custom string to print';
-      controls.appendChild(stringInput);
-
-      const variableInput = document.createElement('input');
-      variableInput.className = 'print-variable';
-      variableInput.type = 'text';
-      variableInput.placeholder = 'variable name';
-      variableInput.title = 'Variable to print';
-      variableInput.style.display = 'none';
-      variableInput.style.maxWidth = '180px';
-      controls.appendChild(variableInput);
-
-      printType.addEventListener('change', () => {
-        if (printType.value === 'variable') {
-          stringInput.style.display = 'none';
-          variableInput.style.display = 'block';
-        } else {
-          stringInput.style.display = 'block';
-          variableInput.style.display = 'none';
-        }
-      });
+      const hint = document.createElement('div');
+      hint.style.cssText = 'font-size:11px;color:#8a6abf;margin-top:2px;';
+      hint.textContent = 'Tip: use ${varName} to insert variables';
+      controls.appendChild(hint);
     } else if (type === 'condition') {
       title.textContent = 'IF';
       block.classList.add('script-block-condition');
+
+      // Compare mode selector
+      const modeLabel = document.createElement('label');
+      modeLabel.textContent = 'Compare Mode:';
+      modeLabel.style.fontSize = '12px';
+      controls.appendChild(modeLabel);
+
+      const modeSelect = document.createElement('select');
+      modeSelect.className = 'condition-mode';
+      [['text-exact', 'Text Exact Match'], ['text-contains', 'Text Contains'], ['hex', 'Number - Hex'], ['dec', 'Number - Dec']].forEach(([val, label]) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        modeSelect.appendChild(opt);
+      });
+      controls.appendChild(modeSelect);
 
       const varInput = document.createElement('input');
       varInput.type = 'text';
@@ -2097,13 +2152,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const opSelect = document.createElement('select');
       opSelect.className = 'condition-operator';
-      ['=', '!=', '<', '>'].forEach(op => {
-        const opt = document.createElement('option');
-        opt.value = op;
-        opt.textContent = op;
-        opSelect.appendChild(opt);
-      });
-      opSelect.style.maxWidth = '80px';
+      const updateOperators = () => {
+        const mode = modeSelect.value;
+        opSelect.innerHTML = '';
+        let ops;
+        if (mode === 'text-contains') {
+          ops = [['contains', 'Contains'], ['not-contains', 'Not Contains']];
+        } else if (mode === 'text-exact') {
+          ops = [['=', '='], ['!=', '!=']];
+        } else {
+          ops = [['=', '='], ['!=', '!='], ['<', '<'], ['>', '>']];
+        }
+        ops.forEach(([val, label]) => {
+          const opt = document.createElement('option');
+          opt.value = val;
+          opt.textContent = label;
+          opSelect.appendChild(opt);
+        });
+      };
+      updateOperators();
+      modeSelect.addEventListener('change', updateOperators);
+      opSelect.style.maxWidth = '100px';
       controls.appendChild(opSelect);
 
       const compareInput = document.createElement('input');
@@ -2319,21 +2388,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const keyword = child.querySelector('.read-keyword')?.value || '';
         const position = child.querySelector('.read-position')?.value || 'before';
         const length = parseInt(child.querySelector('.read-length')?.value, 10) || 0;
-        blocks.push({ type: 'read', source, variable, command, keyword, position, length, element: child });
+        const datatype = child.querySelector('.read-datatype')?.value || 'text';
+        blocks.push({ type: 'read', source, variable, command, keyword, position, length, datatype, element: child });
       } else if (type === 'print') {
-        const mode = child.querySelector('.print-type')?.value || 'string';
-        const text = child.querySelector('.print-text')?.value || '';
-        const variable = child.querySelector('.print-variable')?.value.trim();
-        blocks.push({ type: 'print', mode, text, variable, element: child });
+        const template = child.querySelector('.print-template')?.value || '';
+        blocks.push({ type: 'print', template, element: child });
       } else if (type === 'condition') {
         const variable = child.querySelector('.condition-variable')?.value.trim();
         const operator = child.querySelector('.condition-operator')?.value || '=';
         const compare = child.querySelector('.condition-compare')?.value ?? '';
+        const conditionMode = child.querySelector('.condition-mode')?.value || 'text-exact';
         const thenCanvas = child.querySelector('[data-branch="then"]');
         const elseCanvas = child.querySelector('[data-branch="else"]');
         const thenActions = thenCanvas ? parseScriptCanvas(thenCanvas) : [];
         const elseActions = elseCanvas ? parseScriptCanvas(elseCanvas) : [];
-        blocks.push({ type: 'condition', variable, operator, compare, thenActions, elseActions, element: child });
+        blocks.push({ type: 'condition', variable, operator, compare, conditionMode, thenActions, elseActions, element: child });
       } else if (type === 'repeat') {
         const repeatInput = child.querySelector('input[type="number"]');
         const rawCount = repeatInput ? repeatInput.value : child.querySelector('input')?.value;
@@ -2411,31 +2480,70 @@ document.addEventListener('DOMContentLoaded', () => {
               value = '';
             }
           }
+          // Apply data type conversion
+          const datatype = action.datatype || 'text';
+          if (datatype === 'hex') {
+            // Parse as hex number, store decimal string
+            const parsed = parseInt(value.trim(), 16);
+            value = Number.isNaN(parsed) ? value : String(parsed);
+          } else if (datatype === 'dec') {
+            // Parse as decimal number, store decimal string
+            const parsed = parseFloat(value.trim());
+            value = Number.isNaN(parsed) ? value : String(parsed);
+          }
+          // else 'text': keep as-is
           vars[variable] = value;
           if (action.element) {
             const debugLabel = action.element.querySelector('.read-value');
-            if (debugLabel) debugLabel.textContent = `Value: ${value}`;
+            if (debugLabel) {
+              const typeLabel = datatype === 'hex' ? ' [Hex→Dec]' : datatype === 'dec' ? ' [Dec]' : ' [Text]';
+              debugLabel.textContent = `Value: ${value}${typeLabel}`;
+            }
           }
         } else if (action.type === 'print') {
-          const output = action.mode === 'variable' ? (vars[action.variable] ?? '') : action.text;
+          const template = action.template || '';
+          const output = template.replace(/\$\{(\w+)\}/g, (_, name) => vars[name] ?? '');
           appendOutput(`\n${output}\n`);
-          updateScriptStatus(`Print ${action.mode}`);
+          updateScriptStatus('Print output');
         } else if (action.type === 'condition') {
           const variable = action.variable || '';
           const operator = action.operator || '=';
           const compare = normalizeScriptValue(action.compare ?? '');
           const left = normalizeScriptValue(vars[variable] ?? '');
+          const condMode = action.conditionMode || 'text-exact';
           let result = false;
-          const leftNum = Number(left);
-          const rightNum = Number(compare);
-          if (!Number.isNaN(leftNum) && !Number.isNaN(rightNum) && ['<', '>'].includes(operator)) {
-            result = operator === '<' ? leftNum < rightNum : leftNum > rightNum;
-          } else if (operator === '=') {
-            result = left === compare;
-          } else if (operator === '!=') {
-            result = left !== compare;
+
+          if (condMode === 'text-exact') {
+            // Text exact match
+            if (operator === '=') result = left === compare;
+            else if (operator === '!=') result = left !== compare;
+          } else if (condMode === 'text-contains') {
+            // Text partial match (substring)
+            if (operator === 'contains') result = left.includes(compare);
+            else if (operator === 'not-contains') result = !left.includes(compare);
+          } else if (condMode === 'hex') {
+            // Hex number comparison: parse both as hex
+            const leftNum = parseInt(left.trim(), 16);
+            const rightNum = parseInt(compare.trim(), 16);
+            if (!Number.isNaN(leftNum) && !Number.isNaN(rightNum)) {
+              if (operator === '=') result = leftNum === rightNum;
+              else if (operator === '!=') result = leftNum !== rightNum;
+              else if (operator === '<') result = leftNum < rightNum;
+              else if (operator === '>') result = leftNum > rightNum;
+            }
+          } else if (condMode === 'dec') {
+            // Decimal number comparison
+            const leftNum = parseFloat(left.trim());
+            const rightNum = parseFloat(compare.trim());
+            if (!Number.isNaN(leftNum) && !Number.isNaN(rightNum)) {
+              if (operator === '=') result = leftNum === rightNum;
+              else if (operator === '!=') result = leftNum !== rightNum;
+              else if (operator === '<') result = leftNum < rightNum;
+              else if (operator === '>') result = leftNum > rightNum;
+            }
           }
-          updateScriptStatus(`IF ${variable} ${operator} ${compare} => ${result}`);
+          const modeLabel = {"text-exact": "Text Exact", "text-contains": "Text Contains", "hex": "Hex Number", "dec": "Dec Number"}[condMode] || condMode;
+          updateScriptStatus(`IF [${modeLabel}] ${variable} ${operator} ${compare} => ${result}`);
           await executeScriptActions(result ? action.thenActions : action.elseActions, vars);
         } else if (action.type === 'repeat') {
           const loopCount = Math.max(1, Number(action.count) || 1);
@@ -2476,6 +2584,157 @@ document.addEventListener('DOMContentLoaded', () => {
   stopScriptBtn.addEventListener('click', () => {
     stopScriptRequested = true;
     updateScriptStatus('Stopping...');
+  });
+
+  // ── Script Export / Import ──
+
+  function serializeCanvasToJSON(canvasEl) {
+    const blocks = [];
+    for (const child of canvasEl.children) {
+      if (!child.classList.contains('script-block-item')) continue;
+      const type = child.dataset.type;
+      if (type === 'command') {
+        const cmd = child.querySelector('textarea')?.value || '';
+        blocks.push({ type: 'command', command: cmd });
+      } else if (type === 'delay') {
+        const val = child.querySelector('input')?.value || '0.100s';
+        blocks.push({ type: 'delay', value: val });
+      } else if (type === 'read') {
+        blocks.push({
+          type: 'read',
+          source: child.querySelector('.read-source')?.value || 'uart',
+          variable: child.querySelector('.read-variable')?.value || '',
+          command: child.querySelector('.read-command')?.value || '',
+          keyword: child.querySelector('.read-keyword')?.value || '',
+          position: child.querySelector('.read-position')?.value || 'before',
+          length: parseInt(child.querySelector('.read-length')?.value, 10) || 0,
+          datatype: child.querySelector('.read-datatype')?.value || 'text'
+        });
+      } else if (type === 'print') {
+        blocks.push({
+          type: 'print',
+          template: child.querySelector('.print-template')?.value || ''
+        });
+      } else if (type === 'condition') {
+        const thenCanvas = child.querySelector('[data-branch="then"]');
+        const elseCanvas = child.querySelector('[data-branch="else"]');
+        blocks.push({
+          type: 'condition',
+          mode: child.querySelector('.condition-mode')?.value || 'text-exact',
+          variable: child.querySelector('.condition-variable')?.value || '',
+          operator: child.querySelector('.condition-operator')?.value || '=',
+          compare: child.querySelector('.condition-compare')?.value || '',
+          then: thenCanvas ? serializeCanvasToJSON(thenCanvas) : [],
+          else: elseCanvas ? serializeCanvasToJSON(elseCanvas) : []
+        });
+      } else if (type === 'repeat') {
+        const repeatInput = child.querySelector('input[type="number"]');
+        const count = parseInt(repeatInput?.value, 10) || 2;
+        const nested = child.querySelector('[data-nested]');
+        blocks.push({
+          type: 'repeat',
+          count: count,
+          actions: nested ? serializeCanvasToJSON(nested) : []
+        });
+      }
+    }
+    return blocks;
+  }
+
+  function importBlocksToCanvas(canvasEl, blocks) {
+    for (const b of blocks) {
+      let block;
+      if (b.type === 'command') {
+        block = createScriptBlock('command', b.command || '');
+      } else if (b.type === 'delay') {
+        block = createScriptBlock('delay', b.value || '0.100s');
+      } else if (b.type === 'read') {
+        block = createScriptBlock('read', b.command || '');
+        const el = block;
+        if (b.source) { const s = el.querySelector('.read-source'); if (s) s.value = b.source; }
+        if (b.variable) { const v = el.querySelector('.read-variable'); if (v) v.value = b.variable; }
+        if (b.keyword) { const k = el.querySelector('.read-keyword'); if (k) k.value = b.keyword; }
+        if (b.position) { const p = el.querySelector('.read-position'); if (p) p.value = b.position; }
+        if (b.length) { const l = el.querySelector('.read-length'); if (l) l.value = b.length; }
+        if (b.datatype) { const d = el.querySelector('.read-datatype'); if (d) d.value = b.datatype; }
+      } else if (b.type === 'print') {
+        block = createScriptBlock('print');
+        const tmpl = block.querySelector('.print-template');
+        if (tmpl) tmpl.value = b.template || '';
+      } else if (b.type === 'condition') {
+        block = createScriptBlock('condition');
+        const modeSel = block.querySelector('.condition-mode');
+        if (modeSel && b.mode) { modeSel.value = b.mode; modeSel.dispatchEvent(new Event('change')); }
+        const varIn = block.querySelector('.condition-variable');
+        if (varIn && b.variable) varIn.value = b.variable;
+        const opSel = block.querySelector('.condition-operator');
+        if (opSel && b.operator) opSel.value = b.operator;
+        const cmpIn = block.querySelector('.condition-compare');
+        if (cmpIn && b.compare) cmpIn.value = b.compare;
+        if (b.then && b.then.length > 0) {
+          const thenCanvas = block.querySelector('[data-branch="then"]');
+          if (thenCanvas) { thenCanvas.innerHTML = ''; importBlocksToCanvas(thenCanvas, b.then); }
+        }
+        if (b.else && b.else.length > 0) {
+          const elseCanvas = block.querySelector('[data-branch="else"]');
+          if (elseCanvas) { elseCanvas.innerHTML = ''; importBlocksToCanvas(elseCanvas, b.else); }
+        }
+      } else if (b.type === 'repeat') {
+        block = createScriptBlock('repeat');
+        const countIn = block.querySelector('input[type="number"]');
+        if (countIn) countIn.value = b.count || 2;
+        if (b.actions && b.actions.length > 0) {
+          const nested = block.querySelector('[data-nested]');
+          if (nested) { nested.innerHTML = ''; importBlocksToCanvas(nested, b.actions); }
+        }
+      }
+      if (block) insertBlockIntoCanvas(canvasEl, block);
+    }
+  }
+
+  document.getElementById('exportScriptBtn').addEventListener('click', () => {
+    const blocks = serializeCanvasToJSON(scriptCanvas);
+    if (blocks.length === 0) {
+      updateScriptStatus('Nothing to export.');
+      return;
+    }
+    const json = JSON.stringify({ version: 1, name: 'Untitled Script', blocks }, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'script.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    updateScriptStatus('Script exported.');
+  });
+
+  document.getElementById('importScriptBtn').addEventListener('click', () => {
+    document.getElementById('importScriptFile').click();
+  });
+
+  document.getElementById('importScriptFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.blocks || !Array.isArray(data.blocks)) {
+          updateScriptStatus('Invalid script file: missing blocks array.');
+          return;
+        }
+        // Clear canvas
+        scriptCanvas.innerHTML = '';
+        importBlocksToCanvas(scriptCanvas, data.blocks);
+        if (!scriptCanvas.querySelector('.script-block-item')) showEmptyCanvasHint();
+        updateScriptStatus(`Imported: ${data.name || 'script'} (${data.blocks.length} blocks)`);
+      } catch (err) {
+        updateScriptStatus('Import error: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   });
 
   document.querySelectorAll('.script-block').forEach(btn => {
