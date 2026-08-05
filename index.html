@@ -456,6 +456,9 @@
     }
     .palette-block.command-palette { background: #0f2a5a; border-color: #2a5a8a; }
     .palette-block.delay-palette { background: #4a3618; border-color: #8a6a2a; }
+    .palette-block.read-palette { background: #3a3d12; border-color: #8a8e3a; }
+    .palette-block.print-palette { background: #4a2a4a; border-color: #8a5a8a; }
+    .palette-block.condition-palette { background: #3a2a50; border-color: #7a5a8a; }
     .palette-block.repeat-palette { background: #1a5033; border-color: #3a8a5a; }
     .palette-block.command-palette { background: #0f2a5a; border-color: #2a5a8a; }
     .palette-block.delay-palette { background: #4a3618; border-color: #8a6a2a; }
@@ -506,6 +509,18 @@
     .script-block-delay {
       background: #4a3618;
       border-color: #8a6a2a;
+    }
+    .script-block-read {
+      background: #3a3d12;
+      border-color: #8a8e3a;
+    }
+    .script-block-print {
+      background: #4a2a4a;
+      border-color: #8a5a8a;
+    }
+    .script-block-condition {
+      background: #3a2a50;
+      border-color: #7a5a8a;
     }
     .script-block-repeat {
       background: #1a5033;
@@ -720,6 +735,9 @@
         <div class="script-palette">
           <button class="script-block palette-block command-palette" data-block-type="command" draggable="true">⛳ Command</button>
           <button class="script-block palette-block delay-palette" data-block-type="delay" draggable="true">⏱ Delay</button>
+          <button class="script-block palette-block read-palette" data-block-type="read" draggable="true">📥 Read</button>
+          <button class="script-block palette-block print-palette" data-block-type="print" draggable="true">🖨 Print</button>
+          <button class="script-block palette-block condition-palette" data-block-type="condition" draggable="true">❓ If</button>
           <button class="script-block palette-block repeat-palette" data-block-type="repeat" draggable="true">🔁 Loop</button>
         </div>
 
@@ -1663,10 +1681,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── ADB: Run one-shot command (from command bar or quick buttons) ──
   async function runAdbCommand(cmd) {
-    if (!adbClient || !adbClient.connected) return;
+    if (!adbClient || !adbClient.connected) return '';
     addToHistory(cmd);
     appendOutput(`\n$ ${cmd}\n`);
-    await adbClient.runCommand(cmd, (data) => appendOutput(stripAnsi(data)));
+    const output = await adbClient.runCommand(cmd, (data) => appendOutput(stripAnsi(data)));
+    return output.trim();
   }
 
   // ── ADB keyboard handler (interactive shell) ──
@@ -1961,6 +1980,173 @@ document.addEventListener('DOMContentLoaded', () => {
       input.value = value || '0.100s';
       input.title = 'Delay value with units (us/ms/s)';
       controls.appendChild(input);
+    } else if (type === 'read') {
+      title.textContent = 'Read';
+      block.classList.add('script-block-read');
+
+      const sourceLabel = document.createElement('label');
+      sourceLabel.textContent = 'Source:';
+      sourceLabel.style.fontSize = '12px';
+      controls.appendChild(sourceLabel);
+
+      const sourceSelect = document.createElement('select');
+      sourceSelect.className = 'read-source';
+      ['uart', 'adb'].forEach(val => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val.toUpperCase();
+        sourceSelect.appendChild(opt);
+      });
+      sourceSelect.style.maxWidth = '120px';
+      controls.appendChild(sourceSelect);
+
+      const varInput = document.createElement('input');
+      varInput.type = 'text';
+      varInput.className = 'read-variable';
+      varInput.placeholder = 'variable name (optional)';
+      varInput.title = 'Variable name to store read data';
+      controls.appendChild(varInput);
+
+      const textarea = document.createElement('textarea');
+      textarea.className = 'read-command';
+      textarea.placeholder = 'command to send before reading...';
+      textarea.value = value;
+      controls.appendChild(textarea);
+
+      const keywordInput = document.createElement('input');
+      keywordInput.type = 'text';
+      keywordInput.className = 'read-keyword';
+      keywordInput.placeholder = 'keyword';
+      keywordInput.title = 'Keyword to search in the read data';
+      controls.appendChild(keywordInput);
+
+      const positionSelect = document.createElement('select');
+      positionSelect.className = 'read-position';
+      ['before', 'after'].forEach(val => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val;
+        positionSelect.appendChild(opt);
+      });
+      positionSelect.style.maxWidth = '100px';
+      controls.appendChild(positionSelect);
+
+      const lengthInput = document.createElement('input');
+      lengthInput.type = 'number';
+      lengthInput.className = 'read-length';
+      lengthInput.placeholder = 'length';
+      lengthInput.title = 'Number of characters to capture around the keyword';
+      lengthInput.min = '1';
+      lengthInput.style.maxWidth = '80px';
+      controls.appendChild(lengthInput);
+
+      const debugLabel = document.createElement('div');
+      debugLabel.className = 'read-value';
+      debugLabel.style.fontSize = '12px';
+      debugLabel.style.color = '#a8d4ff';
+      controls.appendChild(debugLabel);
+    } else if (type === 'print') {
+      title.textContent = 'Print';
+      block.classList.add('script-block-print');
+
+      const printType = document.createElement('select');
+      printType.className = 'print-type';
+      ['string', 'variable'].forEach(val => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val === 'string' ? 'String' : 'Variable';
+        printType.appendChild(opt);
+      });
+      printType.style.maxWidth = '120px';
+      controls.appendChild(printType);
+
+      const stringInput = document.createElement('textarea');
+      stringInput.className = 'print-text';
+      stringInput.placeholder = 'Custom string to print';
+      controls.appendChild(stringInput);
+
+      const variableInput = document.createElement('input');
+      variableInput.className = 'print-variable';
+      variableInput.type = 'text';
+      variableInput.placeholder = 'variable name';
+      variableInput.title = 'Variable to print';
+      variableInput.style.display = 'none';
+      variableInput.style.maxWidth = '180px';
+      controls.appendChild(variableInput);
+
+      printType.addEventListener('change', () => {
+        if (printType.value === 'variable') {
+          stringInput.style.display = 'none';
+          variableInput.style.display = 'block';
+        } else {
+          stringInput.style.display = 'block';
+          variableInput.style.display = 'none';
+        }
+      });
+    } else if (type === 'condition') {
+      title.textContent = 'IF';
+      block.classList.add('script-block-condition');
+
+      const varInput = document.createElement('input');
+      varInput.type = 'text';
+      varInput.className = 'condition-variable';
+      varInput.placeholder = 'variable name';
+      varInput.title = 'Variable to compare';
+      varInput.style.maxWidth = '120px';
+      controls.appendChild(varInput);
+
+      const opSelect = document.createElement('select');
+      opSelect.className = 'condition-operator';
+      ['=', '!=', '<', '>'].forEach(op => {
+        const opt = document.createElement('option');
+        opt.value = op;
+        opt.textContent = op;
+        opSelect.appendChild(opt);
+      });
+      opSelect.style.maxWidth = '80px';
+      controls.appendChild(opSelect);
+
+      const compareInput = document.createElement('input');
+      compareInput.type = 'text';
+      compareInput.className = 'condition-compare';
+      compareInput.placeholder = 'compare value';
+      compareInput.title = 'Value to compare against';
+      controls.appendChild(compareInput);
+
+      const thenLabel = document.createElement('div');
+      thenLabel.textContent = 'Then:';
+      thenLabel.style.color = '#9abcff';
+      thenLabel.style.fontSize = '12px';
+      controls.appendChild(thenLabel);
+
+      const thenCanvas = document.createElement('div');
+      thenCanvas.className = 'script-canvas';
+      thenCanvas.style.background = '#09131f';
+      thenCanvas.style.minHeight = '80px';
+      thenCanvas.style.padding = '8px';
+      thenCanvas.style.borderRadius = '6px';
+      thenCanvas.dataset.branch = 'then';
+      thenCanvas.innerHTML = '<div class="script-canvas-empty">Drop actions for true branch.</div>';
+      makeScriptCanvasDroppable(thenCanvas);
+      block.appendChild(thenCanvas);
+
+      const elseLabel = document.createElement('div');
+      elseLabel.textContent = 'Else:';
+      elseLabel.style.color = '#9abcff';
+      elseLabel.style.fontSize = '12px';
+      elseLabel.style.marginTop = '6px';
+      controls.appendChild(elseLabel);
+
+      const elseCanvas = document.createElement('div');
+      elseCanvas.className = 'script-canvas';
+      elseCanvas.style.background = '#09131f';
+      elseCanvas.style.minHeight = '80px';
+      elseCanvas.style.padding = '8px';
+      elseCanvas.style.borderRadius = '6px';
+      elseCanvas.dataset.branch = 'else';
+      elseCanvas.innerHTML = '<div class="script-canvas-empty">Drop actions for false branch.</div>';
+      makeScriptCanvasDroppable(elseCanvas);
+      block.appendChild(elseCanvas);
     } else if (type === 'repeat') {
       title.textContent = 'LOOP';
       block.classList.add('script-block-repeat');
@@ -2084,6 +2270,10 @@ document.addEventListener('DOMContentLoaded', () => {
     return parseFloat(normalized) * 1000;
   }
 
+  function normalizeScriptValue(value) {
+    return String(value).replace(/\r/g, '').trim();
+  }
+
   function busyWait(ms) {
     const start = performance.now();
     while (performance.now() - start < ms) {
@@ -2122,6 +2312,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const ms = parseDelayValue(raw);
         if (Number.isNaN(ms) || ms < 0) continue;
         blocks.push({ type: 'delay', ms, element: child });
+      } else if (type === 'read') {
+        const source = child.querySelector('.read-source')?.value || 'uart';
+        const variable = child.querySelector('.read-variable')?.value.trim();
+        const command = child.querySelector('.read-command')?.value.trim();
+        const keyword = child.querySelector('.read-keyword')?.value || '';
+        const position = child.querySelector('.read-position')?.value || 'before';
+        const length = parseInt(child.querySelector('.read-length')?.value, 10) || 0;
+        blocks.push({ type: 'read', source, variable, command, keyword, position, length, element: child });
+      } else if (type === 'print') {
+        const mode = child.querySelector('.print-type')?.value || 'string';
+        const text = child.querySelector('.print-text')?.value || '';
+        const variable = child.querySelector('.print-variable')?.value.trim();
+        blocks.push({ type: 'print', mode, text, variable, element: child });
+      } else if (type === 'condition') {
+        const variable = child.querySelector('.condition-variable')?.value.trim();
+        const operator = child.querySelector('.condition-operator')?.value || '=';
+        const compare = child.querySelector('.condition-compare')?.value ?? '';
+        const thenCanvas = child.querySelector('[data-branch="then"]');
+        const elseCanvas = child.querySelector('[data-branch="else"]');
+        const thenActions = thenCanvas ? parseScriptCanvas(thenCanvas) : [];
+        const elseActions = elseCanvas ? parseScriptCanvas(elseCanvas) : [];
+        blocks.push({ type: 'condition', variable, operator, compare, thenActions, elseActions, element: child });
       } else if (type === 'repeat') {
         const repeatInput = child.querySelector('input[type="number"]');
         const rawCount = repeatInput ? repeatInput.value : child.querySelector('input')?.value;
@@ -2141,7 +2353,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function executeScriptActions(actions) {
+  async function executeScriptActions(actions, vars = {}) {
     for (const action of actions) {
       if (stopScriptRequested) throw new Error('Script stopped');
       setActionRunning(action, true);
@@ -2159,12 +2371,78 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (action.type === 'delay') {
           updateScriptStatus(`Waiting ${action.ms / 1000}s...`);
           await delay(action.ms);
+        } else if (action.type === 'read') {
+          const variable = action.variable || `var_${Math.floor(Math.random() * 1000)}`;
+          const source = action.source || 'uart';
+          const command = action.command || '';
+          const keyword = action.keyword || '';
+          const position = action.position || 'before';
+          const length = Math.max(0, Number(action.length) || 0);
+          let value = '';
+          updateScriptStatus(`Reading ${source} into ${variable}...`);
+          if (source === 'adb') {
+            if (!isAdbConnected) throw new Error('ADB not connected');
+            value = await runAdbCommand(command || '');
+          } else {
+            if (!isConnected || !writer) throw new Error('Serial not connected');
+            const before = ta.value;
+            if (command) {
+              addToHistory(command);
+              appendOutput(`\n> ${command}\n`);
+              await sendRawData(command + '\r\n');
+            }
+            await delay(250);
+            const after = ta.value;
+            value = after.slice(before.length);
+          }
+          value = normalizeScriptValue(value);
+          if (keyword && length > 0) {
+            const idx = value.indexOf(keyword);
+            if (idx >= 0) {
+              if (position === 'before') {
+                const end = idx;
+                const start = Math.max(0, end - length);
+                value = value.slice(start, end);
+              } else {
+                const start = idx + keyword.length;
+                value = value.slice(start, start + length);
+              }
+            } else {
+              value = '';
+            }
+          }
+          vars[variable] = value;
+          if (action.element) {
+            const debugLabel = action.element.querySelector('.read-value');
+            if (debugLabel) debugLabel.textContent = `Value: ${value}`;
+          }
+        } else if (action.type === 'print') {
+          const output = action.mode === 'variable' ? (vars[action.variable] ?? '') : action.text;
+          appendOutput(`\n${output}\n`);
+          updateScriptStatus(`Print ${action.mode}`);
+        } else if (action.type === 'condition') {
+          const variable = action.variable || '';
+          const operator = action.operator || '=';
+          const compare = normalizeScriptValue(action.compare ?? '');
+          const left = normalizeScriptValue(vars[variable] ?? '');
+          let result = false;
+          const leftNum = Number(left);
+          const rightNum = Number(compare);
+          if (!Number.isNaN(leftNum) && !Number.isNaN(rightNum) && ['<', '>'].includes(operator)) {
+            result = operator === '<' ? leftNum < rightNum : leftNum > rightNum;
+          } else if (operator === '=') {
+            result = left === compare;
+          } else if (operator === '!=') {
+            result = left !== compare;
+          }
+          updateScriptStatus(`IF ${variable} ${operator} ${compare} => ${result}`);
+          await executeScriptActions(result ? action.thenActions : action.elseActions, vars);
         } else if (action.type === 'repeat') {
           const loopCount = Math.max(1, Number(action.count) || 1);
           updateScriptStatus(`Repeating ${loopCount}×`);
           for (let i = 0; i < loopCount; i++) {
             if (stopScriptRequested) throw new Error('Script stopped');
-            await executeScriptActions(action.actions);
+            await executeScriptActions(action.actions, vars);
           }
         }
       } finally {
@@ -2184,7 +2462,7 @@ document.addEventListener('DOMContentLoaded', () => {
     stopScriptBtn.disabled = false;
     updateScriptStatus('Running...');
     try {
-      await executeScriptActions(actions);
+      await executeScriptActions(actions, {});
       if (!stopScriptRequested) updateScriptStatus('Completed.');
     } catch (err) {
       updateScriptStatus(err.message || 'Error during run.');
