@@ -470,6 +470,7 @@
     .palette-block.setvar-palette { background: #00838f; border-color: #4dd0e1; color: #e0f7fa; box-shadow: 0 2px 12px rgba(77,208,225,0.35); }
     .palette-block.waitfor-palette { background: #f9a825; border-color: #ffee58; color: #3e2723; box-shadow: 0 2px 12px rgba(249,168,37,0.35); }
     .palette-block.math-palette { background: #c62828; border-color: #ef5350; color: #ffebee; box-shadow: 0 2px 12px rgba(239,83,80,0.35); }
+    .palette-block.plot-palette { background: #e91e63; border-color: #f48fb1; color: #fce4ec; box-shadow: 0 2px 12px rgba(233,30,99,0.35); }
     .palette-block:active { cursor: grabbing; transform: scale(0.97); }
     .script-canvas {
       min-height: 180px;
@@ -572,6 +573,12 @@
       border-left-color: #c62828;
       box-shadow: 0 1px 8px rgba(239,83,80,0.15);
     }
+    .script-block-plot {
+      background: #4a0a2a;
+      border-color: #f48fb1;
+      border-left-color: #e91e63;
+      box-shadow: 0 1px 8px rgba(233,30,99,0.15);
+    }
     .script-block-item.running {
       box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.5), 0 0 16px rgba(255, 215, 0, 0.2);
       border-color: #ffd700;
@@ -658,6 +665,7 @@
       margin-left: auto;
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -674,7 +682,7 @@
 
     <!-- Serial Panel -->
     <div class="panel mode-panel active" id="panelSerial">
-      <h2>Port Setup</h2>
+      <h2>Port Settings</h2>
 
       <div class="input-group">
         <label for="baudRateSelect">Baud Rate</label>
@@ -804,6 +812,7 @@
           <button class="script-block palette-block setvar-palette" data-block-type="setvar" draggable="true">📌 Set Var</button>
           <button class="script-block palette-block waitfor-palette" data-block-type="waitfor" draggable="true">⏳ Wait For</button>
           <button class="script-block palette-block math-palette" data-block-type="math" draggable="true">🧮 Math</button>
+          <button class="script-block palette-block plot-palette" data-block-type="plot" draggable="true">📈 Plot</button>
           <button class="script-block palette-block condition-palette" data-block-type="condition" draggable="true">❓ If</button>
           <button class="script-block palette-block repeat-palette" data-block-type="repeat" draggable="true">🔁 Loop</button>
         </div>
@@ -824,12 +833,115 @@
         <div id="scriptStatus" class="script-status">Status: ready.</div>
       </div>
     </div>
+
+    <!-- Live Dashboard Panel -->
+    <div class="panel" id="dashboardPanel" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a3a5a; padding-bottom: 5px; margin-bottom: 10px;">
+        <h2 style="color: #f48fb1; border: none; padding: 0; margin: 0;">Live Dashboard</h2>
+        <div>
+          <button id="clearChartBtn" style="font-size: 11px; padding: 3px 10px; margin-right: 5px; background: #5a2a2a; color: #ff9b9b; border: 1px solid #ff9b9b;">🗑️ Clear</button>
+          <button id="exportCsvBtn" style="font-size: 11px; padding: 3px 10px;">📥 Export CSV</button>
+          <button id="closeDashboardBtn" style="font-size: 11px; padding: 3px 10px; margin-left: 5px; background: #2a1a2a; border: 1px solid #3a3a5a; color: #ff9b9b; border-radius: 4px; cursor: pointer;">✕</button>
+        </div>
+      </div>
+      <div style="height: 300px; width: 100%; position: relative;">
+        <canvas id="mainChart"></canvas>
+      </div>
+    </div>
   </div>
 
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+
+  // ══════════════════════════════════════════════════════════════
+  // LIVE DASHBOARD (Chart.js)
+  // ══════════════════════════════════════════════════════════════
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  const liveChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: [], datasets: [] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 0 },
+      scales: {
+        x: { title: { display: true, text: 'Time', color: '#a0cfff' }, ticks: { color: '#6a8aaa' }, grid: { color: '#2a3a5a' } },
+        y: { title: { display: true, text: 'Value', color: '#f48fb1' }, ticks: { color: '#6a8aaa' }, grid: { color: '#2a3a5a' } }
+      },
+      plugins: { legend: { labels: { color: '#e0e0e0' } } }
+    }
+  });
+
+  const MAX_CHART_POINTS = 50;
+  function updateChart(dataPoints, yLabel) {
+    document.getElementById('dashboardPanel').style.display = 'block';
+    if (yLabel && liveChart.options.scales.y.title.text !== yLabel) {
+      liveChart.options.scales.y.title.text = yLabel;
+    }
+
+    const now = new Date();
+    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+    liveChart.data.labels.push(timeStr);
+
+    const updatedDatasets = new Set();
+    for (const pt of dataPoints) {
+      let dataset = liveChart.data.datasets.find(ds => ds.label === pt.name);
+      if (!dataset) {
+        const color = pt.color || `hsl(${Math.floor(Math.random() * 360)}, 80%, 60%)`;
+        dataset = { label: pt.name, data: new Array(Math.max(0, liveChart.data.labels.length - 1)).fill(null), borderColor: color, backgroundColor: color, borderWidth: 2, tension: 0.1, pointRadius: 3 };
+        liveChart.data.datasets.push(dataset);
+      } else if (pt.color) {
+        dataset.borderColor = pt.color;
+        dataset.backgroundColor = pt.color;
+      }
+      dataset.data.push(pt.value);
+      updatedDatasets.add(dataset);
+    }
+
+    for (let ds of liveChart.data.datasets) {
+      if (!updatedDatasets.has(ds)) {
+        ds.data.push(null);
+      }
+      while (ds.data.length > MAX_CHART_POINTS) ds.data.shift();
+    }
+    while (liveChart.data.labels.length > MAX_CHART_POINTS) liveChart.data.labels.shift();
+    liveChart.update();
+  }
+
+  document.getElementById('clearChartBtn').addEventListener('click', () => {
+    liveChart.data.labels = [];
+    liveChart.data.datasets.forEach(ds => ds.data = []);
+    liveChart.update();
+  });
+
+  document.getElementById('closeDashboardBtn').addEventListener('click', () => {
+    document.getElementById('dashboardPanel').style.display = 'none';
+  });
+
+  document.getElementById('exportCsvBtn').addEventListener('click', () => {
+    if (!liveChart.data.labels.length) return;
+    let csv = 'Time';
+    liveChart.data.datasets.forEach(ds => { csv += ',' + ds.label; });
+    csv += '\n';
+    
+    for (let i = 0; i < liveChart.data.labels.length; i++) {
+      csv += liveChart.data.labels[i];
+      liveChart.data.datasets.forEach(ds => {
+        const val = ds.data[i];
+        csv += ',' + (val !== null ? val : '');
+      });
+      csv += '\n';
+    }
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `LiveDashboard_${new Date().getTime()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
 
   // ══════════════════════════════════════════════════════════════
   // SHARED STATE
@@ -1290,6 +1402,7 @@ document.addEventListener('DOMContentLoaded', () => {
       this.outEp  = outEp;
       this._buf   = new Uint8Array(0);
       this.closed = false;
+      this._writeQueue = Promise.resolve();
     }
 
     async _fillBuf(needed) {
@@ -1334,42 +1447,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async sendPacket(cmd, arg0, arg1, data) {
-      const dataBytes = typeof data === 'string'
-        ? new TextEncoder().encode(data)
-        : (data instanceof Uint8Array ? data : new Uint8Array(0));
+      const exec = async () => {
+        const dataBytes = typeof data === 'string'
+          ? new TextEncoder().encode(data)
+          : (data instanceof Uint8Array ? data : new Uint8Array(0));
 
-      let crc = 0;
-      for (const b of dataBytes) crc = (crc + b) >>> 0;
+        let crc = 0;
+        for (const b of dataBytes) crc = (crc + b) >>> 0;
 
-      const hdr = new DataView(new ArrayBuffer(24));
-      hdr.setUint32(0,  cmd,                    true);
-      hdr.setUint32(4,  arg0,                   true);
-      hdr.setUint32(8,  arg1,                   true);
-      hdr.setUint32(12, dataBytes.length,        true);
-      hdr.setUint32(16, crc,                     true);
-      hdr.setUint32(20, (cmd ^ 0xFFFFFFFF) >>> 0, true);
+        const hdr = new DataView(new ArrayBuffer(24));
+        hdr.setUint32(0,  cmd,                    true);
+        hdr.setUint32(4,  arg0,                   true);
+        hdr.setUint32(8,  arg1,                   true);
+        hdr.setUint32(12, dataBytes.length,        true);
+        hdr.setUint32(16, crc,                     true);
+        hdr.setUint32(20, (cmd ^ 0xFFFFFFFF) >>> 0, true);
 
-      const pkt = new Uint8Array(24 + dataBytes.length);
-      pkt.set(new Uint8Array(hdr.buffer));
-      pkt.set(dataBytes, 24);
+        const pkt = new Uint8Array(24 + dataBytes.length);
+        pkt.set(new Uint8Array(hdr.buffer));
+        pkt.set(dataBytes, 24);
 
-      // Split into USB-friendly chunks and verify each transfer
-      const CHUNK = 16384;
-      for (let i = 0; i < pkt.length; i += CHUNK) {
-        if (this.closed) return;
-        let result = await this.device.transferOut(
-          this.outEp.endpointNumber, pkt.slice(i, i + CHUNK)
-        );
-        if (result.status === 'stall') {
-          try { await this.device.clearHalt('out', this.outEp.endpointNumber); } catch {}
-          result = await this.device.transferOut(
+        const CHUNK = 16384;
+        for (let i = 0; i < pkt.length; i += CHUNK) {
+          if (this.closed) return;
+          let result = await this.device.transferOut(
             this.outEp.endpointNumber, pkt.slice(i, i + CHUNK)
           );
+          if (result.status === 'stall') {
+            try { await this.device.clearHalt('out', this.outEp.endpointNumber); } catch {}
+            result = await this.device.transferOut(
+              this.outEp.endpointNumber, pkt.slice(i, i + CHUNK)
+            );
+          }
+          if (result.status !== 'ok') {
+            throw new Error(`USB write failed (status=${result.status}).`);
+          }
         }
-        if (result.status !== 'ok') {
-          throw new Error(`USB write failed (status=${result.status}).`);
-        }
-      }
+      };
+
+      let res, rej;
+      const promise = new Promise((r, e) => { res = r; rej = e; });
+      this._writeQueue = this._writeQueue.then(async () => {
+        try { await exec(); res(); } catch(e) { rej(e); }
+      });
+      return promise;
     }
 
     close() { this.closed = true; }
@@ -1497,6 +1618,9 @@ document.addEventListener('DOMContentLoaded', () => {
         case A_CLSE:
           if (st) {
             if (st.onClose) st.onClose();
+            if (st.remoteId && this.connected) {
+              this.transport.sendPacket(A_CLSE, localId, st.remoteId, null).catch(() => {});
+            }
             this.streams.delete(localId);
           }
           break;
@@ -2007,6 +2131,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const scriptStatus = document.getElementById('scriptStatus');
   let stopScriptRequested = false;
   let draggedScriptBlock = null;
+  let lastMousedownTarget = null;
+  document.addEventListener('mousedown', (e) => { lastMousedownTarget = e.target; });
 
   function updateScriptStatus(message) {
     scriptStatus.textContent = `Status: ${message}`;
@@ -2020,13 +2146,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const header = document.createElement('div');
     header.className = 'script-block-header';
+    
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'drag-handle';
+    dragHandle.innerHTML = '⠿';
+    dragHandle.title = 'Drag to move';
+    dragHandle.style.cssText = 'cursor:grab;color:#6a8aaa;padding:0 6px 0 0;font-size:14px;user-select:none;display:flex;align-items:center;';
+
     const title = document.createElement('div');
     title.className = 'block-title';
+    title.style.flex = '1';
+
     const removeBtn = document.createElement('button');
     removeBtn.textContent = '✕';
     removeBtn.style.cssText = 'font-size:12px;padding:2px 6px;background:#2a1a2a;border:1px solid #3a3a5a;color:#ff9b9b;border-radius:4px;cursor:pointer;';
     removeBtn.addEventListener('click', () => { block.remove(); if (!scriptCanvas.querySelector('.script-block-item')) showEmptyCanvasHint(); });
 
+    header.appendChild(dragHandle);
     header.appendChild(title);
     header.appendChild(removeBtn);
     block.appendChild(header);
@@ -2086,7 +2222,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const keywordInput = document.createElement('input');
       keywordInput.type = 'text';
       keywordInput.className = 'read-keyword';
-      keywordInput.placeholder = 'keyword';
+      keywordInput.placeholder = 'keyword (optional)';
       keywordInput.title = 'Keyword to search in the read data';
       controls.appendChild(keywordInput);
 
@@ -2109,6 +2245,14 @@ document.addEventListener('DOMContentLoaded', () => {
       lengthInput.min = '1';
       lengthInput.style.maxWidth = '80px';
       controls.appendChild(lengthInput);
+
+      const updateVisibility = () => {
+        const hasKw = keywordInput.value.trim().length > 0;
+        positionSelect.style.display = hasKw ? '' : 'none';
+        lengthInput.style.display = hasKw ? '' : 'none';
+      };
+      keywordInput.addEventListener('input', updateVisibility);
+      setTimeout(updateVisibility, 0);
 
       // Data type selector: treat read value as text or number (hex/dec)
       const dataTypeLabel = document.createElement('label');
@@ -2235,6 +2379,69 @@ document.addEventListener('DOMContentLoaded', () => {
       debugLabel.className = 'math-debug';
       debugLabel.style.cssText = 'font-size:11px;color:#ef9a9a;min-height:16px;';
       controls.appendChild(debugLabel);
+    } else if (type === 'plot') {
+      title.textContent = 'Plot Sender';
+      block.classList.add('script-block-plot');
+
+      const varsContainer = document.createElement('div');
+      varsContainer.className = 'plot-vars-container';
+      controls.appendChild(varsContainer);
+
+      const addVarRow = (variable = '', name = 'Data', color = '#ff3366') => {
+        const row = document.createElement('div');
+        row.className = 'plot-var-row';
+        row.style.cssText = 'display:flex; gap:4px; margin-bottom:4px; align-items:center;';
+        
+        const varInput = document.createElement('input');
+        varInput.type = 'text';
+        varInput.className = 'plot-variable';
+        varInput.placeholder = 'var (e.g. val)';
+        varInput.value = variable;
+        varInput.style.flex = '1';
+        
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.className = 'plot-name';
+        nameInput.placeholder = 'Name';
+        nameInput.value = name;
+        nameInput.style.flex = '1';
+
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.className = 'plot-color';
+        colorInput.value = color;
+        colorInput.style.width = '30px';
+        colorInput.style.padding = '0';
+        colorInput.style.border = 'none';
+        
+        const rmBtn = document.createElement('button');
+        rmBtn.textContent = '✕';
+        rmBtn.style.cssText = 'font-size:10px; padding:2px 4px; background:#4a2a2a; border:none; color:#ff9b9b; cursor:pointer;';
+        rmBtn.onclick = () => row.remove();
+
+        row.appendChild(varInput);
+        row.appendChild(nameInput);
+        row.appendChild(colorInput);
+        row.appendChild(rmBtn);
+        varsContainer.appendChild(row);
+      };
+
+      block.addVarRow = addVarRow;
+      addVarRow();
+
+      const addVarBtn = document.createElement('button');
+      addVarBtn.textContent = '+ Add Variable';
+      addVarBtn.style.cssText = 'font-size:11px; margin-bottom:6px; padding:2px 6px;';
+      addVarBtn.onclick = () => addVarRow();
+      controls.appendChild(addVarBtn);
+
+      const labelInput = document.createElement('input');
+      labelInput.type = 'text';
+      labelInput.className = 'plot-label';
+      labelInput.placeholder = 'Y-Axis Label';
+      labelInput.title = 'Label for the Y-Axis (e.g. °C)';
+      labelInput.style.maxWidth = '100px';
+      controls.appendChild(labelInput);
     } else if (type === 'condition') {
       title.textContent = 'IF';
       block.classList.add('script-block-condition');
@@ -2299,6 +2506,7 @@ document.addEventListener('DOMContentLoaded', () => {
       thenLabel.textContent = 'Then:';
       thenLabel.style.color = '#9abcff';
       thenLabel.style.fontSize = '12px';
+      thenLabel.style.marginTop = '6px';
       controls.appendChild(thenLabel);
 
       const thenCanvas = document.createElement('div');
@@ -2310,7 +2518,7 @@ document.addEventListener('DOMContentLoaded', () => {
       thenCanvas.dataset.branch = 'then';
       thenCanvas.innerHTML = '<div class="script-canvas-empty">Drop actions for true branch.</div>';
       makeScriptCanvasDroppable(thenCanvas);
-      block.appendChild(thenCanvas);
+      controls.appendChild(thenCanvas);
 
       const elseLabel = document.createElement('div');
       elseLabel.textContent = 'Else:';
@@ -2328,21 +2536,38 @@ document.addEventListener('DOMContentLoaded', () => {
       elseCanvas.dataset.branch = 'else';
       elseCanvas.innerHTML = '<div class="script-canvas-empty">Drop actions for false branch.</div>';
       makeScriptCanvasDroppable(elseCanvas);
-      block.appendChild(elseCanvas);
+      controls.appendChild(elseCanvas);
     } else if (type === 'repeat') {
       title.textContent = 'LOOP';
       block.classList.add('script-block-repeat');
+
+      const modeSelect = document.createElement('select');
+      modeSelect.className = 'repeat-mode';
+      [['count', 'Count'], ['infinite', 'Infinite']].forEach(([v, l]) => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = l;
+        modeSelect.appendChild(opt);
+      });
+      controls.appendChild(modeSelect);
+
       const repeatInput = document.createElement('input');
       repeatInput.type = 'number';
+      repeatInput.className = 'repeat-count';
       repeatInput.min = '1';
       repeatInput.value = '2';
       repeatInput.title = 'Repeat count';
-      repeatInput.style.maxWidth = '120px';
+      repeatInput.style.maxWidth = '80px';
       controls.appendChild(repeatInput);
+
+      modeSelect.addEventListener('change', () => {
+        repeatInput.style.display = modeSelect.value === 'count' ? '' : 'none';
+      });
 
       const childLabel = document.createElement('div');
       childLabel.style.color = '#9abcff';
       childLabel.style.fontSize = '12px';
+      childLabel.style.marginTop = '6px';
       childLabel.textContent = 'Drop actions into this LOOP:';
       controls.appendChild(childLabel);
 
@@ -2355,7 +2580,7 @@ document.addEventListener('DOMContentLoaded', () => {
       nested.dataset.nested = 'true';
       nested.innerHTML = '<div class="script-canvas-empty">Drop blocks here.</div>';
       makeScriptCanvasDroppable(nested);
-      block.appendChild(nested);
+      controls.appendChild(nested);
     }
 
     block.appendChild(controls);
@@ -2370,41 +2595,65 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function makeScriptCanvasDroppable(canvasEl) {
-    canvasEl.addEventListener('dragenter', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    });
     canvasEl.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
       const dropTarget = e.target.closest('.script-canvas');
       if (dropTarget !== canvasEl) return;
+      
+      // Do not allow a block to be dropped inside itself or its own inner canvases
+      if (draggedScriptBlock && draggedScriptBlock.contains(canvasEl)) {
+        return; // Allow the event to bubble to outer canvas
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
       canvasEl.classList.add('drag-over');
+
+      if (draggedScriptBlock) {
+        let targetBefore = null;
+        const children = [...canvasEl.children].filter(c => c.classList.contains('script-block-item') && c !== draggedScriptBlock);
+        for (const child of children) {
+          const box = child.getBoundingClientRect();
+          if (e.clientY < box.top + box.height / 2) {
+            targetBefore = child;
+            break;
+          }
+        }
+        
+        const oldParent = draggedScriptBlock.parentElement;
+        if (targetBefore) {
+          canvasEl.insertBefore(draggedScriptBlock, targetBefore);
+        } else {
+          canvasEl.appendChild(draggedScriptBlock);
+        }
+        
+        if (oldParent && !oldParent.querySelector('.script-block-item')) {
+          oldParent.innerHTML = '<div class="script-canvas-empty">Drop blocks here.</div>';
+        }
+        const emptyHint = canvasEl.querySelector('.script-canvas-empty');
+        if (emptyHint) emptyHint.remove();
+      }
     });
+
     canvasEl.addEventListener('dragleave', (e) => {
-      e.stopPropagation();
       canvasEl.classList.remove('drag-over');
     });
+
     canvasEl.addEventListener('drop', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
       const dropTarget = e.target.closest('.script-canvas');
       if (dropTarget !== canvasEl) return;
+      if (draggedScriptBlock && draggedScriptBlock.contains(canvasEl)) return;
+
+      e.preventDefault();
+      e.stopPropagation();
       canvasEl.classList.remove('drag-over');
+      
       const type = e.dataTransfer.getData('block-type');
       const commandText = e.dataTransfer.getData('text/plain');
 
       if (draggedScriptBlock) {
-        const block = draggedScriptBlock;
         draggedScriptBlock = null;
-        const oldParent = block.parentElement;
-        if (oldParent) {
-          block.remove();
-          if (!oldParent.querySelector('.script-block-item')) {
-            oldParent.innerHTML = '<div class="script-canvas-empty">Drop blocks here.</div>';
-          }
-        }
-        insertBlockIntoCanvas(canvasEl, block);
+        const emptyHint = canvasEl.querySelector('.script-canvas-empty');
+        if (emptyHint) emptyHint.remove();
         return;
       }
 
@@ -2430,7 +2679,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function setBlockDragHandlers(block) {
     block.addEventListener('dragstart', (e) => {
+      e.stopPropagation();
+      if (!lastMousedownTarget || !lastMousedownTarget.closest('.drag-handle')) {
+        e.preventDefault();
+        return;
+      }
       draggedScriptBlock = block;
+      setTimeout(() => block.style.opacity = '0.4', 0);
       e.dataTransfer.setData('block-type', block.dataset.type);
       if (block.dataset.type === 'command') {
         const cmd = block.querySelector('textarea');
@@ -2440,6 +2695,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     block.addEventListener('dragend', () => {
       draggedScriptBlock = null;
+      block.style.opacity = '1';
     });
   }
 
@@ -2517,9 +2773,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const elseActions = elseCanvas ? parseScriptCanvas(elseCanvas) : [];
         blocks.push({ type: 'condition', variable, operator, compare, conditionMode, thenActions, elseActions, element: child });
       } else if (type === 'repeat') {
-        const repeatInput = child.querySelector('input[type="number"]');
+        const mode = child.querySelector('.repeat-mode')?.value || 'count';
+        const repeatInput = child.querySelector('.repeat-count');
         const rawCount = repeatInput ? repeatInput.value : child.querySelector('input')?.value;
-        const count = Math.max(1, Number(rawCount) || 1);
+        const count = mode === 'infinite' ? 0 : Math.max(1, Number(rawCount) || 1);
         const nested = child.querySelector('[data-nested]');
         const nestedActions = nested ? parseScriptCanvas(nested) : [];
         if (nestedActions.length === 0) continue;
@@ -2539,6 +2796,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const operator = child.querySelector('.math-operator')?.value || '+';
         const right = child.querySelector('.math-right')?.value || '';
         blocks.push({ type: 'math', result, left, operator, right, element: child });
+      } else if (type === 'plot') {
+        const rows = child.querySelectorAll('.plot-var-row');
+        const variables = [];
+        for (const row of rows) {
+          const variable = row.querySelector('.plot-variable')?.value.trim() || '';
+          const name = row.querySelector('.plot-name')?.value.trim() || 'Data';
+          const color = row.querySelector('.plot-color')?.value || '#ff3366';
+          if (variable) variables.push({ variable, name, color });
+        }
+        const label = child.querySelector('.plot-label')?.value.trim() || '';
+        blocks.push({ type: 'plot', variables, label, element: child });
       }
     }
     return blocks;
@@ -2674,8 +2942,9 @@ document.addEventListener('DOMContentLoaded', () => {
           updateScriptStatus(`IF [${modeLabel}] ${variable} ${operator} ${compare} => ${result}`);
           await executeScriptActions(result ? action.thenActions : action.elseActions, vars);
         } else if (action.type === 'repeat') {
-          const loopCount = Math.max(1, Number(action.count) || 1);
-          updateScriptStatus(`Repeating ${loopCount}×`);
+          const isInfinite = action.mode === 'infinite' || action.count === 0;
+          const loopCount = isInfinite ? Infinity : Math.max(1, Number(action.count) || 1);
+          updateScriptStatus(isInfinite ? 'Repeating ∞' : `Repeating ${loopCount}×`);
           for (let i = 0; i < loopCount; i++) {
             if (stopScriptRequested) throw new Error('Script stopped');
             await executeScriptActions(action.actions, vars);
@@ -2727,6 +2996,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (dbg) dbg.textContent = `${resultVar} = ${l} ${op} ${r} = ${res}`;
           }
           updateScriptStatus(`Math: ${resultVar} = ${res}`);
+        } else if (action.type === 'plot') {
+          const dataPoints = [];
+          const varsToIterate = action.variables && action.variables.length > 0 
+                                  ? action.variables 
+                                  : [{ variable: action.variable, name: action.name, color: '#ff3366' }];
+
+          for (const v of varsToIterate) {
+            let rawVal = v.variable || '';
+            if (rawVal && !rawVal.includes('${')) {
+               rawVal = vars[rawVal] ?? '0';
+            } else {
+               rawVal = rawVal.replace(/\$\{(\w+)\}/g, (_, name) => vars[name] ?? '0');
+            }
+            const val = parseFloat(rawVal);
+            if (!Number.isNaN(val)) {
+              dataPoints.push({ name: v.name, value: val, color: v.color });
+            }
+          }
+          if (dataPoints.length > 0) {
+            updateChart(dataPoints, action.label);
+            updateScriptStatus(`Plot: ${dataPoints.map(d=>d.name+'='+d.value).join(', ')}`);
+          }
         }
       } finally {
         setActionRunning(action, false);
@@ -2803,11 +3094,13 @@ document.addEventListener('DOMContentLoaded', () => {
           else: elseCanvas ? serializeCanvasToJSON(elseCanvas) : []
         });
       } else if (type === 'repeat') {
-        const repeatInput = child.querySelector('input[type="number"]');
-        const count = parseInt(repeatInput?.value, 10) || 2;
+        const mode = child.querySelector('.repeat-mode')?.value || 'count';
+        const repeatInput = child.querySelector('.repeat-count');
+        const count = mode === 'infinite' ? 0 : (parseInt(repeatInput?.value, 10) || 2);
         const nested = child.querySelector('[data-nested]');
         blocks.push({
           type: 'repeat',
+          mode: mode,
           count: count,
           actions: nested ? serializeCanvasToJSON(nested) : []
         });
@@ -2832,6 +3125,20 @@ document.addEventListener('DOMContentLoaded', () => {
           operator: child.querySelector('.math-operator')?.value || '+',
           right: child.querySelector('.math-right')?.value || ''
         });
+      } else if (type === 'plot') {
+        const rows = child.querySelectorAll('.plot-var-row');
+        const variables = [];
+        for (const row of rows) {
+          const variable = row.querySelector('.plot-variable')?.value.trim() || '';
+          const name = row.querySelector('.plot-name')?.value.trim() || 'Data';
+          const color = row.querySelector('.plot-color')?.value || '#ff3366';
+          if (variable) variables.push({ variable, name, color });
+        }
+        blocks.push({
+          type: 'plot',
+          variables,
+          label: child.querySelector('.plot-label')?.value || ''
+        });
       }
     }
     return blocks;
@@ -2849,7 +3156,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const el = block;
         if (b.source) { const s = el.querySelector('.read-source'); if (s) s.value = b.source; }
         if (b.variable) { const v = el.querySelector('.read-variable'); if (v) v.value = b.variable; }
-        if (b.keyword) { const k = el.querySelector('.read-keyword'); if (k) k.value = b.keyword; }
+        if (b.keyword) { const k = el.querySelector('.read-keyword'); if (k) { k.value = b.keyword; k.dispatchEvent(new Event('input')); } }
         if (b.position) { const p = el.querySelector('.read-position'); if (p) p.value = b.position; }
         if (b.length) { const l = el.querySelector('.read-length'); if (l) l.value = b.length; }
         if (b.datatype) { const d = el.querySelector('.read-datatype'); if (d) d.value = b.datatype; }
@@ -2877,8 +3184,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } else if (b.type === 'repeat') {
         block = createScriptBlock('repeat');
-        const countIn = block.querySelector('input[type="number"]');
-        if (countIn) countIn.value = b.count || 2;
+        const modeSel = block.querySelector('.repeat-mode');
+        if (modeSel) {
+          modeSel.value = b.mode || (b.count === 0 ? 'infinite' : 'count');
+          modeSel.dispatchEvent(new Event('change'));
+        }
+        const countIn = block.querySelector('.repeat-count');
+        if (countIn && b.count !== undefined && b.count !== 0) countIn.value = b.count;
         if (b.actions && b.actions.length > 0) {
           const nested = block.querySelector('[data-nested]');
           if (nested) { nested.innerHTML = ''; importBlocksToCanvas(nested, b.actions); }
@@ -2905,6 +3217,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (opSel && b.operator) opSel.value = b.operator;
         const riIn = block.querySelector('.math-right');
         if (riIn && b.right) riIn.value = b.right;
+      } else if (b.type === 'plot') {
+        block = createScriptBlock('plot');
+        if (b.variables && b.variables.length > 0) {
+          const varsContainer = block.querySelector('.plot-vars-container');
+          if (varsContainer) varsContainer.innerHTML = '';
+          b.variables.forEach(v => block.addVarRow && block.addVarRow(v.variable, v.name, v.color));
+        } else {
+          const varIn = block.querySelector('.plot-variable');
+          if (varIn && b.variable) varIn.value = b.variable;
+          const nameIn = block.querySelector('.plot-name');
+          if (nameIn && b.name) nameIn.value = b.name;
+        }
+        const lblIn = block.querySelector('.plot-label');
+        if (lblIn && b.label) lblIn.value = b.label;
       }
       if (block) insertBlockIntoCanvas(canvasEl, block);
     }
