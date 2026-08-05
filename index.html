@@ -467,6 +467,9 @@
     .palette-block.print-palette { background: #aa00ff; border-color: #ea80fc; color: #f3e5f5; box-shadow: 0 2px 12px rgba(224,64,251,0.35); }
     .palette-block.condition-palette { background: #6200ea; border-color: #b388ff; color: #ede7f6; box-shadow: 0 2px 12px rgba(179,136,255,0.35); }
     .palette-block.repeat-palette { background: #00c853; border-color: #69f0ae; color: #e0f2f1; box-shadow: 0 2px 12px rgba(0,230,118,0.35); }
+    .palette-block.setvar-palette { background: #00838f; border-color: #4dd0e1; color: #e0f7fa; box-shadow: 0 2px 12px rgba(77,208,225,0.35); }
+    .palette-block.waitfor-palette { background: #f9a825; border-color: #ffee58; color: #3e2723; box-shadow: 0 2px 12px rgba(249,168,37,0.35); }
+    .palette-block.math-palette { background: #c62828; border-color: #ef5350; color: #ffebee; box-shadow: 0 2px 12px rgba(239,83,80,0.35); }
     .palette-block:active { cursor: grabbing; transform: scale(0.97); }
     .script-canvas {
       min-height: 180px;
@@ -550,6 +553,24 @@
       border-color: #00e676;
       border-left-color: #00c853;
       box-shadow: 0 1px 8px rgba(0,230,118,0.15);
+    }
+    .script-block-setvar {
+      background: #003840;
+      border-color: #4dd0e1;
+      border-left-color: #00acc1;
+      box-shadow: 0 1px 8px rgba(77,208,225,0.15);
+    }
+    .script-block-waitfor {
+      background: #3e2a00;
+      border-color: #ffee58;
+      border-left-color: #f9a825;
+      box-shadow: 0 1px 8px rgba(249,168,37,0.15);
+    }
+    .script-block-math {
+      background: #3a0a0a;
+      border-color: #ef5350;
+      border-left-color: #c62828;
+      box-shadow: 0 1px 8px rgba(239,83,80,0.15);
     }
     .script-block-item.running {
       box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.5), 0 0 16px rgba(255, 215, 0, 0.2);
@@ -780,6 +801,9 @@
           <button class="script-block palette-block delay-palette" data-block-type="delay" draggable="true">⏱ Delay</button>
           <button class="script-block palette-block read-palette" data-block-type="read" draggable="true">📥 Read</button>
           <button class="script-block palette-block print-palette" data-block-type="print" draggable="true">🖨 Print</button>
+          <button class="script-block palette-block setvar-palette" data-block-type="setvar" draggable="true">📌 Set Var</button>
+          <button class="script-block palette-block waitfor-palette" data-block-type="waitfor" draggable="true">⏳ Wait For</button>
+          <button class="script-block palette-block math-palette" data-block-type="math" draggable="true">🧮 Math</button>
           <button class="script-block palette-block condition-palette" data-block-type="condition" draggable="true">❓ If</button>
           <button class="script-block palette-block repeat-palette" data-block-type="repeat" draggable="true">🔁 Loop</button>
         </div>
@@ -2122,6 +2146,95 @@ document.addEventListener('DOMContentLoaded', () => {
       hint.style.cssText = 'font-size:11px;color:#8a6abf;margin-top:2px;';
       hint.textContent = 'Tip: use ${varName} to insert variables';
       controls.appendChild(hint);
+    } else if (type === 'setvar') {
+      title.textContent = 'Set Variable';
+      block.classList.add('script-block-setvar');
+
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.className = 'setvar-name';
+      nameInput.placeholder = 'variable name';
+      nameInput.title = 'Name of the variable to set';
+      nameInput.style.maxWidth = '150px';
+      controls.appendChild(nameInput);
+
+      const valueInput = document.createElement('input');
+      valueInput.type = 'text';
+      valueInput.className = 'setvar-value';
+      valueInput.placeholder = 'value (supports ${otherVar})';
+      valueInput.title = 'Value to assign. Use ${varName} to reference other variables.';
+      controls.appendChild(valueInput);
+    } else if (type === 'waitfor') {
+      title.textContent = 'Wait For';
+      block.classList.add('script-block-waitfor');
+
+      const keywordInput = document.createElement('input');
+      keywordInput.type = 'text';
+      keywordInput.className = 'waitfor-keyword';
+      keywordInput.placeholder = 'keyword to wait for';
+      keywordInput.title = 'String to watch for in the output';
+      controls.appendChild(keywordInput);
+
+      const timeoutInput = document.createElement('input');
+      timeoutInput.type = 'number';
+      timeoutInput.className = 'waitfor-timeout';
+      timeoutInput.placeholder = 'timeout (ms)';
+      timeoutInput.title = 'Maximum time to wait in milliseconds (0 = no timeout)';
+      timeoutInput.min = '0';
+      timeoutInput.value = '5000';
+      timeoutInput.style.maxWidth = '120px';
+      controls.appendChild(timeoutInput);
+
+      const debugLabel = document.createElement('div');
+      debugLabel.className = 'waitfor-result';
+      debugLabel.style.cssText = 'font-size:11px;color:#ffee58;min-height:16px;';
+      controls.appendChild(debugLabel);
+    } else if (type === 'math') {
+      title.textContent = 'Math';
+      block.classList.add('script-block-math');
+
+      const resultInput = document.createElement('input');
+      resultInput.type = 'text';
+      resultInput.className = 'math-result';
+      resultInput.placeholder = 'result variable';
+      resultInput.title = 'Variable to store the result';
+      resultInput.style.maxWidth = '130px';
+      controls.appendChild(resultInput);
+
+      const eqSign = document.createElement('span');
+      eqSign.textContent = ' = ';
+      eqSign.style.cssText = 'color:#ef5350;font-weight:bold;font-size:14px;';
+      controls.appendChild(eqSign);
+
+      const leftInput = document.createElement('input');
+      leftInput.type = 'text';
+      leftInput.className = 'math-left';
+      leftInput.placeholder = 'left (number or ${var})';
+      leftInput.title = 'Left operand: number or ${varName}';
+      controls.appendChild(leftInput);
+
+      const opSelect = document.createElement('select');
+      opSelect.className = 'math-operator';
+      [['+', '+'], ['-', '-'], ['*', '×'], ['/', '÷'], ['%', '%']].forEach(([val, label]) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        opSelect.appendChild(opt);
+      });
+      opSelect.style.maxWidth = '60px';
+      controls.appendChild(opSelect);
+
+      const rightInput = document.createElement('input');
+      rightInput.type = 'text';
+      rightInput.className = 'math-right';
+      rightInput.placeholder = 'right (number or ${var})';
+      rightInput.title = 'Right operand: number or ${varName}';
+      controls.appendChild(rightInput);
+
+      const debugLabel = document.createElement('div');
+      debugLabel.className = 'math-debug';
+      debugLabel.style.cssText = 'font-size:11px;color:#ef9a9a;min-height:16px;';
+      controls.appendChild(debugLabel);
     } else if (type === 'condition') {
       title.textContent = 'IF';
       block.classList.add('script-block-condition');
@@ -2411,6 +2524,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const nestedActions = nested ? parseScriptCanvas(nested) : [];
         if (nestedActions.length === 0) continue;
         blocks.push({ type: 'repeat', count, actions: nestedActions, element: child });
+      } else if (type === 'setvar') {
+        const name = child.querySelector('.setvar-name')?.value.trim() || '';
+        const value = child.querySelector('.setvar-value')?.value || '';
+        blocks.push({ type: 'setvar', name, value, element: child });
+      } else if (type === 'waitfor') {
+        const keyword = child.querySelector('.waitfor-keyword')?.value || '';
+        const tStr = child.querySelector('.waitfor-timeout')?.value;
+        const timeout = (tStr !== undefined && tStr !== '') ? parseInt(tStr, 10) : 5000;
+        blocks.push({ type: 'waitfor', keyword, timeout, element: child });
+      } else if (type === 'math') {
+        const result = child.querySelector('.math-result')?.value.trim() || '';
+        const left = child.querySelector('.math-left')?.value || '';
+        const operator = child.querySelector('.math-operator')?.value || '+';
+        const right = child.querySelector('.math-right')?.value || '';
+        blocks.push({ type: 'math', result, left, operator, right, element: child });
       }
     }
     return blocks;
@@ -2552,6 +2680,53 @@ document.addEventListener('DOMContentLoaded', () => {
             if (stopScriptRequested) throw new Error('Script stopped');
             await executeScriptActions(action.actions, vars);
           }
+        } else if (action.type === 'setvar') {
+          const name = action.name || '';
+          const rawValue = action.value || '';
+          const resolved = rawValue.replace(/\$\{(\w+)\}/g, (_, v) => vars[v] ?? '');
+          vars[name] = resolved;
+          updateScriptStatus(`Set ${name} = ${resolved}`);
+        } else if (action.type === 'waitfor') {
+          const keyword = action.keyword || '';
+          const timeout = action.timeout !== undefined ? Math.max(0, Number(action.timeout)) : 5000;
+          if (!keyword) { updateScriptStatus('Wait For: no keyword'); }
+          else {
+            updateScriptStatus(`Waiting for "${keyword}"...`);
+            const startTime = Date.now();
+            const startLen = ta.value.length;
+            let found = false;
+            while (!found) {
+              if (stopScriptRequested) throw new Error('Script stopped');
+              if (timeout > 0 && (Date.now() - startTime) >= timeout) break;
+              const newContent = ta.value.slice(startLen);
+              if (newContent.includes(keyword)) { found = true; break; }
+              await delay(100);
+            }
+            if (action.element) {
+              const dbg = action.element.querySelector('.waitfor-result');
+              if (dbg) dbg.textContent = found ? `Found "${keyword}" (${Date.now() - startTime}ms)` : `Timeout (${timeout}ms)`;
+            }
+            updateScriptStatus(found ? `Found "${keyword}"` : `Wait For timeout (${timeout}ms)`);
+          }
+        } else if (action.type === 'math') {
+          const resultVar = action.result || '';
+          const rawLeft = (action.left || '').replace(/\$\{(\w+)\}/g, (_, v) => vars[v] ?? '0');
+          const rawRight = (action.right || '').replace(/\$\{(\w+)\}/g, (_, v) => vars[v] ?? '0');
+          const l = parseFloat(rawLeft) || 0;
+          const r = parseFloat(rawRight) || 0;
+          const op = action.operator || '+';
+          let res = 0;
+          if (op === '+') res = l + r;
+          else if (op === '-') res = l - r;
+          else if (op === '*') res = l * r;
+          else if (op === '/') res = r !== 0 ? l / r : 0;
+          else if (op === '%') res = r !== 0 ? l % r : 0;
+          vars[resultVar] = String(res);
+          if (action.element) {
+            const dbg = action.element.querySelector('.math-debug');
+            if (dbg) dbg.textContent = `${resultVar} = ${l} ${op} ${r} = ${res}`;
+          }
+          updateScriptStatus(`Math: ${resultVar} = ${res}`);
         }
       } finally {
         setActionRunning(action, false);
@@ -2636,6 +2811,27 @@ document.addEventListener('DOMContentLoaded', () => {
           count: count,
           actions: nested ? serializeCanvasToJSON(nested) : []
         });
+      } else if (type === 'setvar') {
+        blocks.push({
+          type: 'setvar',
+          name: child.querySelector('.setvar-name')?.value || '',
+          value: child.querySelector('.setvar-value')?.value || ''
+        });
+      } else if (type === 'waitfor') {
+        const tStr = child.querySelector('.waitfor-timeout')?.value;
+        blocks.push({
+          type: 'waitfor',
+          keyword: child.querySelector('.waitfor-keyword')?.value || '',
+          timeout: (tStr !== undefined && tStr !== '') ? parseInt(tStr, 10) : 5000
+        });
+      } else if (type === 'math') {
+        blocks.push({
+          type: 'math',
+          result: child.querySelector('.math-result')?.value || '',
+          left: child.querySelector('.math-left')?.value || '',
+          operator: child.querySelector('.math-operator')?.value || '+',
+          right: child.querySelector('.math-right')?.value || ''
+        });
       }
     }
     return blocks;
@@ -2687,6 +2883,28 @@ document.addEventListener('DOMContentLoaded', () => {
           const nested = block.querySelector('[data-nested]');
           if (nested) { nested.innerHTML = ''; importBlocksToCanvas(nested, b.actions); }
         }
+      } else if (b.type === 'setvar') {
+        block = createScriptBlock('setvar');
+        const nameIn = block.querySelector('.setvar-name');
+        if (nameIn && b.name) nameIn.value = b.name;
+        const valIn = block.querySelector('.setvar-value');
+        if (valIn && b.value) valIn.value = b.value;
+      } else if (b.type === 'waitfor') {
+        block = createScriptBlock('waitfor');
+        const kwIn = block.querySelector('.waitfor-keyword');
+        if (kwIn && b.keyword) kwIn.value = b.keyword;
+        const toIn = block.querySelector('.waitfor-timeout');
+        if (toIn) toIn.value = b.timeout || 5000;
+      } else if (b.type === 'math') {
+        block = createScriptBlock('math');
+        const rIn = block.querySelector('.math-result');
+        if (rIn && b.result) rIn.value = b.result;
+        const lIn = block.querySelector('.math-left');
+        if (lIn && b.left) lIn.value = b.left;
+        const opSel = block.querySelector('.math-operator');
+        if (opSel && b.operator) opSel.value = b.operator;
+        const riIn = block.querySelector('.math-right');
+        if (riIn && b.right) riIn.value = b.right;
       }
       if (block) insertBlockIntoCanvas(canvasEl, block);
     }
