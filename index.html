@@ -356,6 +356,20 @@
       resize: vertical;
       overflow-y: auto;
       display: block;
+      white-space: pre-wrap;
+      word-break: break-all;
+      user-select: text;
+      -webkit-user-select: text;
+      outline: none;
+      position: relative;
+    }
+
+    #uartOutput.empty::before {
+      content: attr(data-placeholder);
+      color: #5a7a6a;
+      font-style: italic;
+      opacity: 0.8;
+      pointer-events: none;
     }
 
     #uartOutput:focus {
@@ -782,13 +796,78 @@
         <button id="adbSendBtn" disabled>▶ Run</button>
       </div>
 
-      <textarea id="uartOutput" readonly
-        placeholder="⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom).">
-      </textarea>
+      <div id="uartOutput" tabindex="0" class="console-output empty"
+        data-placeholder="⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom).">
+      </div>
 
       <div class="output-actions" style="margin-top: 10px;">
         <button id="saveButton">💾 Save Output</button>
         <button id="clearButton">🗑 Clear Output</button>
+        <button id="toggleConsoleSettingsBtn" style="margin-left: auto; background: #0f3460; border-color: #2a5a9a; color: #a0cfff;">⚙️ Console Customization</button>
+      </div>
+
+      <!-- Console Customization Sub-Panel -->
+      <div id="consoleSettingsPanel" style="display: none; margin-top: 12px; padding: 14px; background: #0b1526; border: 1px solid #2a3a5a; border-radius: 8px;">
+        <div style="font-weight: bold; font-size: 13px; color: #a0cfff; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+          <span>🎨 Console Colors & Keyword Highlighting</span>
+          <button id="closeConsoleSettingsBtn" style="padding: 2px 8px; font-size: 11px; background: transparent; border: 1px solid #2a3a5a; color: #7090c0; cursor: pointer;">✕ Close</button>
+        </div>
+
+        <!-- Color Settings -->
+        <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #1a2a4a;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <label for="consoleBgColorInput" style="margin: 0; font-size: 12px;">Background:</label>
+            <input type="color" id="consoleBgColorInput" value="#000000" style="width: 32px; height: 26px; padding: 0; border: 1px solid #2a3a5a; border-radius: 4px; cursor: pointer; background: transparent;">
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <label for="consoleTextColorInput" style="margin: 0; font-size: 12px;">Text Color:</label>
+            <input type="color" id="consoleTextColorInput" value="#2aee2a" style="width: 32px; height: 26px; padding: 0; border: 1px solid #2a3a5a; border-radius: 4px; cursor: pointer; background: transparent;">
+          </div>
+          <button id="resetConsoleColorsBtn" style="font-size: 11px; padding: 4px 10px; background: #1f2a3a; border: 1px solid #2a3a5a; color: #7a9ab0;">Revert Default Colors</button>
+        </div>
+
+        <!-- Keyword Rules Settings -->
+        <div>
+          <div style="font-size: 12px; font-weight: bold; color: #70a0d0; margin-bottom: 8px;">Add Custom Keyword Rule</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px;">
+            <input type="text" id="kwInput" placeholder="Keyword (e.g. ERROR)" style="flex: 1; min-width: 140px; padding: 5px 8px; background: #0f1f3a; color: #e0e0e0; border: 1px solid #2a3a5a; border-radius: 4px; font-size: 12px;">
+            
+            <div style="display: flex; align-items: center; gap: 4px;" title="Text Color">
+              <span style="font-size: 11px; color: #8a9ab0;">Text:</span>
+              <input type="color" id="kwTextColor" value="#ff5555" style="width: 28px; height: 24px; padding: 0; border: 1px solid #2a3a5a; border-radius: 4px; cursor: pointer; background: transparent;">
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 4px;" title="Background Highlight Color">
+              <span style="font-size: 11px; color: #8a9ab0;">Bg:</span>
+              <input type="color" id="kwBgColor" value="#3a0d0d" style="width: 28px; height: 24px; padding: 0; border: 1px solid #2a3a5a; border-radius: 4px; cursor: pointer; background: transparent;">
+            </div>
+
+            <label style="font-size: 11px; color: #a0b0c8; display: flex; align-items: center; gap: 3px; cursor: pointer; margin: 0;">
+              <input type="checkbox" id="kwMatchCase"> Match Case
+            </label>
+
+            <label style="font-size: 11px; color: #a0b0c8; display: flex; align-items: center; gap: 3px; cursor: pointer; margin: 0;">
+              <input type="checkbox" id="kwBold" checked> Bold
+            </label>
+
+            <button id="addKwRuleBtn" style="padding: 5px 12px; font-size: 12px; background: #1a5a3a; border: 1px solid #2a8a5a; color: #80ffb0;">+ Add Rule</button>
+          </div>
+
+          <!-- Quick Presets -->
+          <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 10px;">
+            <span style="font-size: 11px; color: #6a8aaa;">Quick Add:</span>
+            <button class="kw-preset-btn" data-kw="ERROR" data-fg="#ff5555" data-bg="#3a0d0d" style="font-size: 10px; padding: 2px 6px; background: #3a0d0d; color: #ff5555; border: 1px solid #ff5555; border-radius: 3px; cursor: pointer;">+ ERROR</button>
+            <button class="kw-preset-btn" data-kw="WARN" data-fg="#ffb86c" data-bg="#3a2d0d" style="font-size: 10px; padding: 2px 6px; background: #3a2d0d; color: #ffb86c; border: 1px solid #ffb86c; border-radius: 3px; cursor: pointer;">+ WARN</button>
+            <button class="kw-preset-btn" data-kw="SUCCESS" data-fg="#50fa7b" data-bg="#0d3a1a" style="font-size: 10px; padding: 2px 6px; background: #0d3a1a; color: #50fa7b; border: 1px solid #50fa7b; border-radius: 3px; cursor: pointer;">+ SUCCESS</button>
+            <button class="kw-preset-btn" data-kw="DEBUG" data-fg="#8be9fd" data-bg="#0d2d3a" style="font-size: 10px; padding: 2px 6px; background: #0d2d3a; color: #8be9fd; border: 1px solid #8be9fd; border-radius: 3px; cursor: pointer;">+ DEBUG</button>
+          </div>
+
+          <!-- Configured Rules List -->
+          <div style="font-size: 11px; color: #6a8aaa; margin-bottom: 6px;">Configured Highlight Rules:</div>
+          <div id="kwRulesList" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto; padding: 4px; background: #070d18; border: 1px solid #1a2a4a; border-radius: 6px;">
+            <!-- Dynamic keyword tags -->
+          </div>
+        </div>
       </div>
 
       <!-- Command History -->
@@ -949,15 +1028,117 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentMode = 'serial'; // 'serial' | 'adb'
   const ta = document.getElementById('uartOutput');
+  let rawConsoleContent = '';
 
-  function getBaseText() {
-    return ta.value;
+  // ── Console Customization & Highlighting State ──
+  const KEYWORD_RULES_KEY = 'console_keyword_rules';
+  const CONSOLE_BG_KEY = 'console_bg_color';
+  const CONSOLE_TEXT_KEY = 'console_text_color';
+
+  const DEFAULT_CONSOLE_BG = '#000000';
+  const DEFAULT_CONSOLE_TEXT = '#2aee2a';
+
+  let consoleBgColor = localStorage.getItem(CONSOLE_BG_KEY) || DEFAULT_CONSOLE_BG;
+  let consoleTextColor = localStorage.getItem(CONSOLE_TEXT_KEY) || DEFAULT_CONSOLE_TEXT;
+
+  let consoleKeywordRules = [];
+  try {
+    const saved = localStorage.getItem(KEYWORD_RULES_KEY);
+    if (saved) {
+      consoleKeywordRules = JSON.parse(saved);
+    } else {
+      consoleKeywordRules = [
+        { id: '1', keyword: 'ERROR', textColor: '#ff5555', bgColor: '#3a0d0d', matchCase: false, bold: true },
+        { id: '2', keyword: 'WARN', textColor: '#ffb86c', bgColor: '#3a2d0d', matchCase: false, bold: true },
+        { id: '3', keyword: 'SUCCESS', textColor: '#50fa7b', bgColor: '#0d3a1a', matchCase: false, bold: true }
+      ];
+      localStorage.setItem(KEYWORD_RULES_KEY, JSON.stringify(consoleKeywordRules));
+    }
+  } catch(e) {
+    consoleKeywordRules = [];
   }
 
-  function setTerminalText(text) {
+  // Compatibility property definitions for ta element
+  try {
+    Object.defineProperty(ta, 'value', {
+      get() { return rawConsoleContent; },
+      set(val) { setTerminalText(val); },
+      configurable: true
+    });
+    Object.defineProperty(ta, 'placeholder', {
+      get() { return ta.getAttribute('data-placeholder') || ''; },
+      set(val) { ta.setAttribute('data-placeholder', val); },
+      configurable: true
+    });
+  } catch(e) {}
+
+  function applyConsoleColors() {
+    ta.style.backgroundColor = consoleBgColor;
+    ta.style.color = consoleTextColor;
+    ta.style.caretColor = consoleTextColor;
+    document.getElementById('consoleBgColorInput').value = consoleBgColor;
+    document.getElementById('consoleTextColorInput').value = consoleTextColor;
+  }
+
+  function renderKwRulesList() {
+    const list = document.getElementById('kwRulesList');
+    if (!consoleKeywordRules || consoleKeywordRules.length === 0) {
+      list.innerHTML = '<span style="font-size:11px; color:#4a6a8a; font-style:italic;">No highlight rules configured.</span>';
+      return;
+    }
+    list.innerHTML = consoleKeywordRules.map(rule => `
+      <div class="kw-rule-tag" style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 7px; border-radius: 4px; background: #0d1929; border: 1px solid #2a3a5a; font-size: 11px;">
+        <span style="color: ${rule.textColor}; background-color: ${rule.bgColor || 'transparent'}; font-weight: ${rule.bold ? 'bold' : 'normal'}; padding: 1px 5px; border-radius: 3px; font-family: monospace;">${escapeHtml(rule.keyword)}</span>
+        <span style="font-size: 10px; color: #5a7a9a;">${rule.matchCase ? 'MatchCase' : 'IgnoreCase'}</span>
+        <span class="kw-del-btn" data-id="${rule.id}" style="color: #6a8aaa; cursor: pointer; font-weight: bold; line-height: 1; font-size: 13px;" title="Remove Rule">×</span>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.kw-del-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        consoleKeywordRules = consoleKeywordRules.filter(r => r.id !== id);
+        localStorage.setItem(KEYWORD_RULES_KEY, JSON.stringify(consoleKeywordRules));
+        renderKwRulesList();
+        renderConsole();
+      });
+    });
+  }
+
+  function renderConsole() {
     const savedScrollTop = ta.scrollTop;
-    const scrolledToBottom = savedScrollTop + ta.clientHeight >= ta.scrollHeight - 5;
-    ta.value = text;
+    const scrolledToBottom = (savedScrollTop + ta.clientHeight) >= (ta.scrollHeight - 15);
+
+    if (!rawConsoleContent) {
+      ta.classList.add('empty');
+      ta.innerHTML = '';
+      return;
+    }
+
+    ta.classList.remove('empty');
+    let html = escapeHtml(rawConsoleContent);
+
+    if (consoleKeywordRules && consoleKeywordRules.length > 0) {
+      const sortedRules = [...consoleKeywordRules].sort((a, b) => b.keyword.length - a.keyword.length);
+      const patterns = sortedRules.map(r => r.keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).map(escapeHtml);
+      const combinedRegex = new RegExp(`(${patterns.join('|')})`, 'gi');
+
+      html = html.replace(combinedRegex, (match) => {
+        const rule = sortedRules.find(r => 
+          r.matchCase ? escapeHtml(r.keyword) === match : escapeHtml(r.keyword).toLowerCase() === match.toLowerCase()
+        );
+        if (rule) {
+          const bgStyle = rule.bgColor ? `background-color:${rule.bgColor};` : '';
+          const boldStyle = rule.bold ? 'font-weight:bold;' : 'font-weight:normal;';
+          return `<span style="color:${rule.textColor};${bgStyle}${boldStyle}border-radius:2px;padding:0 2px;">${match}</span>`;
+        }
+        return match;
+      });
+    }
+
+    ta.innerHTML = html;
+
     if (scrolledToBottom) {
       ta.scrollTop = ta.scrollHeight;
     } else {
@@ -965,8 +1146,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function getBaseText() {
+    return rawConsoleContent;
+  }
+
+  function setTerminalText(text) {
+    rawConsoleContent = text;
+    renderConsole();
+  }
+
   function appendOutput(text) {
-    let val = ta.value;
+    let val = rawConsoleContent;
     for (let i = 0; i < text.length; i++) {
       const c = text[i];
       if (c === '\x08' || c === '\x7f') { val = val.slice(0, -1); }
@@ -3305,13 +3495,107 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('clearButton').addEventListener('click', () => {
-    ta.value = '';
+    setTerminalText('');
     inputBuffer = ''; historyIndex = -1;
   });
 
   document.getElementById('clearHistoryBtn').addEventListener('click', () => {
     saveHistory([]); renderHistory();
   });
+
+  // ── Console Customization Panel Event Listeners ──
+  const toggleBtn = document.getElementById('toggleConsoleSettingsBtn');
+  const closeBtn = document.getElementById('closeConsoleSettingsBtn');
+  const panel = document.getElementById('consoleSettingsPanel');
+
+  toggleBtn.addEventListener('click', () => {
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  });
+
+  closeBtn.addEventListener('click', () => {
+    panel.style.display = 'none';
+  });
+
+  const bgInput = document.getElementById('consoleBgColorInput');
+  const textInput = document.getElementById('consoleTextColorInput');
+  const resetColorsBtn = document.getElementById('resetConsoleColorsBtn');
+
+  bgInput.addEventListener('input', (e) => {
+    consoleBgColor = e.target.value;
+    localStorage.setItem(CONSOLE_BG_KEY, consoleBgColor);
+    applyConsoleColors();
+  });
+
+  textInput.addEventListener('input', (e) => {
+    consoleTextColor = e.target.value;
+    localStorage.setItem(CONSOLE_TEXT_KEY, consoleTextColor);
+    applyConsoleColors();
+  });
+
+  resetColorsBtn.addEventListener('click', () => {
+    consoleBgColor = DEFAULT_CONSOLE_BG;
+    consoleTextColor = DEFAULT_CONSOLE_TEXT;
+    localStorage.setItem(CONSOLE_BG_KEY, consoleBgColor);
+    localStorage.setItem(CONSOLE_TEXT_KEY, consoleTextColor);
+    applyConsoleColors();
+  });
+
+  // ── Keyword Rule Add Handler ──
+  function addKeywordRule(keyword, textColor, bgColor, matchCase, bold) {
+    if (!keyword) return;
+    const existingIdx = consoleKeywordRules.findIndex(r => r.keyword === keyword);
+    const newRule = {
+      id: existingIdx >= 0 ? consoleKeywordRules[existingIdx].id : String(Date.now()),
+      keyword,
+      textColor: textColor || '#ff5555',
+      bgColor: bgColor || '#3a0d0d',
+      matchCase: !!matchCase,
+      bold: bold !== undefined ? !!bold : true
+    };
+
+    if (existingIdx >= 0) {
+      consoleKeywordRules[existingIdx] = newRule;
+    } else {
+      consoleKeywordRules.push(newRule);
+    }
+
+    localStorage.setItem(KEYWORD_RULES_KEY, JSON.stringify(consoleKeywordRules));
+    renderKwRulesList();
+    renderConsole();
+  }
+
+  document.getElementById('addKwRuleBtn').addEventListener('click', () => {
+    const kw = document.getElementById('kwInput').value.trim();
+    if (!kw) return;
+    const fg = document.getElementById('kwTextColor').value;
+    const bg = document.getElementById('kwBgColor').value;
+    const mc = document.getElementById('kwMatchCase').checked;
+    const bld = document.getElementById('kwBold').checked;
+
+    addKeywordRule(kw, fg, bg, mc, bld);
+    document.getElementById('kwInput').value = '';
+  });
+
+  document.getElementById('kwInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('addKwRuleBtn').click();
+    }
+  });
+
+  document.querySelectorAll('.kw-preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const kw = btn.dataset.kw;
+      const fg = btn.dataset.fg;
+      const bg = btn.dataset.bg;
+      if (kw) addKeywordRule(kw, fg, bg, false, true);
+    });
+  });
+
+  // Initial colors & rules setup
+  applyConsoleColors();
+  renderKwRulesList();
+  renderConsole();
 
   renderHistory();
 });
