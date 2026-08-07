@@ -751,6 +751,27 @@
       </div>
 
       <button id="connectButton">⚡ Connect</button>
+
+      <!-- Serial File Upload (XMODEM / YMODEM) -->
+      <div style="margin-top:14px; border-top: 1px solid #2a3a5a; padding-top: 12px;">
+        <div style="font-size:11px; color:#4a6a8a; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:6px;">
+          File Upload (UART)
+        </div>
+        <input type="file" id="serialUploadFileInput" style="display:none">
+        
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <button id="xmodemUploadBtn" disabled style="background:#0f3460; border-color:#2a5a9a; color:#80c8ff; font-size:12px; padding:6px;">📤 XMODEM Send</button>
+          <button id="ymodemUploadBtn" disabled style="background:#0f3460; border-color:#2a5a9a; color:#80c8ff; font-size:12px; padding:6px;">📤 YMODEM Send</button>
+          <button id="cancelSerialUploadBtn" style="display:none; background:#4a1a1a; border-color:#7a2a2a; color:#ff8080; font-size:12px; padding:6px;">✕ Cancel Transfer</button>
+        </div>
+
+        <div id="serialUploadProgressBox" style="display:none; margin-top:8px; padding:6px; background:#0d1929; border:1px solid #2a3a5a; border-radius:5px;">
+          <div style="font-size:11px; color:#80c8ff; margin-bottom:4px; word-break:break-all;" id="serialUploadStatus">Preparing...</div>
+          <div style="width:100%; background:#16213e; height:8px; border-radius:4px; overflow:hidden;">
+            <div id="serialUploadProgressBar" style="width:0%; height:100%; background:#2aee2a; transition:width 0.1s;"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ADB Panel -->
@@ -778,6 +799,45 @@
           <button class="adb-quick-btn" data-cmd="top -b -n 1 | head -20" disabled>CPU</button>
           <button class="adb-quick-btn" data-cmd="ip addr show" disabled>IP</button>
           <button class="adb-quick-btn" data-cmd="pm list packages -3" disabled>Apps</button>
+        </div>
+      </div>
+
+      <!-- ADB File Push (adb push) -->
+      <div style="margin-top:14px; border-top: 1px solid #2a3a5a; padding-top: 12px;">
+        <div style="font-size:11px; color:#4a6a8a; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:6px;">
+          ADB File Push (adb push)
+        </div>
+
+        <input type="file" id="adbPushFileInput" style="display:none">
+        <button id="adbSelectFileBtn" style="width:100%; font-size:12px; padding:6px; background:#0f2040; border:1px solid #1a4060; color:#a0cfff; margin-bottom:6px;">
+          📁 Select Local File
+        </button>
+        <div id="adbSelectedFileLabel" style="font-size:11px; color:#5a9aaa; margin-bottom:8px; font-family:monospace; word-break:break-all;">
+          No file selected
+        </div>
+
+        <div class="input-group" style="margin-bottom:6px;">
+          <label for="adbPushTargetPath">Target Location on Device</label>
+          <input type="text" id="adbPushTargetPath" value="/sdcard/Download/" placeholder="/sdcard/Download/" style="padding:5px 8px; background:#0f1f3a; color:#e0e0e0; border:1px solid #2a3a5a; border-radius:4px; font-size:12px; font-family:monospace;">
+        </div>
+
+        <!-- Quick Target Buttons -->
+        <div style="display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px;">
+          <span style="font-size:10px; color:#4a6a8a; line-height:20px;">Quick Path:</span>
+          <button class="adb-path-preset" data-path="/sdcard/Download/" style="font-size:10px; padding:2px 6px; background:#0d1929; border:1px solid #2a3a5a; color:#7090c0; border-radius:3px; cursor:pointer;">/sdcard/Download/</button>
+          <button class="adb-path-preset" data-path="/sdcard/" style="font-size:10px; padding:2px 6px; background:#0d1929; border:1px solid #2a3a5a; color:#7090c0; border-radius:3px; cursor:pointer;">/sdcard/</button>
+          <button class="adb-path-preset" data-path="/data/local/tmp/" style="font-size:10px; padding:2px 6px; background:#0d1929; border:1px solid #2a3a5a; color:#7090c0; border-radius:3px; cursor:pointer;">/tmp/</button>
+        </div>
+
+        <button id="adbPushBtn" disabled style="width:100%; font-size:13px; padding:7px; background:#1a5a3a; border-color:#2a8a5a; color:#80ffb0; font-weight:bold;">
+          📤 Push to Device
+        </button>
+
+        <div id="adbPushProgressBox" style="display:none; margin-top:8px; padding:6px; background:#0d1929; border:1px solid #2a3a5a; border-radius:5px;">
+          <div style="font-size:11px; color:#80ffb0; margin-bottom:4px; word-break:break-all;" id="adbPushStatus">Pushing file...</div>
+          <div style="width:100%; background:#16213e; height:8px; border-radius:4px; overflow:hidden;">
+            <div id="adbPushProgressBar" style="width:0%; height:100%; background:#2aee2a; transition:width 0.1s;"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1332,6 +1392,8 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('dataBitsSelect').disabled = true;
       document.getElementById('stopBitsSelect').disabled = true;
       document.getElementById('paritySelect').disabled   = true;
+      document.getElementById('xmodemUploadBtn').disabled = false;
+      document.getElementById('ymodemUploadBtn').disabled = false;
       ta.placeholder = '⚡ Connected. Type directly in this window to send data to the serial port…';
       ta.focus();
 
@@ -1340,7 +1402,13 @@ document.addEventListener('DOMContentLoaded', () => {
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
-          if (value) displayUartOutput(new TextDecoder('utf-8').decode(value));
+          if (value) {
+            if (activeUploadProtocol) {
+              handleUploadRxBytes(value);
+            } else {
+              displayUartOutput(new TextDecoder('utf-8').decode(value));
+            }
+          }
         }
       } finally {
         reader.releaseLock();
@@ -1355,6 +1423,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function doDisconnect() {
     isConnected = false;
+    uploadCancelRequested = true;
+    finishSerialUpload();
     const btn = document.getElementById('connectButton');
     btn.textContent = '⚡ Connect';
     btn.classList.remove('disconnect');
@@ -1362,6 +1432,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dataBitsSelect').disabled = false;
     document.getElementById('stopBitsSelect').disabled = false;
     document.getElementById('paritySelect').disabled   = false;
+    document.getElementById('xmodemUploadBtn').disabled = true;
+    document.getElementById('ymodemUploadBtn').disabled = true;
     ta.placeholder = '⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom).';
     inputBuffer = '';
     historyIndex = -1;
@@ -1894,6 +1966,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const info    = document.getElementById('adbDeviceInfo');
     document.querySelectorAll('.adb-quick-btn').forEach(b => b.disabled = !connected);
     sendBtn.disabled = !connected;
+    document.getElementById('adbPushBtn').disabled = !connected || !selectedAdbPushFile;
 
     if (connected) {
       btn.textContent = '✕ Disconnect ADB';
@@ -3596,6 +3669,491 @@ document.addEventListener('DOMContentLoaded', () => {
   applyConsoleColors();
   renderKwRulesList();
   renderConsole();
+
+  // ══════════════════════════════════════════════════════════════
+  // XMODEM / YMODEM FILE UPLOAD ENGINE
+  // ══════════════════════════════════════════════════════════════
+
+  let activeUploadProtocol = null;
+  let uploadRxBuffer = [];
+  let uploadCancelRequested = false;
+
+  function showSerialUploadProgress(show) {
+    document.getElementById('serialUploadProgressBox').style.display = show ? 'block' : 'none';
+    document.getElementById('cancelSerialUploadBtn').style.display = show ? 'block' : 'none';
+    document.getElementById('xmodemUploadBtn').disabled = show || !isConnected;
+    document.getElementById('ymodemUploadBtn').disabled = show || !isConnected;
+  }
+
+  function updateSerialUploadStatus(msg, percent = 0) {
+    document.getElementById('serialUploadStatus').textContent = msg;
+    document.getElementById('serialUploadProgressBar').style.width = `${Math.min(100, Math.max(0, percent))}%`;
+  }
+
+  function finishSerialUpload() {
+    activeUploadProtocol = null;
+    uploadCancelRequested = false;
+    showSerialUploadProgress(false);
+  }
+
+  function handleUploadRxBytes(chunk) {
+    for (let i = 0; i < chunk.length; i++) {
+      uploadRxBuffer.push(chunk[i]);
+    }
+  }
+
+  async function readRxByte(timeoutMs = 10000) {
+    const start = Date.now();
+    while (uploadRxBuffer.length === 0) {
+      if (uploadCancelRequested) return null;
+      if (Date.now() - start > timeoutMs) return null;
+      await delay(10);
+    }
+    return uploadRxBuffer.shift();
+  }
+
+  const SOH = 0x01;
+  const STX = 0x02;
+  const EOT = 0x04;
+  const ACK = 0x06;
+  const NAK = 0x15;
+  const CAN = 0x18;
+  const CHAR_C = 0x43;
+
+  function calcCrc16(bytes) {
+    let crc = 0x0000;
+    for (let i = 0; i < bytes.length; i++) {
+      crc ^= (bytes[i] << 8);
+      for (let j = 0; j < 8; j++) {
+        if (crc & 0x8000) crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+        else crc = (crc << 1) & 0xFFFF;
+      }
+    }
+    return crc;
+  }
+
+  function calcChecksum(bytes) {
+    let sum = 0;
+    for (let i = 0; i < bytes.length; i++) sum = (sum + bytes[i]) & 0xFF;
+    return sum;
+  }
+
+  async function startXmodemUpload(fileBuffer, fileName) {
+    if (!writer) return;
+    activeUploadProtocol = 'xmodem';
+    uploadRxBuffer = [];
+    uploadCancelRequested = false;
+    
+    showSerialUploadProgress(true);
+    updateSerialUploadStatus(`[XMODEM] Waiting for receiver ('C' or NAK)...`, 0);
+
+    let mode = null;
+    let attempts = 0;
+    
+    while (attempts < 40 && !uploadCancelRequested) {
+      const b = await readRxByte(1000);
+      if (b === CHAR_C) { mode = 'crc'; break; }
+      if (b === NAK) { mode = 'checksum'; break; }
+      attempts++;
+    }
+
+    if (!mode || uploadCancelRequested) {
+      appendOutput('\n[XMODEM Error] Handshake timeout. Receiver did not send "C" or NAK.\n');
+      finishSerialUpload();
+      return;
+    }
+
+    const fileData = new Uint8Array(fileBuffer);
+    appendOutput(`\n[XMODEM] Starting upload (${fileName}, ${fileData.length} bytes, ${mode === 'crc' ? 'CRC-16' : 'Checksum'} mode)\n`);
+
+    const totalBlocks = Math.ceil(fileData.length / 128) || 1;
+    let blockNum = 1;
+
+    for (let i = 0; i < totalBlocks; i++) {
+      if (uploadCancelRequested) {
+        await writer.write(new Uint8Array([CAN, CAN, CAN]));
+        appendOutput('\n[XMODEM] Transfer cancelled by user.\n');
+        finishSerialUpload();
+        return;
+      }
+
+      const blockData = new Uint8Array(128);
+      blockData.fill(0x1A);
+      const startIdx = i * 128;
+      const endIdx = Math.min(fileData.length, startIdx + 128);
+      blockData.set(fileData.subarray(startIdx, endIdx));
+
+      const pktLen = mode === 'crc' ? 3 + 128 + 2 : 3 + 128 + 1;
+      const pkt = new Uint8Array(pktLen);
+      const blkIdx = blockNum & 0xFF;
+      const invBlkIdx = (255 - blkIdx) & 0xFF;
+
+      pkt[0] = SOH;
+      pkt[1] = blkIdx;
+      pkt[2] = invBlkIdx;
+      pkt.set(blockData, 3);
+
+      if (mode === 'crc') {
+        const crc = calcCrc16(blockData);
+        pkt[3 + 128] = (crc >> 8) & 0xFF;
+        pkt[3 + 128 + 1] = crc & 0xFF;
+      } else {
+        pkt[3 + 128] = calcChecksum(blockData);
+      }
+
+      let retry = 0;
+      let acked = false;
+
+      while (retry < 10 && !acked && !uploadCancelRequested) {
+        uploadRxBuffer = [];
+        await writer.write(pkt);
+        const pct = Math.floor((blockNum / totalBlocks) * 100);
+        updateSerialUploadStatus(`[XMODEM] Block ${blockNum}/${totalBlocks} (${pct}%)`, pct);
+
+        const resp = await readRxByte(5000);
+        if (resp === ACK) {
+          acked = true;
+          blockNum++;
+        } else if (resp === CAN) {
+          appendOutput('\n[XMODEM] Cancelled by receiver.\n');
+          finishSerialUpload();
+          return;
+        } else {
+          retry++;
+        }
+      }
+
+      if (!acked) {
+        appendOutput(`\n[XMODEM Error] Block ${blockNum} failed after 10 retries.\n`);
+        finishSerialUpload();
+        return;
+      }
+    }
+
+    let eotAcked = false;
+    for (let e = 0; e < 5 && !eotAcked; e++) {
+      uploadRxBuffer = [];
+      await writer.write(new Uint8Array([EOT]));
+      const resp = await readRxByte(3000);
+      if (resp === ACK) eotAcked = true;
+    }
+
+    appendOutput(`\n[XMODEM] ✓ Upload complete (${fileData.length} bytes sent).\n`);
+    finishSerialUpload();
+  }
+
+  async function startYmodemUpload(fileBuffer, fileName) {
+    if (!writer) return;
+    activeUploadProtocol = 'ymodem';
+    uploadRxBuffer = [];
+    uploadCancelRequested = false;
+
+    showSerialUploadProgress(true);
+    updateSerialUploadStatus(`[YMODEM] Waiting for receiver 'C'...`, 0);
+
+    let attempts = 0;
+    let started = false;
+    while (attempts < 40 && !uploadCancelRequested) {
+      const b = await readRxByte(1000);
+      if (b === CHAR_C) { started = true; break; }
+      attempts++;
+    }
+
+    if (!started || uploadCancelRequested) {
+      appendOutput('\n[YMODEM Error] Handshake timeout. Receiver did not send "C".\n');
+      finishSerialUpload();
+      return;
+    }
+
+    const fileData = new Uint8Array(fileBuffer);
+    appendOutput(`\n[YMODEM] Starting upload (${fileName}, ${fileData.length} bytes)\n`);
+
+    async function sendYmodemBlock(blkIdx, dataBytes, is1K = false) {
+      const len = is1K ? 1024 : 128;
+      const pkt = new Uint8Array(3 + len + 2);
+      pkt[0] = is1K ? STX : SOH;
+      pkt[1] = blkIdx & 0xFF;
+      pkt[2] = (255 - (blkIdx & 0xFF)) & 0xFF;
+      
+      const payload = new Uint8Array(len);
+      payload.fill(0x00);
+      payload.set(dataBytes.subarray(0, len));
+      pkt.set(payload, 3);
+
+      const crc = calcCrc16(payload);
+      pkt[3 + len] = (crc >> 8) & 0xFF;
+      pkt[3 + len + 1] = crc & 0xFF;
+
+      let retry = 0;
+      while (retry < 10 && !uploadCancelRequested) {
+        uploadRxBuffer = [];
+        await writer.write(pkt);
+        const resp = await readRxByte(5000);
+        if (resp === ACK) return true;
+        if (resp === CAN) return false;
+        retry++;
+      }
+      return false;
+    }
+
+    // Block 0
+    const hdrPayload = new Uint8Array(128);
+    const fileSpecStr = `${fileName}\0${fileData.length}\0`;
+    const specBytes = new TextEncoder().encode(fileSpecStr);
+    hdrPayload.set(specBytes.subarray(0, 128));
+
+    updateSerialUploadStatus(`[YMODEM] Sending header block...`, 0);
+    const hdrOk = await sendYmodemBlock(0, hdrPayload, false);
+    if (!hdrOk) {
+      appendOutput('\n[YMODEM Error] Header block 0 failed.\n');
+      finishSerialUpload();
+      return;
+    }
+
+    const dataStartC = await readRxByte(5000);
+    if (dataStartC !== CHAR_C) {
+      appendOutput('\n[YMODEM Error] Receiver did not request data after header.\n');
+      finishSerialUpload();
+      return;
+    }
+
+    const totalBlocks = Math.ceil(fileData.length / 1024) || 1;
+    let blkNum = 1;
+
+    for (let i = 0; i < totalBlocks; i++) {
+      if (uploadCancelRequested) {
+        await writer.write(new Uint8Array([CAN, CAN, CAN]));
+        appendOutput('\n[YMODEM] Transfer cancelled by user.\n');
+        finishSerialUpload();
+        return;
+      }
+
+      const startIdx = i * 1024;
+      const blockChunk = fileData.subarray(startIdx, startIdx + 1024);
+      const pct = Math.floor((blkNum / totalBlocks) * 100);
+
+      updateSerialUploadStatus(`[YMODEM] Block ${blkNum}/${totalBlocks} (${pct}%)`, pct);
+      const blockOk = await sendYmodemBlock(blkNum, blockChunk, true);
+      if (!blockOk) {
+        appendOutput(`\n[YMODEM Error] Block ${blkNum} failed.\n`);
+        finishSerialUpload();
+        return;
+      }
+      blkNum++;
+    }
+
+    uploadRxBuffer = [];
+    await writer.write(new Uint8Array([EOT]));
+    let eotResp = await readRxByte(3000);
+
+    if (eotResp === NAK) {
+      uploadRxBuffer = [];
+      await writer.write(new Uint8Array([EOT]));
+      eotResp = await readRxByte(3000);
+    }
+
+    if (eotResp === ACK) {
+      const endC = await readRxByte(3000);
+      if (endC === CHAR_C) {
+        const emptyBlk = new Uint8Array(128);
+        await sendYmodemBlock(0, emptyBlk, false);
+      }
+    }
+
+    appendOutput(`\n[YMODEM] ✓ Upload complete (${fileData.length} bytes sent).\n`);
+    finishSerialUpload();
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // ADB FILE PUSH ENGINE
+  // ══════════════════════════════════════════════════════════════
+
+  let selectedAdbPushFile = null;
+
+  function showAdbPushProgress(show) {
+    document.getElementById('adbPushProgressBox').style.display = show ? 'block' : 'none';
+  }
+
+  function updateAdbPushStatus(msg, percent = 0) {
+    document.getElementById('adbPushStatus').textContent = msg;
+    document.getElementById('adbPushProgressBar').style.width = `${Math.min(100, Math.max(0, percent))}%`;
+  }
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  async function pushFileAdb(fileObj, remotePath) {
+    if (!isAdbConnected || !adbClient) throw new Error('ADB not connected');
+
+    showAdbPushProgress(true);
+    updateAdbPushStatus(`Opening sync stream...`, 0);
+
+    const syncStream = await adbClient.openStream('sync:\0', null, () => {});
+
+    try {
+      let finalPath = remotePath.trim();
+      if (!finalPath.startsWith('/')) finalPath = '/' + finalPath;
+      if (finalPath.endsWith('/')) {
+        finalPath += fileObj.name;
+      }
+
+      appendOutput(`\n[ADB Push] Sending ${fileObj.name} (${formatBytes(fileObj.size)}) to ${finalPath}...\n`);
+      updateAdbPushStatus(`Reading local file...`, 0);
+
+      const destSpec = `${finalPath},33188`;
+      const destSpecBytes = new TextEncoder().encode(destSpec);
+
+      const sendHdr = new DataView(new ArrayBuffer(8));
+      sendHdr.setUint32(0, 0x444e4553, true); // "SEND"
+      sendHdr.setUint32(4, destSpecBytes.length, true);
+
+      const initReq = new Uint8Array(8 + destSpecBytes.length);
+      initReq.set(new Uint8Array(sendHdr.buffer), 0);
+      initReq.set(destSpecBytes, 8);
+
+      await syncStream.send(initReq);
+
+      const reader = new FileReader();
+      const arrayBuffer = await new Promise((resolve, reject) => {
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(fileObj);
+      });
+
+      const fileBytes = new Uint8Array(arrayBuffer);
+      const CHUNK_SIZE = 64 * 1024;
+      const totalBytes = fileBytes.length;
+      let sentBytes = 0;
+
+      for (let offset = 0; offset < totalBytes; offset += CHUNK_SIZE) {
+        const chunkSize = Math.min(CHUNK_SIZE, totalBytes - offset);
+        const chunkData = fileBytes.subarray(offset, offset + chunkSize);
+
+        const dataHdr = new DataView(new ArrayBuffer(8));
+        dataHdr.setUint32(0, 0x41544144, true); // "DATA"
+        dataHdr.setUint32(4, chunkSize, true);
+
+        const packet = new Uint8Array(8 + chunkSize);
+        packet.set(new Uint8Array(dataHdr.buffer), 0);
+        packet.set(chunkData, 8);
+
+        await syncStream.send(packet);
+        sentBytes += chunkSize;
+
+        const pct = Math.min(100, Math.floor((sentBytes / totalBytes) * 100));
+        updateAdbPushStatus(`Pushing: ${pct}% (${formatBytes(sentBytes)} / ${formatBytes(totalBytes)})`, pct);
+      }
+
+      const nowSec = Math.floor(Date.now() / 1000);
+      const doneHdr = new DataView(new ArrayBuffer(8));
+      doneHdr.setUint32(0, 0x454e4f44, true); // "DONE"
+      doneHdr.setUint32(4, nowSec, true);
+
+      await syncStream.send(new Uint8Array(doneHdr.buffer));
+
+      updateAdbPushStatus(`Finished!`, 100);
+      appendOutput(`[ADB Push] ✓ Success: ${fileObj.name} pushed to ${finalPath}\n`);
+
+    } catch (err) {
+      appendOutput(`\n[ADB Push Error] ${err.message}\n`);
+    } finally {
+      await syncStream.close().catch(() => {});
+      setTimeout(() => showAdbPushProgress(false), 2000);
+    }
+  }
+
+  // ── Serial Upload (XMODEM / YMODEM) Event Listeners ──
+  const serialFileInput = document.getElementById('serialUploadFileInput');
+  const xmodemBtn = document.getElementById('xmodemUploadBtn');
+  const ymodemBtn = document.getElementById('ymodemUploadBtn');
+  const cancelSerialUploadBtn = document.getElementById('cancelSerialUploadBtn');
+
+  let pendingSerialProtocol = null;
+
+  xmodemBtn.addEventListener('click', () => {
+    if (!isConnected || !writer) return;
+    pendingSerialProtocol = 'xmodem';
+    serialFileInput.value = '';
+    serialFileInput.click();
+  });
+
+  ymodemBtn.addEventListener('click', () => {
+    if (!isConnected || !writer) return;
+    pendingSerialProtocol = 'ymodem';
+    serialFileInput.value = '';
+    serialFileInput.click();
+  });
+
+  serialFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file || !pendingSerialProtocol) return;
+    const proto = pendingSerialProtocol;
+    pendingSerialProtocol = null;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (proto === 'xmodem') {
+        startXmodemUpload(ev.target.result, file.name);
+      } else if (proto === 'ymodem') {
+        startYmodemUpload(ev.target.result, file.name);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  cancelSerialUploadBtn.addEventListener('click', () => {
+    uploadCancelRequested = true;
+  });
+
+  // ── ADB File Push Event Listeners ──
+  const adbFileInput = document.getElementById('adbPushFileInput');
+  const adbSelectFileBtn = document.getElementById('adbSelectFileBtn');
+  const adbFileLabel = document.getElementById('adbSelectedFileLabel');
+  const adbPushBtn = document.getElementById('adbPushBtn');
+  const adbTargetPathInput = document.getElementById('adbPushTargetPath');
+
+  adbSelectFileBtn.addEventListener('click', () => {
+    adbFileInput.value = '';
+    adbFileInput.click();
+  });
+
+  adbFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      selectedAdbPushFile = file;
+      adbFileLabel.textContent = `📄 ${file.name} (${formatBytes(file.size)})`;
+      adbPushBtn.disabled = !isAdbConnected;
+    } else {
+      selectedAdbPushFile = null;
+      adbFileLabel.textContent = 'No file selected';
+      adbPushBtn.disabled = true;
+    }
+  });
+
+  document.querySelectorAll('.adb-path-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = btn.dataset.path;
+      if (p) adbTargetPathInput.value = p;
+    });
+  });
+
+  adbPushBtn.addEventListener('click', async () => {
+    if (!isAdbConnected || !selectedAdbPushFile) return;
+    const targetPath = adbTargetPathInput.value.trim() || '/sdcard/Download/';
+    adbPushBtn.disabled = true;
+    try {
+      await pushFileAdb(selectedAdbPushFile, targetPath);
+    } catch(err) {
+      appendOutput(`\n[ADB Push Error] ${err.message}\n`);
+    } finally {
+      adbPushBtn.disabled = !isAdbConnected || !selectedAdbPushFile;
+    }
+  });
 
   renderHistory();
 });
