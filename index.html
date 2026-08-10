@@ -686,7 +686,14 @@
       margin-left: auto;
     }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Chart.js (Supports local offline chart.min.js / chart.js with CDN fallback) -->
+  <script src="chart.min.js"></script>
+  <script src="chart.js"></script>
+  <script>
+    if (typeof Chart === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>');
+    }
+  </script>
 </head>
 <body>
 
