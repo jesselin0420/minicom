@@ -1673,10 +1673,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── ADB USB Transport ──
   class AdbUsb {
-    constructor(device, inEp, outEp) {
+    constructor(device, inEp, outEp, ifaceNumber) {
       this.device = device;
       this.inEp   = inEp;
       this.outEp  = outEp;
+      this.ifaceNumber = ifaceNumber;
       this._buf   = new Uint8Array(0);
       this.closed = false;
       this._writeQueue = Promise.resolve();
@@ -1740,25 +1741,28 @@ document.addEventListener('DOMContentLoaded', () => {
         hdr.setUint32(16, crc,                     true);
         hdr.setUint32(20, (cmd ^ 0xFFFFFFFF) >>> 0, true);
 
-        const pkt = new Uint8Array(24 + dataBytes.length);
-        pkt.set(new Uint8Array(hdr.buffer));
-        pkt.set(dataBytes, 24);
-
-        const CHUNK = 16384;
-        for (let i = 0; i < pkt.length; i += CHUNK) {
-          if (this.closed) return;
-          let result = await this.device.transferOut(
-            this.outEp.endpointNumber, pkt.slice(i, i + CHUNK)
-          );
+        // 重要：header (24 bytes) 與 payload 必須分成「兩次」USB transfer 送出。
+        // 舊版 adbd（多數 Android 9 以前、車機/電視盒/開發板）會先單獨讀 24 bytes header，
+        // 若 header+payload 合併在同一個 transfer，裝置端會 overflow 並丟掉整個封包
+        // → 永遠收不到 CNXN 回應 → 35 秒逾時。官方 adb.exe 也是分開送的。
+        const writeChunk = async (chunk) => {
+          let result = await this.device.transferOut(this.outEp.endpointNumber, chunk);
           if (result.status === 'stall') {
             try { await this.device.clearHalt('out', this.outEp.endpointNumber); } catch {}
-            result = await this.device.transferOut(
-              this.outEp.endpointNumber, pkt.slice(i, i + CHUNK)
-            );
+            result = await this.device.transferOut(this.outEp.endpointNumber, chunk);
           }
           if (result.status !== 'ok') {
             throw new Error(`USB write failed (status=${result.status}).`);
           }
+        };
+
+        if (this.closed) return;
+        await writeChunk(new Uint8Array(hdr.buffer));
+
+        const CHUNK = 16384;
+        for (let i = 0; i < dataBytes.length; i += CHUNK) {
+          if (this.closed) return;
+          await writeChunk(dataBytes.slice(i, i + CHUNK));
         }
       };
 
@@ -1770,7 +1774,16 @@ document.addEventListener('DOMContentLoaded', () => {
       return promise;
     }
 
-    close() { this.closed = true; }
+    close() {
+      if (this.closed) return;
+      this.closed = true;
+      // 釋放 USB 介面並關閉裝置，避免逾時/斷線後裝置仍被網頁佔住，
+      // 導致下一次連線失敗，或命令列 adb.exe 抓不到裝置。
+      (async () => {
+        try { await this.device.releaseInterface(this.ifaceNumber); } catch {}
+        try { await this.device.close(); } catch {}
+      })();
+    }
   }
 
   // ── ADB Client ──
@@ -1794,11 +1807,14 @@ document.addEventListener('DOMContentLoaded', () => {
           reject(new Error(
             'ADB connection timeout (35s). The device did not respond.\n' +
             'Possible causes:\n' +
-            '  1. [Windows] The ADB interface needs WinUSB driver.\n' +
+            '  1. adb.exe (adb server) is still running and holding the device.\n' +
+            '     → Run "adb kill-server", then unplug/replug and try again.\n' +
+            '  2. Authorization dialog not accepted on the device\n' +
+            '     (this browser uses a different key than adb.exe).\n' +
+            '  3. [Windows] The ADB interface needs WinUSB driver.\n' +
             '     → Download Zadig (zadig.akeo.ie), select the ADB interface,\n' +
             '       and replace the driver with WinUSB.\n' +
-            '  2. USB Debugging not enabled on the device.\n' +
-            '  3. Phone screen is locked — unlock it and try again.'
+            '  4. USB Debugging not enabled / screen locked.'
           ));
         }, 35000);
 
@@ -1817,8 +1833,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       while (true) {
         const pkt = await this.transport.readPacket();
+        if (this.transport.closed) throw new Error('Transport closed');
 
         if (pkt.cmd === A_CNXN) {
+          this.deviceVersion    = pkt.arg0;
+          this.deviceMaxPayload = pkt.arg1;
           this.deviceBanner = new TextDecoder('utf-8', { fatal: false }).decode(pkt.data);
           this.connected = true;
           this._startReadLoop();
@@ -1828,6 +1847,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pkt.cmd === A_AUTH && pkt.arg0 === ADB_AUTH_TOKEN) {
           if (!triedSig) {
             triedSig = true;
+            appendOutput('[ADB] Device responded (AUTH token received). Signing…\n');
             if (onStatus) onStatus('Authenticating…');
             // Use manual signing — WebCrypto would double-hash the token
             const sig = adbRsaSign(this.privateJwk, pkt.data);
@@ -2043,7 +2063,7 @@ document.addEventListener('DOMContentLoaded', () => {
         await device.clearHalt('out', outEp.endpointNumber);
       } catch(_) {}
 
-      const transport = new AdbUsb(device, inEp, outEp);
+      const transport = new AdbUsb(device, inEp, outEp, adbIface.interfaceNumber);
       const { privateJwk, publicKeyAdb } = await getOrCreateAdbKey();
 
       adbClient = new AdbClient(transport, privateJwk, publicKeyAdb);
