@@ -290,66 +290,15 @@
       cursor: not-allowed;
     }
 
-    /* ── ADB Command Bar (in right panel) ── */
-    #adbCmdBar {
-      display: none;
-      margin-bottom: 10px;
-      padding: 8px 10px;
-      background: #0d1929;
-      border: 1px solid #2a3a5a;
-      border-radius: 6px;
-      gap: 6px;
-      align-items: center;
-    }
-
-    #adbCmdBar.visible {
-      display: flex;
-    }
-
-    .adb-prompt {
-      font-family: 'Courier New', monospace;
-      color: #2aee2a;
-      font-size: 14px;
-      flex-shrink: 0;
-      padding: 0 4px;
-    }
-
-    #adbCmdInput {
-      flex: 1;
-      padding: 5px 8px;
-      background: #0f1f3a;
-      color: #e0e0e0;
-      border: 1px solid #2a3a5a;
-      border-radius: 4px;
-      font-family: 'Courier New', monospace;
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
-
-    #adbCmdInput:focus {
-      border-color: #2a5aaa;
-      box-shadow: 0 0 0 2px rgba(42,90,170,0.25);
-    }
-
-    #adbSendBtn {
-      padding: 5px 12px;
-      font-size: 13px;
-      background: #0f3460;
-      border-color: #2a5a9a;
-      color: #80c8ff;
-      flex-shrink: 0;
-    }
-
     /* ── Console Output ── */
-    #uartOutput {
+    .console-output {
       background-color: #000;
       color: #2aee2a;
       caret-color: #2aee2a;
       font-family: 'Courier New', Courier, monospace;
       font-size: 14px;
       width: 100%;
-      height: 700px;
+      height: 600px;
       padding: 10px;
       border-radius: 6px;
       border: 1px solid #1a3a1a;
@@ -364,7 +313,7 @@
       position: relative;
     }
 
-    #uartOutput.empty::before {
+    .console-output.empty::before {
       content: attr(data-placeholder);
       color: #5a7a6a;
       font-style: italic;
@@ -372,11 +321,27 @@
       pointer-events: none;
     }
 
-    #uartOutput:focus {
+    .console-output:focus {
       outline: none;
       border-color: #2aee2a;
       box-shadow: 0 0 0 2px rgba(42,238,42,0.25);
     }
+
+    /* ── Split console (UART | ADB) ── */
+    .console-split { display: flex; gap: 12px; flex-wrap: wrap; }
+    .console-pane { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; }
+    .console-pane-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .console-pane-title { font-size: 13px; font-weight: bold; color: #a0cfff; margin-right: auto; }
+    .pane-btn { padding: 3px 10px; font-size: 12px; }
+
+    /* ── View toggles (show UART / ADB) ── */
+    .panel-head { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #2a3a5a; padding-bottom: 8px; margin-bottom: 14px; }
+    .panel-head h2 { border: none; padding: 0; margin: 0; margin-right: auto; }
+    .view-toggle { padding: 3px 10px; font-size: 12px; border-radius: 12px; background: transparent; color: #4a6a9a; border: 1px solid #2a3a5a; }
+    .view-toggle.on { background: #0f3460; color: #a0cfff; border-color: #2a5a9a; }
+    .builder-split { display: flex; gap: 14px; flex-wrap: wrap; }
+    .builder-pane { flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+    .builder-pane-title { font-size: 13px; font-weight: bold; color: #a0cfff; }
 
     /* Output action buttons */
     .output-actions {
@@ -384,13 +349,13 @@
       gap: 10px;
     }
 
-    #saveButton {
+    #saveButton, #adbSaveButton {
       background-color: #1a4a1a;
       border-color: #2a7a2a;
       color: #80ff80;
     }
 
-    #clearButton {
+    #clearButton, #adbClearButton {
       background-color: #4a1a1a;
       border-color: #7a2a2a;
       color: #ff8080;
@@ -861,22 +826,39 @@
   <!-- Right: Console -->
   <div class="right-column">
     <div class="panel">
-      <h2 id="consoleTitle">Console</h2>
-
-      <!-- ADB One-shot Command Bar (shown in ADB mode) -->
-      <div id="adbCmdBar">
-        <span class="adb-prompt">$</span>
-        <input type="text" id="adbCmdInput" placeholder="adb shell command (one-shot)…" autocomplete="off" spellcheck="false">
-        <button id="adbSendBtn" disabled>▶ Run</button>
+      <div class="panel-head">
+        <h2 id="consoleTitle">Console</h2>
+        <button class="view-toggle" data-target="uart" title="Show/hide UART console &amp; script builder">📡 UART</button>
+        <button class="view-toggle" data-target="adb" title="Show/hide ADB console &amp; script builder">🤖 ADB</button>
       </div>
 
-      <div id="uartOutput" tabindex="0" class="console-output empty"
-        data-placeholder="⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom).">
+      <div class="console-split">
+        <!-- UART console -->
+        <div class="console-pane" data-pane="console-uart">
+          <div class="console-pane-header">
+            <span class="console-pane-title">📡 UART</span>
+            <button id="saveButton" class="pane-btn">💾 Save</button>
+            <button id="clearButton" class="pane-btn">🗑 Clear</button>
+          </div>
+          <div id="uartOutput" tabindex="0" class="console-output empty"
+            data-placeholder="⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom).">
+          </div>
+        </div>
+
+        <!-- ADB console -->
+        <div class="console-pane" data-pane="console-adb">
+          <div class="console-pane-header">
+            <span class="console-pane-title">🤖 ADB</span>
+            <button id="adbSaveButton" class="pane-btn">💾 Save</button>
+            <button id="adbClearButton" class="pane-btn">🗑 Clear</button>
+          </div>
+          <div id="adbOutput" tabindex="0" class="console-output empty"
+            data-placeholder="🤖 ADB offline. Click Connect ADB (ADB tab on the left), then type commands directly in this window.">
+          </div>
+        </div>
       </div>
 
       <div class="output-actions" style="margin-top: 10px;">
-        <button id="saveButton">💾 Save Output</button>
-        <button id="clearButton">🗑 Clear Output</button>
         <button id="toggleConsoleSettingsBtn" style="margin-left: auto; background: #0f3460; border-color: #2a5a9a; color: #a0cfff;">⚙️ Console Customization</button>
       </div>
 
@@ -955,8 +937,12 @@
 
     </div>
     <div class="panel">
-      <h2>Script Builder</h2>
-      <div id="scriptBuilder" class="script-builder">
+      <div class="panel-head">
+        <h2>Script Builder</h2>
+      </div>
+      <div class="builder-split">
+        <div class="builder-pane" data-pane="script-uart" data-builder="uart">
+          <div class="builder-pane-title">📡 UART Script</div>
         <div class="script-palette">
           <button class="script-block palette-block command-palette" data-block-type="command" draggable="true">⛳ Command</button>
           <button class="script-block palette-block delay-palette" data-block-type="delay" draggable="true">⏱ Delay</button>
@@ -971,20 +957,50 @@
           <button class="script-block palette-block repeat-palette" data-block-type="repeat" draggable="true">🔁 Loop</button>
         </div>
 
-        <div id="scriptCanvas" class="script-canvas">
-          <div class="script-canvas-empty">Drop blocks here to build a script.</div>
+          <div class="script-canvas script-root-canvas" data-target="uart"></div>
+
+          <div class="builder-controls">
+            <div class="builder-buttons">
+              <button class="js-run">▶ Run Script</button>
+              <button class="js-stop" disabled>■ Stop</button>
+              <button class="js-export" title="Export script as JSON">📤 Export</button>
+              <button class="js-import" title="Import script from JSON">📥 Import</button>
+              <input type="file" class="js-import-file" accept=".json" style="display:none">
+            </div>
+          </div>
+          <div class="script-status js-status">Status: ready.</div>
         </div>
 
-        <div class="builder-controls">
-          <div class="builder-buttons">
-            <button id="runScriptBtn">▶ Run Script</button>
-            <button id="stopScriptBtn" disabled>■ Stop</button>
-            <button id="exportScriptBtn" title="Export script as JSON">📤 Export</button>
-            <button id="importScriptBtn" title="Import script from JSON">📥 Import</button>
-            <input type="file" id="importScriptFile" accept=".json" style="display:none">
-          </div>
+        <div class="builder-pane" data-pane="script-adb" data-builder="adb">
+          <div class="builder-pane-title">🤖 ADB Script</div>
+        <div class="script-palette">
+          <button class="script-block palette-block command-palette" data-block-type="command" draggable="true">⛳ Command</button>
+          <button class="script-block palette-block delay-palette" data-block-type="delay" draggable="true">⏱ Delay</button>
+          <button class="script-block palette-block read-palette" data-block-type="read" draggable="true">📥 Read</button>
+          <button class="script-block palette-block parsestr-palette" data-block-type="parsestr" draggable="true">✂️ String</button>
+          <button class="script-block palette-block print-palette" data-block-type="print" draggable="true">🖨 Print</button>
+          <button class="script-block palette-block setvar-palette" data-block-type="setvar" draggable="true">📌 Set Var</button>
+          <button class="script-block palette-block waitfor-palette" data-block-type="waitfor" draggable="true">⏳ Wait For</button>
+          <button class="script-block palette-block math-palette" data-block-type="math" draggable="true">🧮 Math</button>
+          <button class="script-block palette-block plot-palette" data-block-type="plot" draggable="true">📈 Plot</button>
+          <button class="script-block palette-block condition-palette" data-block-type="condition" draggable="true">❓ If</button>
+          <button class="script-block palette-block repeat-palette" data-block-type="repeat" draggable="true">🔁 Loop</button>
         </div>
-        <div id="scriptStatus" class="script-status">Status: ready.</div>
+
+          <div class="script-canvas script-root-canvas" data-target="adb"></div>
+
+          <div class="builder-controls">
+            <div class="builder-buttons">
+              <button class="js-run">▶ Run Script</button>
+              <button class="js-stop" disabled>■ Stop</button>
+              <button class="js-export" title="Export script as JSON">📤 Export</button>
+              <button class="js-import" title="Import script from JSON">📥 Import</button>
+              <input type="file" class="js-import-file" accept=".json" style="display:none">
+            </div>
+          </div>
+          <div class="script-status js-status">Status: ready.</div>
+        </div>
+
       </div>
     </div>
 
@@ -1102,8 +1118,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // ══════════════════════════════════════════════════════════════
 
   let currentMode = 'serial'; // 'serial' | 'adb'
-  const ta = document.getElementById('uartOutput');
-  let rawConsoleContent = '';
+  const ta = document.getElementById('uartOutput');    // UART console
+  const adbTa = document.getElementById('adbOutput');  // ADB console
+  const consoleState = new Map([[ta, { raw: '' }], [adbTa, { raw: '' }]]);
+  let lastFocusedConsole = 'serial'; // 'serial' | 'adb' — target for history clicks
 
   // ── Console Customization & Highlighting State ──
   const KEYWORD_RULES_KEY = 'console_keyword_rules';
@@ -1134,23 +1152,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Compatibility property definitions for ta element
-  try {
-    Object.defineProperty(ta, 'value', {
-      get() { return rawConsoleContent; },
-      set(val) { setTerminalText(val); },
-      configurable: true
-    });
-    Object.defineProperty(ta, 'placeholder', {
-      get() { return ta.getAttribute('data-placeholder') || ''; },
-      set(val) { ta.setAttribute('data-placeholder', val); },
-      configurable: true
-    });
-  } catch(e) {}
+  for (const el of [ta, adbTa]) {
+    try {
+      Object.defineProperty(el, 'value', {
+        get() { return consoleState.get(el).raw; },
+        set(val) { setTerminalText(val, el); },
+        configurable: true
+      });
+      Object.defineProperty(el, 'placeholder', {
+        get() { return el.getAttribute('data-placeholder') || ''; },
+        set(val) { el.setAttribute('data-placeholder', val); },
+        configurable: true
+      });
+    } catch(e) {}
+  }
 
   function applyConsoleColors() {
-    ta.style.backgroundColor = consoleBgColor;
-    ta.style.color = consoleTextColor;
-    ta.style.caretColor = consoleTextColor;
+    for (const el of [ta, adbTa]) {
+      el.style.backgroundColor = consoleBgColor;
+      el.style.color = consoleTextColor;
+      el.style.caretColor = consoleTextColor;
+    }
     document.getElementById('consoleBgColorInput').value = consoleBgColor;
     document.getElementById('consoleTextColorInput').value = consoleTextColor;
   }
@@ -1181,17 +1203,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function renderConsole() {
-    const savedScrollTop = ta.scrollTop;
-    const scrolledToBottom = (savedScrollTop + ta.clientHeight) >= (ta.scrollHeight - 15);
+  function renderConsole(el) {
+    if (!el) { renderConsole(ta); renderConsole(adbTa); return; }
+    const rawConsoleContent = consoleState.get(el).raw;
+    const savedScrollTop = el.scrollTop;
+    const scrolledToBottom = (savedScrollTop + el.clientHeight) >= (el.scrollHeight - 15);
 
     if (!rawConsoleContent) {
-      ta.classList.add('empty');
-      ta.innerHTML = '';
+      el.classList.add('empty');
+      el.innerHTML = '';
       return;
     }
 
-    ta.classList.remove('empty');
+    el.classList.remove('empty');
     let html = escapeHtml(rawConsoleContent);
 
     if (consoleKeywordRules && consoleKeywordRules.length > 0) {
@@ -1212,34 +1236,36 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    ta.innerHTML = html;
+    el.innerHTML = html;
 
     if (scrolledToBottom) {
-      ta.scrollTop = ta.scrollHeight;
+      el.scrollTop = el.scrollHeight;
     } else {
-      ta.scrollTop = savedScrollTop;
+      el.scrollTop = savedScrollTop;
     }
   }
 
-  function getBaseText() {
-    return rawConsoleContent;
+  function getBaseText(el = ta) {
+    return consoleState.get(el).raw;
   }
 
-  function setTerminalText(text) {
-    rawConsoleContent = text;
-    renderConsole();
+  function setTerminalText(text, el = ta) {
+    consoleState.get(el).raw = text;
+    renderConsole(el);
   }
 
-  function appendOutput(text) {
-    let val = rawConsoleContent;
+  function appendOutput(text, el = ta) {
+    let val = consoleState.get(el).raw;
     for (let i = 0; i < text.length; i++) {
       const c = text[i];
       if (c === '\x08' || c === '\x7f') { val = val.slice(0, -1); }
       else if (c === '\x00') { continue; }
       else { val += c; }
     }
-    setTerminalText(val);
+    setTerminalText(val, el);
   }
+
+  function appendAdbOutput(text) { appendOutput(text, adbTa); }
 
   function startCursorBlink() {}
   function stopCursorBlink() {}
@@ -1283,13 +1309,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.classList.contains('del-btn')) return;
         const idx = parseInt(tag.dataset.index);
         const cmd = loadHistory()[idx];
-        if (currentMode === 'serial') {
+        if (lastFocusedConsole === 'serial') {
           if (!isConnected || !writer) return;
           if (inputBuffer.length > 0) { await sendRawData('\x08'.repeat(inputBuffer.length)); inputBuffer = ''; }
           inputBuffer = cmd;
           await sendRawData(inputBuffer);
           ta.focus();
-        } else if (currentMode === 'adb') {
+        } else {
           if (isAdbConnected && adbShellStream) {
             if (adbInputBuffer.length > 0) {
               await adbShellStream.send('\x15');
@@ -1297,10 +1323,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             adbInputBuffer = cmd;
             await adbShellStream.send(cmd);
-            ta.focus();
-          } else {
-            document.getElementById('adbCmdInput').value = cmd;
-            document.getElementById('adbCmdInput').focus();
+            adbTa.focus();
           }
         }
       });
@@ -1333,16 +1356,6 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
       document.querySelectorAll('.mode-panel').forEach(p => p.classList.toggle('active', p.id === (mode === 'serial' ? 'panelSerial' : 'panelAdb')));
 
-      const adbBar = document.getElementById('adbCmdBar');
-      if (mode === 'adb') {
-        adbBar.classList.add('visible');
-        document.getElementById('consoleTitle').textContent = 'ADB Console';
-        ta.placeholder = '🤖 ADB mode — connect a device, then type commands here or use the command bar above.';
-      } else {
-        adbBar.classList.remove('visible');
-        document.getElementById('consoleTitle').textContent = 'Console';
-        ta.placeholder = '⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom).';
-      }
     });
   });
 
@@ -1357,9 +1370,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let tempInput = '';
   let ansiBuffer = '';
 
-  function stripAnsi(chunk) {
-    const str = ansiBuffer + chunk;
-    ansiBuffer = '';
+  const adbAnsiState = { buf: '' };
+  function stripAnsi(chunk, st) {
+    const pending = st ? st.buf : ansiBuffer;
+    if (st) st.buf = ''; else ansiBuffer = '';
+    const str = pending + chunk;
     let result = '';
     let i = 0;
     while (i < str.length) {
@@ -1369,7 +1384,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const osc = rest.match(/^\x1b\][^\x07\x1b]*(\x07|\x1b\\)/);
         const match = csi || osc;
         if (match) { i += match[0].length; continue; }
-        if (rest.length < 24) { ansiBuffer = rest; break; }
+        if (rest.length < 24) { if (st) st.buf = rest; else ansiBuffer = rest; break; }
         else { i += 1; }
       } else { result += str[i]; i += 1; }
     }
@@ -1412,22 +1427,36 @@ document.addEventListener('DOMContentLoaded', () => {
       ta.placeholder = '⚡ Connected. Type directly in this window to send data to the serial port…';
       ta.focus();
 
-      reader = port.readable.getReader();
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          if (value) {
-            if (activeUploadProtocol) {
-              handleUploadRxBytes(value);
-            } else {
-              displayUartOutput(new TextDecoder('utf-8').decode(value));
+      // Non-fatal Web Serial errors: the port stays open and a new readable
+      // stream is provided. Typical during device reboot (line glitch / break /
+      // bootloader at another baud). minicom ignores these, so do we.
+      const RECOVERABLE_SERIAL_ERRORS = ['BreakError', 'FramingError', 'ParityError', 'BufferOverrunError'];
+      const serialDecoder = new TextDecoder('utf-8');
+
+      while (port && port.readable && isConnected) {
+        reader = port.readable.getReader();
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            if (value) {
+              if (activeUploadProtocol) {
+                handleUploadRxBytes(value);
+              } else {
+                displayUartOutput(serialDecoder.decode(value, { stream: true }));
+              }
             }
           }
+        } catch (err) {
+          if (!RECOVERABLE_SERIAL_ERRORS.includes(err.name)) {
+            console.error('Serial read error:', err);
+            break; // fatal (e.g. adapter unplugged) → disconnect below
+          }
+          console.warn('Serial recoverable error, continuing:', err.name);
+        } finally {
+          if (reader) { try { reader.releaseLock(); } catch {} }
+          reader = null;
         }
-      } finally {
-        reader.releaseLock();
-        reader = null;
       }
       if (isConnected) await doDisconnect();
     } catch (err) {
@@ -1494,7 +1523,7 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.removeItem(ADB_KEY_JWK);
       localStorage.removeItem(ADB_KEY_PUB);
     }
-    appendOutput('[ADB] Generating new RSA-2048 key pair…\n');
+    appendAdbOutput('[ADB] Generating new RSA-2048 key pair…\n');
     // Generate new 2048-bit RSA key pair
     const kp = await crypto.subtle.generateKey(
       { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048,
@@ -1508,7 +1537,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const spki = await crypto.subtle.exportKey('spki', kp.publicKey);
     const publicKeyAdb = spkiToAdbPublicKey(new Uint8Array(spki));
     localStorage.setItem(ADB_KEY_PUB, publicKeyAdb);
-    appendOutput('[ADB] RSA key pair generated and saved.\n');
+    appendAdbOutput('[ADB] RSA key pair generated and saved.\n');
 
     return { privateJwk: jwk, publicKeyAdb };
   }
@@ -1847,7 +1876,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pkt.cmd === A_AUTH && pkt.arg0 === ADB_AUTH_TOKEN) {
           if (!triedSig) {
             triedSig = true;
-            appendOutput('[ADB] Device responded (AUTH token received). Signing…\n');
+            appendAdbOutput('[ADB] Device responded (AUTH token received). Signing…\n');
             if (onStatus) onStatus('Authenticating…');
             // Use manual signing — WebCrypto would double-hash the token
             const sig = adbRsaSign(this.privateJwk, pkt.data);
@@ -1855,7 +1884,7 @@ document.addEventListener('DOMContentLoaded', () => {
           } else {
             // Signature not in device’s trusted list → ask user to authorize
             if (onStatus) onStatus('⚠ Check your phone…');
-            appendOutput(
+            appendAdbOutput(
               '\n[ADB] ⚠ Please authorize on your phone:\n' +
               '  1. Tap "Allow" in the USB debugging dialog\n' +
               '  2. ✔ Check "Always allow from this computer"\n' +
@@ -1985,7 +2014,7 @@ document.addEventListener('DOMContentLoaded', () => {
     adbShellStream = null;
     adbClient = null;
     updateAdbUI(false);
-    if (reason) appendOutput(`\n[ADB] ${reason}\n`);
+    if (reason) appendAdbOutput(`\n[ADB] ${reason}\n`);
   }
 
   function setAdbStatus(text, state) {
@@ -1997,10 +2026,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateAdbUI(connected) {
     const btn = document.getElementById('adbConnectButton');
-    const sendBtn = document.getElementById('adbSendBtn');
     const info    = document.getElementById('adbDeviceInfo');
     document.querySelectorAll('.adb-quick-btn').forEach(b => b.disabled = !connected);
-    sendBtn.disabled = !connected;
     document.getElementById('adbPushBtn').disabled = !connected || !selectedAdbPushFile;
 
     if (connected) {
@@ -2069,7 +2096,7 @@ document.addEventListener('DOMContentLoaded', () => {
       adbClient = new AdbClient(transport, privateJwk, publicKeyAdb);
 
       setAdbStatus('Connecting…', 'waiting');
-      appendOutput('\n[ADB] Connecting…\n');
+      appendAdbOutput('\n[ADB] Connecting…\n');
 
       await adbClient.connect((msg) => {
         setAdbStatus(msg, 'waiting');
@@ -2087,19 +2114,19 @@ document.addEventListener('DOMContentLoaded', () => {
                  || 'Android Device';
       info.textContent = `📱 ${model}`;
 
-      appendOutput(`[ADB] ✓ Connected: ${banner.split('\0')[0]}\n`);
-      appendOutput('[ADB] Opening interactive shell… (type commands directly in the console below)\n');
+      appendAdbOutput(`[ADB] ✓ Connected: ${banner.split('\0')[0]}\n`);
+      appendAdbOutput('[ADB] Opening interactive shell… (type commands directly in the console below)\n');
 
       // Open interactive shell
       adbShellStream = await adbClient.openStream(
         'shell:\0',
         (data) => {
           // Strip ANSI codes for clean display
-          const clean = stripAnsi(data);
-          appendOutput(clean);
+          const clean = stripAnsi(data, adbAnsiState);
+          appendAdbOutput(clean);
         },
         () => {
-          appendOutput('\n[ADB] Shell closed.\n');
+          appendAdbOutput('\n[ADB] Shell closed.\n');
           adbShellStream = null;
           if (isAdbConnected) {
             // Shell closed but still connected — try to reopen
@@ -2108,7 +2135,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       );
 
-      ta.focus();
+      adbTa.focus();
 
     } catch(err) {
       if (err.name === 'NotFoundError') {
@@ -2134,7 +2161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setAdbStatus('Error — ' + err.message.slice(0, 28), '');
       }
 
-      appendOutput(`\n[ADB Error] ${msg}\n`);
+      appendAdbOutput(`\n[ADB Error] ${msg}\n`);
       updateAdbUI(false);
       isAdbConnected = false;
       if (adbClient) { adbClient.disconnect(); adbClient = null; }
@@ -2146,14 +2173,14 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       adbShellStream = await adbClient.openStream(
         'shell:\0',
-        (data) => appendOutput(stripAnsi(data)),
+        (data) => appendAdbOutput(stripAnsi(data, adbAnsiState)),
         () => {
-          appendOutput('\n[ADB] Shell closed.\n');
+          appendAdbOutput('\n[ADB] Shell closed.\n');
           adbShellStream = null;
         }
       );
     } catch(e) {
-      appendOutput(`\n[ADB] Could not open shell: ${e.message}\n`);
+      appendAdbOutput(`\n[ADB] Could not open shell: ${e.message}\n`);
     }
   }
 
@@ -2168,15 +2195,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     isAdbConnected = false;
     updateAdbUI(false);
-    appendOutput('\n[ADB] Disconnected.\n');
+    appendAdbOutput('\n[ADB] Disconnected.\n');
   }
 
   // ── ADB: Run one-shot command (from command bar or quick buttons) ──
   async function runAdbCommand(cmd) {
     if (!adbClient || !adbClient.connected) return '';
     addToHistory(cmd);
-    appendOutput(`\n$ ${cmd}\n`);
-    const output = await adbClient.runCommand(cmd, (data) => appendOutput(stripAnsi(data)));
+    appendAdbOutput(`\n$ ${cmd}\n`);
+    const output = await adbClient.runCommand(cmd, (data) => appendAdbOutput(stripAnsi(data, adbAnsiState)));
     return output.trim();
   }
 
@@ -2273,13 +2300,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // SHARED EVENT LISTENERS
   // ══════════════════════════════════════════════════════════════
 
-  ta.addEventListener('keydown', async (e) => {
-    if (currentMode === 'adb') {
-      await handleAdbKeydown(e);
-      return;
-    }
+  adbTa.addEventListener('keydown', handleAdbKeydown);
 
-    // ── Serial mode ──
+  ta.addEventListener('keydown', async (e) => {
+    // ── Serial console ──
     if (!isConnected || !writer) return;
 
     if (e.ctrlKey && e.key.toLowerCase() === 'c' && window.getSelection().toString() !== '') return;
@@ -2358,16 +2382,21 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     const text = (e.clipboardData || window.clipboardData).getData('text');
     if (!text) return;
-    if (currentMode === 'adb') {
-      if (isAdbConnected && adbShellStream) await adbShellStream.send(text);
-    } else {
-      if (!isConnected || !writer) return;
-      inputBuffer += text;
-      await sendRawData(text);
-    }
+    if (!isConnected || !writer) return;
+    inputBuffer += text;
+    await sendRawData(text);
   });
 
+  adbTa.addEventListener('paste', async (e) => {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    if (text && isAdbConnected && adbShellStream) await adbShellStream.send(text);
+  });
+
+  adbTa.addEventListener('focus', () => { lastFocusedConsole = 'adb'; });
+
   ta.addEventListener('focus', () => {
+    lastFocusedConsole = 'serial';
     isFocused = true;
     if (isConnected || isAdbConnected) startCursorBlink();
   });
@@ -2389,29 +2418,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('adbResetKeyBtn').addEventListener('click', () => {
     if (isAdbConnected) {
-      appendOutput('[ADB] Please disconnect first before resetting the key.\n');
+      appendAdbOutput('[ADB] Please disconnect first before resetting the key.\n');
       return;
     }
     localStorage.removeItem('adb_private_key_jwk');
     localStorage.removeItem('adb_public_key_adb');
-    appendOutput('[ADB] RSA key cleared. A new key will be generated on next connect.\n');
-    appendOutput('[ADB] ⚠ You will need to re-authorize this computer on your Android device.\n');
+    appendAdbOutput('[ADB] RSA key cleared. A new key will be generated on next connect.\n');
+    appendAdbOutput('[ADB] ⚠ You will need to re-authorize this computer on your Android device.\n');
     setAdbStatus('Key reset — reconnect to re-authorize', '');
-  });
-
-  document.getElementById('adbSendBtn').addEventListener('click', () => {
-    const inp = document.getElementById('adbCmdInput');
-    const cmd = inp.value.trim();
-    if (!cmd) return;
-    inp.value = '';
-    runAdbCommand(cmd);
-  });
-
-  document.getElementById('adbCmdInput').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      document.getElementById('adbSendBtn').click();
-    }
   });
 
   // ── ADB Quick Command buttons ──
@@ -2423,17 +2437,27 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── Script Builder helpers ──
-  const scriptCanvas = document.getElementById('scriptCanvas');
-  const runScriptBtn = document.getElementById('runScriptBtn');
-  const stopScriptBtn = document.getElementById('stopScriptBtn');
-  const scriptStatus = document.getElementById('scriptStatus');
-  let stopScriptRequested = false;
+  // Each builder (UART / ADB) has its own canvas, run state and status line.
+  const scriptBuilders = {};
+  document.querySelectorAll('[data-builder]').forEach(pane => {
+    const target = pane.dataset.builder; // 'uart' | 'adb'
+    scriptBuilders[target] = {
+      target,
+      pane,
+      canvas: pane.querySelector('.script-root-canvas'),
+      runBtn: pane.querySelector('.js-run'),
+      stopBtn: pane.querySelector('.js-stop'),
+      statusEl: pane.querySelector('.js-status'),
+      consoleEl: target === 'adb' ? adbTa : ta,
+      stopRequested: false
+    };
+  });
   let draggedScriptBlock = null;
   let lastMousedownTarget = null;
   document.addEventListener('mousedown', (e) => { lastMousedownTarget = e.target; });
 
-  function updateScriptStatus(message) {
-    scriptStatus.textContent = `Status: ${message}`;
+  function setScriptStatus(ctx, message) {
+    ctx.statusEl.textContent = `Status: ${message}`;
   }
 
   function createScriptBlock(type, value = '') {
@@ -2458,7 +2482,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const removeBtn = document.createElement('button');
     removeBtn.textContent = '✕';
     removeBtn.style.cssText = 'font-size:12px;padding:2px 6px;background:#2a1a2a;border:1px solid #3a3a5a;color:#ff9b9b;border-radius:4px;cursor:pointer;';
-    removeBtn.addEventListener('click', () => { block.remove(); if (!scriptCanvas.querySelector('.script-block-item')) showEmptyCanvasHint(); });
+    removeBtn.addEventListener('click', () => { const root = block.closest('.script-root-canvas'); block.remove(); if (root) showEmptyCanvasHint(root); });
 
     header.appendChild(dragHandle);
     header.appendChild(title);
@@ -2487,22 +2511,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (type === 'read') {
       title.textContent = 'Read';
       block.classList.add('script-block-read');
-
-      const sourceLabel = document.createElement('label');
-      sourceLabel.textContent = 'Source:';
-      sourceLabel.style.fontSize = '12px';
-      controls.appendChild(sourceLabel);
-
-      const sourceSelect = document.createElement('select');
-      sourceSelect.className = 'read-source';
-      ['uart', 'adb'].forEach(val => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = val.toUpperCase();
-        sourceSelect.appendChild(opt);
-      });
-      sourceSelect.style.maxWidth = '120px';
-      controls.appendChild(sourceSelect);
 
       const varInput = document.createElement('input');
       varInput.type = 'text';
@@ -3141,9 +3149,9 @@ document.addEventListener('DOMContentLoaded', () => {
     return block;
   }
 
-  function showEmptyCanvasHint() {
-    if (!scriptCanvas.querySelector('.script-block-item')) {
-      scriptCanvas.innerHTML = '<div class="script-canvas-empty">Drop blocks here to build a script.</div>';
+  function showEmptyCanvasHint(canvasEl) {
+    if (!canvasEl.querySelector('.script-block-item')) {
+      canvasEl.innerHTML = '<div class="script-canvas-empty">Drop blocks here to build a script.</div>';
     }
   }
 
@@ -3557,13 +3565,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function executeScriptActions(actions, vars = {}) {
+  async function executeScriptActions(actions, vars, ctx) {
+    const updateScriptStatus = (m) => setScriptStatus(ctx, m);
+    const conEl = ctx.consoleEl;
     for (const action of actions) {
-      if (stopScriptRequested) throw new Error('Script stopped');
+      if (ctx.stopRequested) throw new Error('Script stopped');
       setActionRunning(action, true);
       try {
         if (action.type === 'command') {
-          if (currentMode === 'adb') {
+          if (ctx.target === 'adb') {
             if (!isAdbConnected) throw new Error('ADB not connected');
             await runAdbCommand(action.command);
           } else {
@@ -3577,7 +3587,7 @@ document.addEventListener('DOMContentLoaded', () => {
           await delay(action.ms);
         } else if (action.type === 'read') {
           const variable = action.variable || `var_${Math.floor(Math.random() * 1000)}`;
-          const source = action.source || 'uart';
+          const source = ctx.target;
           const command = action.command || '';
           let value = '';
           updateScriptStatus(`Reading ${source} into ${variable}...`);
@@ -3647,7 +3657,7 @@ document.addEventListener('DOMContentLoaded', () => {
               rawText = inputVal.replace(/\$\{(\w+)\}/g, (_, name) => vars[name] ?? '');
             }
           } else {
-            rawText = (vars['_last_read'] !== undefined) ? vars['_last_read'] : ta.value;
+            rawText = (vars['_last_read'] !== undefined) ? vars['_last_read'] : conEl.value;
           }
 
           let value = extractStringValue(rawText, action);
@@ -3674,7 +3684,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (action.type === 'print') {
           const template = action.template || '';
           const output = template.replace(/\$\{(\w+)\}/g, (_, name) => vars[name] ?? '');
-          appendOutput(`\n${output}\n`);
+          appendOutput(`\n${output}\n`, conEl);
           updateScriptStatus('Print output');
         } else if (action.type === 'condition') {
           const variable = action.variable || '';
@@ -3715,14 +3725,14 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           const modeLabel = {"text-exact": "Text Exact", "text-contains": "Text Contains", "hex": "Hex Number", "dec": "Dec Number"}[condMode] || condMode;
           updateScriptStatus(`IF [${modeLabel}] ${variable} ${operator} ${compare} => ${result}`);
-          await executeScriptActions(result ? action.thenActions : action.elseActions, vars);
+          await executeScriptActions(result ? action.thenActions : action.elseActions, vars, ctx);
         } else if (action.type === 'repeat') {
           const isInfinite = action.mode === 'infinite' || action.count === 0;
           const loopCount = isInfinite ? Infinity : Math.max(1, Number(action.count) || 1);
           updateScriptStatus(isInfinite ? 'Repeating ∞' : `Repeating ${loopCount}×`);
           for (let i = 0; i < loopCount; i++) {
-            if (stopScriptRequested) throw new Error('Script stopped');
-            await executeScriptActions(action.actions, vars);
+            if (ctx.stopRequested) throw new Error('Script stopped');
+            await executeScriptActions(action.actions, vars, ctx);
           }
         } else if (action.type === 'setvar') {
           const name = action.name || '';
@@ -3737,12 +3747,12 @@ document.addEventListener('DOMContentLoaded', () => {
           else {
             updateScriptStatus(`Waiting for "${keyword}"...`);
             const startTime = Date.now();
-            const startLen = ta.value.length;
+            const startLen = conEl.value.length;
             let found = false;
             while (!found) {
-              if (stopScriptRequested) throw new Error('Script stopped');
+              if (ctx.stopRequested) throw new Error('Script stopped');
               if (timeout > 0 && (Date.now() - startTime) >= timeout) break;
-              const newContent = ta.value.slice(startLen);
+              const newContent = conEl.value.slice(startLen);
               if (newContent.includes(keyword)) { found = true; break; }
               await delay(100);
             }
@@ -3800,32 +3810,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  runScriptBtn.addEventListener('click', async () => {
-    const actions = parseScriptCanvas(scriptCanvas);
-    if (actions.length === 0) {
-      updateScriptStatus('Add blocks first.');
-      return;
-    }
-    stopScriptRequested = false;
-    runScriptBtn.disabled = true;
-    stopScriptBtn.disabled = false;
-    updateScriptStatus('Running...');
-    try {
-      await executeScriptActions(actions, {});
-      if (!stopScriptRequested) updateScriptStatus('Completed.');
-    } catch (err) {
-      updateScriptStatus(err.message || 'Error during run.');
-    } finally {
-      stopScriptRequested = false;
-      runScriptBtn.disabled = false;
-      stopScriptBtn.disabled = true;
-    }
-  });
+  for (const ctx of Object.values(scriptBuilders)) {
+    ctx.runBtn.addEventListener('click', async () => {
+      const actions = parseScriptCanvas(ctx.canvas);
+      if (actions.length === 0) {
+        setScriptStatus(ctx, 'Add blocks first.');
+        return;
+      }
+      ctx.stopRequested = false;
+      ctx.runBtn.disabled = true;
+      ctx.stopBtn.disabled = false;
+      setScriptStatus(ctx, 'Running...');
+      try {
+        await executeScriptActions(actions, {}, ctx);
+        if (!ctx.stopRequested) setScriptStatus(ctx, 'Completed.');
+      } catch (err) {
+        setScriptStatus(ctx, err.message || 'Error during run.');
+      } finally {
+        ctx.stopRequested = false;
+        ctx.runBtn.disabled = false;
+        ctx.stopBtn.disabled = true;
+      }
+    });
 
-  stopScriptBtn.addEventListener('click', () => {
-    stopScriptRequested = true;
-    updateScriptStatus('Stopping...');
-  });
+    ctx.stopBtn.addEventListener('click', () => {
+      ctx.stopRequested = true;
+      setScriptStatus(ctx, 'Stopping...');
+    });
+  }
 
   // ── Script Export / Import ──
 
@@ -3843,7 +3855,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (type === 'read') {
         blocks.push({
           type: 'read',
-          source: child.querySelector('.read-source')?.value || 'uart',
+          source: canvasEl.closest('.script-root-canvas')?.dataset.target || 'uart',
           variable: child.querySelector('.read-variable')?.value || '',
           command: child.querySelector('.read-command')?.value || '',
           parsemode: child.querySelector('.read-parsemode')?.value || 'all',
@@ -4062,50 +4074,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  document.getElementById('exportScriptBtn').addEventListener('click', () => {
-    const blocks = serializeCanvasToJSON(scriptCanvas);
-    if (blocks.length === 0) {
-      updateScriptStatus('Nothing to export.');
-      return;
-    }
-    const json = JSON.stringify({ version: 1, name: 'Untitled Script', blocks }, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'script.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    updateScriptStatus('Script exported.');
-  });
+  for (const ctx of Object.values(scriptBuilders)) {
+    const fileInput = ctx.pane.querySelector('.js-import-file');
 
-  document.getElementById('importScriptBtn').addEventListener('click', () => {
-    document.getElementById('importScriptFile').click();
-  });
-
-  document.getElementById('importScriptFile').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const data = JSON.parse(ev.target.result);
-        if (!data.blocks || !Array.isArray(data.blocks)) {
-          updateScriptStatus('Invalid script file: missing blocks array.');
-          return;
-        }
-        // Clear canvas
-        scriptCanvas.innerHTML = '';
-        importBlocksToCanvas(scriptCanvas, data.blocks);
-        if (!scriptCanvas.querySelector('.script-block-item')) showEmptyCanvasHint();
-        updateScriptStatus(`Imported: ${data.name || 'script'} (${data.blocks.length} blocks)`);
-      } catch (err) {
-        updateScriptStatus('Import error: ' + err.message);
+    ctx.pane.querySelector('.js-export').addEventListener('click', () => {
+      const blocks = serializeCanvasToJSON(ctx.canvas);
+      if (blocks.length === 0) {
+        setScriptStatus(ctx, 'Nothing to export.');
+        return;
       }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  });
+      const json = JSON.stringify({ version: 1, name: 'Untitled Script', target: ctx.target, blocks }, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `script_${ctx.target}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setScriptStatus(ctx, 'Script exported.');
+    });
+
+    ctx.pane.querySelector('.js-import').addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (!data.blocks || !Array.isArray(data.blocks)) {
+            setScriptStatus(ctx, 'Invalid script file: missing blocks array.');
+            return;
+          }
+          ctx.canvas.innerHTML = '';
+          importBlocksToCanvas(ctx.canvas, data.blocks);
+          if (!ctx.canvas.querySelector('.script-block-item')) showEmptyCanvasHint(ctx.canvas);
+          setScriptStatus(ctx, `Imported: ${data.name || 'script'} (${data.blocks.length} blocks)`);
+        } catch (err) {
+          setScriptStatus(ctx, 'Import error: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+  }
 
   document.querySelectorAll('.script-block').forEach(btn => {
     btn.addEventListener('dragstart', (e) => {
@@ -4117,15 +4130,59 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  makeScriptCanvasDroppable(scriptCanvas);
-  showEmptyCanvasHint();
+  for (const ctx of Object.values(scriptBuilders)) {
+    makeScriptCanvasDroppable(ctx.canvas);
+    showEmptyCanvasHint(ctx.canvas);
+  }
+
+  // ── View toggle: one switch per side controls both its console and its script builder ──
+  const VIEW_KEY = 'view_visibility';
+  let viewPrefs = { uart: true, adb: true };
+  try {
+    const saved = JSON.parse(localStorage.getItem(VIEW_KEY));
+    if (saved) {
+      const src = saved.console || saved;   // accept the earlier per-section format
+      if ('uart' in src && 'adb' in src) viewPrefs = { uart: !!src.uart, adb: !!src.adb };
+    }
+    if (!viewPrefs.uart && !viewPrefs.adb) viewPrefs = { uart: true, adb: true };
+  } catch {}
+
+  function applyView() {
+    for (const target of ['uart', 'adb']) {
+      const on = viewPrefs[target];
+      for (const view of ['console', 'script']) {
+        document.querySelector(`[data-pane="${view}-${target}"]`).style.display = on ? '' : 'none';
+      }
+      document.querySelector(`.view-toggle[data-target="${target}"]`).classList.toggle('on', on);
+    }
+  }
+
+  document.querySelectorAll('.view-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.target;
+      const other = target === 'uart' ? 'adb' : 'uart';
+      if (viewPrefs[target] && !viewPrefs[other]) return; // keep at least one side visible
+      viewPrefs[target] = !viewPrefs[target];
+      try { localStorage.setItem(VIEW_KEY, JSON.stringify(viewPrefs)); } catch {}
+      applyView();
+    });
+  });
+  applyView();
 
   // ── Shared save / clear ──
   document.getElementById('saveButton').addEventListener('click', () => {
     const text = getBaseText();
     const a = Object.assign(document.createElement('a'), {
       href: URL.createObjectURL(new Blob([text], { type: 'text/plain' })),
-      download: currentMode === 'adb' ? 'adb_output.txt' : 'serial_output.txt'
+      download: 'serial_output.txt'
+    });
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  });
+
+  document.getElementById('adbSaveButton').addEventListener('click', () => {
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([getBaseText(adbTa)], { type: 'text/plain' })),
+      download: 'adb_output.txt'
     });
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   });
@@ -4133,6 +4190,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('clearButton').addEventListener('click', () => {
     setTerminalText('');
     inputBuffer = ''; historyIndex = -1;
+  });
+
+  document.getElementById('adbClearButton').addEventListener('click', () => {
+    setTerminalText('', adbTa);
   });
 
   document.getElementById('clearHistoryBtn').addEventListener('click', () => {
@@ -4565,7 +4626,7 @@ document.addEventListener('DOMContentLoaded', () => {
         finalPath += fileObj.name;
       }
 
-      appendOutput(`\n[ADB Push] Sending ${fileObj.name} (${formatBytes(fileObj.size)}) to ${finalPath}...\n`);
+      appendAdbOutput(`\n[ADB Push] Sending ${fileObj.name} (${formatBytes(fileObj.size)}) to ${finalPath}...\n`);
       updateAdbPushStatus(`Reading local file...`, 0);
 
       const destSpec = `${finalPath},33188`;
@@ -4620,10 +4681,10 @@ document.addEventListener('DOMContentLoaded', () => {
       await syncStream.send(new Uint8Array(doneHdr.buffer));
 
       updateAdbPushStatus(`Finished!`, 100);
-      appendOutput(`[ADB Push] ✓ Success: ${fileObj.name} pushed to ${finalPath}\n`);
+      appendAdbOutput(`[ADB Push] ✓ Success: ${fileObj.name} pushed to ${finalPath}\n`);
 
     } catch (err) {
-      appendOutput(`\n[ADB Push Error] ${err.message}\n`);
+      appendAdbOutput(`\n[ADB Push Error] ${err.message}\n`);
     } finally {
       await syncStream.close().catch(() => {});
       setTimeout(() => showAdbPushProgress(false), 2000);
@@ -4712,7 +4773,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       await pushFileAdb(selectedAdbPushFile, targetPath);
     } catch(err) {
-      appendOutput(`\n[ADB Push Error] ${err.message}\n`);
+      appendAdbOutput(`\n[ADB Push Error] ${err.message}\n`);
     } finally {
       adbPushBtn.disabled = !isAdbConnected || !selectedAdbPushFile;
     }
