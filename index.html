@@ -1,0 +1,4747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Serial &amp; ADB Console</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 14px;
+      background-color: #1a1a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    h2 {
+      color: #a0cfff;
+      margin-top: 0;
+      margin-bottom: 18px;
+      font-size: 1.2em;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border-bottom: 1px solid #2a3a5a;
+      padding-bottom: 8px;
+    }
+
+    .main-layout-container {
+      display: flex;
+      gap: 24px;
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      align-items: flex-start;
+    }
+
+    /* Left column: fixed width (smaller) */
+    .left-column {
+      flex: 0 0 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Right column: fills remaining space (larger) */
+    .right-column {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .panel {
+      background: #16213e;
+      border: 1px solid #2a3a5a;
+      border-radius: 8px;
+      padding: 15px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      margin-bottom: 12px;
+    }
+
+    label {
+      font-size: 12px;
+      color: #a0b0c8;
+      text-align: left;
+      margin-bottom: 4px;
+    }
+
+    select {
+      flex: 1;
+      padding: 5px 8px;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #2a4a7a;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    select:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    button {
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background-color: #0f3460;
+      color: #a0cfff;
+      border: 1px solid #2a5a9a;
+      transition: background 0.15s;
+    }
+
+    button:hover:not(:disabled) {
+      background-color: #1a4a7a;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ── Mode Tabs ── */
+    .mode-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 5px;
+      background: #0d1929;
+      border-radius: 8px;
+      border: 1px solid #2a3a5a;
+    }
+
+    .mode-tab {
+      flex: 1;
+      padding: 7px 6px;
+      border-radius: 5px;
+      background: transparent;
+      color: #4a6a9a;
+      border: 1px solid transparent;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .mode-tab:hover:not(.active) {
+      background: #0f2040;
+      color: #7090c0;
+      border-color: #2a3a5a;
+    }
+
+    .mode-tab.active {
+      background: #0f3460;
+      color: #a0cfff;
+      border-color: #2a5a9a;
+      font-weight: bold;
+    }
+
+    /* ── Serial & ADB panel visibility ── */
+    .mode-panel { display: none; }
+    .mode-panel.active { display: block; }
+
+    /* ── Connect Button ── */
+    #connectButton {
+      width: 100%;
+      margin-top: 6px;
+      background-color: #0f5a30;
+      border-color: #1a8a50;
+      color: #80ffb0;
+      font-weight: bold;
+    }
+
+    #connectButton:hover:not(:disabled) {
+      background-color: #1a7a40;
+    }
+
+    #connectButton.disconnect {
+      background-color: #5a0f0f;
+      border-color: #8a1a1a;
+      color: #ffb0b0;
+    }
+    #connectButton.disconnect:hover:not(:disabled) { background-color: #7a1a1a; }
+
+    /* ── ADB Connect Button ── */
+    #adbConnectButton {
+      width: 100%;
+      margin-top: 6px;
+      background-color: #1a3a6a;
+      border-color: #2a6aaa;
+      color: #80c8ff;
+      font-weight: bold;
+    }
+
+    #adbConnectButton:hover:not(:disabled) {
+      background-color: #1a4a8a;
+    }
+
+    #adbConnectButton.disconnect {
+      background-color: #5a0f0f;
+      border-color: #8a1a1a;
+      color: #ffb0b0;
+    }
+    #adbConnectButton.disconnect:hover:not(:disabled) { background-color: #7a1a1a; }
+
+    /* ── ADB Status Badge ── */
+    .adb-status-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      padding: 6px 9px;
+      border-radius: 5px;
+      background: #0d1929;
+      border: 1px solid #2a3a5a;
+      margin-bottom: 10px;
+    }
+
+    .adb-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #3a5a3a;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+
+    .adb-status-dot.connected {
+      background: #2aee2a;
+      box-shadow: 0 0 6px rgba(42,238,42,0.6);
+    }
+
+    .adb-status-dot.waiting {
+      background: #eebb2a;
+      box-shadow: 0 0 6px rgba(238,187,42,0.6);
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .adb-status-text {
+      color: #6a8aaa;
+      font-size: 11px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── ADB Device Info ── */
+    #adbDeviceInfo {
+      font-size: 11px;
+      color: #5a9aaa;
+      background: #0a1f35;
+      border: 1px solid #1a3a5a;
+      border-radius: 5px;
+      padding: 7px 9px;
+      margin-bottom: 10px;
+      font-family: 'Courier New', monospace;
+      word-break: break-all;
+      display: none;
+    }
+
+    /* ── ADB Quick Commands ── */
+    .adb-quick-label {
+      font-size: 11px;
+      color: #4a6a8a;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 6px;
+      margin-top: 4px;
+    }
+
+    .adb-quick-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .adb-quick-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+      background: #0a2040;
+      border: 1px solid #1a4060;
+      color: #5090c0;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+
+    .adb-quick-btn:hover:not(:disabled) {
+      background: #0f3060;
+      color: #80c0f0;
+      border-color: #2a5a9a;
+    }
+
+    .adb-quick-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* ── Console Output ── */
+    .console-output {
+      background-color: #000;
+      color: #2aee2a;
+      caret-color: #2aee2a;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      width: 100%;
+      height: 600px;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #1a3a1a;
+      resize: vertical;
+      overflow-y: auto;
+      display: block;
+      white-space: pre-wrap;
+      word-break: break-all;
+      user-select: text;
+      -webkit-user-select: text;
+      outline: none;
+      position: relative;
+    }
+
+    .console-output.empty::before {
+      content: attr(data-placeholder);
+      color: #5a7a6a;
+      font-style: italic;
+      opacity: 0.8;
+      pointer-events: none;
+    }
+
+    .console-output:focus {
+      outline: none;
+      border-color: #2aee2a;
+      box-shadow: 0 0 0 2px rgba(42,238,42,0.25);
+    }
+
+    /* ── Split console (UART | ADB) ── */
+    .console-split { display: flex; gap: 12px; flex-wrap: wrap; }
+    .console-pane { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; }
+    .console-pane-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .console-pane-title { font-size: 13px; font-weight: bold; color: #a0cfff; margin-right: auto; }
+    .pane-btn { padding: 3px 10px; font-size: 12px; }
+
+    /* ── View toggles (show UART / ADB) ── */
+    .panel-head { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #2a3a5a; padding-bottom: 8px; margin-bottom: 14px; }
+    .panel-head h2 { border: none; padding: 0; margin: 0; margin-right: auto; }
+    .view-toggle { padding: 3px 10px; font-size: 12px; border-radius: 12px; background: transparent; color: #4a6a9a; border: 1px solid #2a3a5a; }
+    .view-toggle.on { background: #0f3460; color: #a0cfff; border-color: #2a5a9a; }
+    .builder-split { display: flex; gap: 14px; flex-wrap: wrap; }
+    .builder-pane { flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+    .builder-pane-title { font-size: 13px; font-weight: bold; color: #a0cfff; }
+
+    /* ── Connection bar above each console ── */
+    .conn-panel { background: #0d1929; border: 1px solid #2a3a5a; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+    .console-pane .conn-panel { flex: 1 0 auto; } /* side-by-side: shorter bar stretches so both consoles line up */
+    .conn-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .conn-field { display: flex; align-items: center; gap: 5px; }
+    .conn-field label { margin: 0; }
+    .conn-field select { flex: 0 0 auto; }
+    .conn-row-label { font-size: 11px; color: #4a6a8a; text-transform: uppercase; letter-spacing: 0.07em; min-width: 44px; }
+    .conn-small-btn { font-size: 12px; padding: 4px 10px; }
+    .conn-progress { flex: 1 1 200px; padding: 5px 8px; background: #0d1929; border: 1px solid #2a3a5a; border-radius: 5px; }
+    .conn-panel #connectButton, .conn-panel #adbConnectButton { width: auto; margin-top: 0; padding: 5px 14px; }
+    .conn-panel .adb-status-badge { margin-bottom: 0; }
+    .conn-panel #adbDeviceInfo { margin-bottom: 0; padding: 4px 8px; }
+
+    /* Output action buttons */
+    .output-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    #saveButton, #adbSaveButton {
+      background-color: #1a4a1a;
+      border-color: #2a7a2a;
+      color: #80ff80;
+    }
+
+    #clearButton, #adbClearButton {
+      background-color: #4a1a1a;
+      border-color: #7a2a2a;
+      color: #ff8080;
+    }
+
+    /* Command History */
+    #historyList {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .history-tag {
+      background: #0a2a0a;
+      border: 1px solid #1a5a1a;
+      color: #60cc60;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      max-width: 220px;
+    }
+
+    .history-tag:hover {
+      background: #1a4a1a;
+      border-color: #2aee2a;
+      color: #2aee2a;
+    }
+
+    .history-tag span.cmd-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .history-tag .del-btn {
+      color: #5a5a5a;
+      font-size: 14px;
+      line-height: 1;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .history-tag .del-btn:hover {
+      color: #ff6060;
+    }
+
+    .history-empty {
+      font-size: 12px;
+      color: #2a4a2a;
+      font-style: italic;
+    }
+
+    .script-palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .palette-block {
+      background: #000;
+      border: 2px solid #2a3a5a;
+      color: #fff;
+      cursor: grab;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: bold;
+      transition: all 0.2s ease;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    }
+    .palette-block:hover {
+      transform: translateY(-2px) scale(1.05);
+      filter: brightness(1.3);
+    }
+    .palette-block.command-palette { background: #2962ff; border-color: #448aff; color: #e3f2fd; box-shadow: 0 2px 12px rgba(41,121,255,0.35); }
+    .palette-block.delay-palette { background: #e65100; border-color: #ffab40; color: #fff3e0; box-shadow: 0 2px 12px rgba(255,145,0,0.35); }
+    .palette-block.read-palette { background: #9e9d24; border-color: #eeff41; color: #f9fbe7; box-shadow: 0 2px 12px rgba(198,255,0,0.3); }
+    .palette-block.print-palette { background: #aa00ff; border-color: #ea80fc; color: #f3e5f5; box-shadow: 0 2px 12px rgba(224,64,251,0.35); }
+    .palette-block.condition-palette { background: #6200ea; border-color: #b388ff; color: #ede7f6; box-shadow: 0 2px 12px rgba(179,136,255,0.35); }
+    .palette-block.repeat-palette { background: #00c853; border-color: #69f0ae; color: #e0f2f1; box-shadow: 0 2px 12px rgba(0,230,118,0.35); }
+    .palette-block.setvar-palette { background: #00838f; border-color: #4dd0e1; color: #e0f7fa; box-shadow: 0 2px 12px rgba(77,208,225,0.35); }
+    .palette-block.waitfor-palette { background: #f9a825; border-color: #ffee58; color: #3e2723; box-shadow: 0 2px 12px rgba(249,168,37,0.35); }
+    .palette-block.math-palette { background: #c62828; border-color: #ef5350; color: #ffebee; box-shadow: 0 2px 12px rgba(239,83,80,0.35); }
+    .palette-block.plot-palette { background: #e91e63; border-color: #f48fb1; color: #fce4ec; box-shadow: 0 2px 12px rgba(233,30,99,0.35); }
+    .palette-block.parsestr-palette { background: #00695c; border-color: #26a69a; color: #e0f2f1; box-shadow: 0 2px 12px rgba(38,166,154,0.35); }
+    .palette-block:active { cursor: grabbing; transform: scale(0.97); }
+    .script-canvas {
+      min-height: 180px;
+      padding: 12px;
+      background: #081020;
+      border: 2px dashed #2a4a7a;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.25s ease;
+    }
+    .script-canvas.drag-over {
+      border-color: #448aff;
+      background: rgba(68, 138, 255, 0.12);
+      box-shadow: inset 0 0 20px rgba(68, 138, 255, 0.1);
+    }
+    .script-canvas-empty {
+      font-size: 13px;
+      color: #6a9ac0;
+      padding: 18px;
+      text-align: center;
+      font-style: italic;
+    }
+    .script-flow {
+      font-size: 12px;
+      color: #b0d8ff;
+      padding: 8px 10px;
+      border: 1px solid #2a5090;
+      border-radius: 8px;
+      background: rgba(20, 40, 80, 0.7);
+      margin-top: 8px;
+      backdrop-filter: blur(4px);
+    }
+    .script-block-item {
+      background: #112244;
+      border: 2px solid #1f3a6a;
+      border-radius: 10px;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      cursor: grab;
+      transition: all 0.2s ease;
+      border-left-width: 5px;
+    }
+    .script-block-item:hover {
+      filter: brightness(1.15);
+    }
+    .script-block-command {
+      background: #0d2a6a;
+      border-color: #448aff;
+      border-left-color: #2979ff;
+      box-shadow: 0 1px 8px rgba(41,121,255,0.15);
+    }
+    .script-block-delay {
+      background: #4a2a00;
+      border-color: #ff9100;
+      border-left-color: #ff6d00;
+      box-shadow: 0 1px 8px rgba(255,145,0,0.15);
+    }
+    .script-block-read {
+      background: #2a3000;
+      border-color: #c6ff00;
+      border-left-color: #aeea00;
+      box-shadow: 0 1px 8px rgba(198,255,0,0.12);
+    }
+    .script-block-print {
+      background: #3a0a4a;
+      border-color: #e040fb;
+      border-left-color: #d500f9;
+      box-shadow: 0 1px 8px rgba(224,64,251,0.15);
+    }
+    .script-block-condition {
+      background: #2a1a50;
+      border-color: #b388ff;
+      border-left-color: #7c4dff;
+      box-shadow: 0 1px 8px rgba(179,136,255,0.15);
+    }
+    .script-block-repeat {
+      background: #0a3a2a;
+      border-color: #00e676;
+      border-left-color: #00c853;
+      box-shadow: 0 1px 8px rgba(0,230,118,0.15);
+    }
+    .script-block-setvar {
+      background: #003840;
+      border-color: #4dd0e1;
+      border-left-color: #00acc1;
+      box-shadow: 0 1px 8px rgba(77,208,225,0.15);
+    }
+    .script-block-waitfor {
+      background: #3e2a00;
+      border-color: #ffee58;
+      border-left-color: #f9a825;
+      box-shadow: 0 1px 8px rgba(249,168,37,0.15);
+    }
+    .script-block-math {
+      background: #3a0a0a;
+      border-color: #ef5350;
+      border-left-color: #c62828;
+      box-shadow: 0 1px 8px rgba(239,83,80,0.15);
+    }
+    .script-block-plot {
+      background: #4a0a2a;
+      border-color: #f48fb1;
+      border-left-color: #e91e63;
+      box-shadow: 0 1px 8px rgba(233,30,99,0.15);
+    }
+    .script-block-parsestr {
+      background: #00332c;
+      border-color: #26a69a;
+      border-left-color: #00bfa5;
+      box-shadow: 0 1px 8px rgba(0,191,165,0.15);
+    }
+    .script-block-item.running {
+      box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.5), 0 0 16px rgba(255, 215, 0, 0.2);
+      border-color: #ffd700;
+      background-color: #2a3355;
+      animation: runPulse 1.2s infinite;
+    }
+    @keyframes runPulse {
+      0%,100% { box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.5), 0 0 16px rgba(255, 215, 0, 0.2); }
+      50% { box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.7), 0 0 24px rgba(255, 215, 0, 0.35); }
+    }
+    .script-block-item.drag-over {
+      border-color: #82b1ff;
+      box-shadow: 0 0 0 2px rgba(130, 177, 255, 0.25);
+    }
+    .script-block-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: #e0eaff;
+    }
+    .script-block-header .block-title {
+      font-weight: bold;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .script-block-controls {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .script-block-controls input,
+    .script-block-controls textarea,
+    .script-block-controls select {
+      width: 100%;
+      padding: 7px 10px;
+      background: rgba(5, 10, 25, 0.8);
+      color: #40ff80;
+      border: 1px solid rgba(100, 180, 255, 0.25);
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: 'Courier New', Courier, monospace;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .script-block-controls input:focus,
+    .script-block-controls textarea:focus,
+    .script-block-controls select:focus {
+      border-color: #448aff;
+      box-shadow: 0 0 0 2px rgba(68, 138, 255, 0.2);
+      outline: none;
+    }
+    .script-block-controls textarea {
+      resize: vertical;
+      min-height: 56px;
+    }
+    .builder-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .builder-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .script-status {
+      font-size: 12px;
+      color: #90c8e8;
+      min-height: 18px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    #clearHistoryBtn {
+      font-size: 11px;
+      padding: 3px 10px;
+      background: transparent;
+      border-color: #2a3a4a;
+      color: #4a6a8a;
+      margin-left: auto;
+    }
+  </style>
+  <!-- Chart.js (Supports local offline chart.min.js / chart.js with CDN fallback) -->
+  <script src="chart.min.js"></script>
+  <script src="chart.js"></script>
+  <script>
+    if (typeof Chart === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>');
+    }
+  </script>
+</head>
+<body>
+
+<div class="main-layout-container">
+
+  <!-- Right: Console -->
+  <div class="right-column">
+    <div class="panel">
+      <div class="panel-head">
+        <h2 id="consoleTitle">Console</h2>
+        <button class="view-toggle" data-target="uart" title="Show/hide UART console &amp; script builder">📡 UART</button>
+        <button class="view-toggle" data-target="adb" title="Show/hide ADB console &amp; script builder">🤖 ADB</button>
+      </div>
+
+      <div class="console-split">
+        <!-- UART console -->
+        <div class="console-pane" data-pane="console-uart">
+          <div class="console-pane-header">
+            <span class="console-pane-title">📡 UART</span>
+            <button id="saveButton" class="pane-btn">💾 Save</button>
+            <button id="clearButton" class="pane-btn">🗑 Clear</button>
+          </div>
+          <!-- UART connection settings -->
+          <div class="conn-panel">
+            <div class="conn-row">
+              <div class="conn-field"><label for="baudRateSelect">Baud</label>
+                <select id="baudRateSelect">
+          <option value="300">300</option>
+          <option value="600">600</option>
+          <option value="1200">1200</option>
+          <option value="2400">2400</option>
+          <option value="4800">4800</option>
+          <option value="9600">9600</option>
+          <option value="14400">14400</option>
+          <option value="19200">19200</option>
+          <option value="38400">38400</option>
+          <option value="57600">57600</option>
+          <option value="115200" selected>115200</option>
+          <option value="230400">230400</option>
+          <option value="460800">460800</option>
+          <option value="921600">921600</option>
+          <option value="1000000">1000000</option>
+          <option value="1500000">1500000</option>
+          <option value="2000000">2000000</option>
+        </select>
+              </div>
+              <div class="conn-field"><label for="dataBitsSelect">Data</label>
+                <select id="dataBitsSelect">
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8" selected>8</option>
+        </select>
+              </div>
+              <div class="conn-field"><label for="stopBitsSelect">Stop</label>
+                <select id="stopBitsSelect">
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+        </select>
+              </div>
+              <div class="conn-field"><label for="paritySelect">Parity</label>
+                <select id="paritySelect">
+          <option value="none" selected>None</option>
+          <option value="even">Even</option>
+          <option value="odd">Odd</option>
+          <option value="mark">Mark</option>
+          <option value="space">Space</option>
+        </select>
+              </div>
+              <button id="connectButton">⚡ Connect</button>
+            </div>
+            <div class="conn-row">
+              <span class="conn-row-label">File Upload</span>
+              <input type="file" id="serialUploadFileInput" style="display:none">
+              <button id="xmodemUploadBtn" class="conn-small-btn" disabled>📤 XMODEM Send</button>
+              <button id="ymodemUploadBtn" class="conn-small-btn" disabled>📤 YMODEM Send</button>
+              <button id="cancelSerialUploadBtn" class="conn-small-btn" style="display:none; background:#4a1a1a; border-color:#7a2a2a; color:#ff8080;">✕ Cancel Transfer</button>
+              <div id="serialUploadProgressBox" class="conn-progress" style="display:none;">
+                <div style="font-size:11px; color:#80c8ff; margin-bottom:4px; word-break:break-all;" id="serialUploadStatus">Preparing...</div>
+                <div style="width:100%; background:#16213e; height:8px; border-radius:4px; overflow:hidden;">
+                  <div id="serialUploadProgressBar" style="width:0%; height:100%; background:#2aee2a; transition:width 0.1s;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="uartOutput" tabindex="0" class="console-output empty"
+            data-placeholder="⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom).">
+          </div>
+        </div>
+
+        <!-- ADB console -->
+        <div class="console-pane" data-pane="console-adb">
+          <div class="console-pane-header">
+            <span class="console-pane-title">🤖 ADB</span>
+            <button id="adbSaveButton" class="pane-btn">💾 Save</button>
+            <button id="adbClearButton" class="pane-btn">🗑 Clear</button>
+          </div>
+          <!-- ADB connection -->
+          <div class="conn-panel">
+            <div class="conn-row">
+              <div class="adb-status-badge">
+                <div class="adb-status-dot" id="adbStatusDot"></div>
+                <span class="adb-status-text" id="adbStatusText">Disconnected</span>
+              </div>
+              <div id="adbDeviceInfo"></div>
+              <button id="adbConnectButton">🤖 Connect ADB</button>
+              <button id="adbResetKeyBtn" class="conn-small-btn" title="Delete stored RSA key and generate a new one (forces re-authorization on device)" style="background:transparent;border-color:#3a2a1a;color:#7a5a3a;">🔑 Reset RSA Key</button>
+            </div>
+            <div class="conn-row">
+              <span class="conn-row-label">Quick</span>
+              <div class="adb-quick-grid">
+          <button class="adb-quick-btn" data-cmd="getprop ro.product.model" disabled>Model</button>
+          <button class="adb-quick-btn" data-cmd="getprop ro.build.version.release" disabled>Android</button>
+          <button class="adb-quick-btn" data-cmd="getprop ro.serialno" disabled>S/N</button>
+          <button class="adb-quick-btn" data-cmd="df -h /data" disabled>Disk</button>
+          <button class="adb-quick-btn" data-cmd="free -m" disabled>Memory</button>
+          <button class="adb-quick-btn" data-cmd="top -b -n 1 | head -20" disabled>CPU</button>
+          <button class="adb-quick-btn" data-cmd="ip addr show" disabled>IP</button>
+          <button class="adb-quick-btn" data-cmd="pm list packages -3" disabled>Apps</button>
+        </div>
+            </div>
+            <div class="conn-row">
+              <span class="conn-row-label">Push</span>
+              <input type="file" id="adbPushFileInput" style="display:none">
+              <button id="adbSelectFileBtn" class="conn-small-btn" style="background:#0f2040; border:1px solid #1a4060; color:#a0cfff;">📁 Select File</button>
+              <span id="adbSelectedFileLabel" style="font-size:11px; color:#5a9aaa; font-family:monospace; word-break:break-all;">No file selected</span>
+              <span style="font-size:11px; color:#4a6a8a;">→</span>
+              <input type="text" id="adbPushTargetPath" value="/sdcard/Download/" placeholder="/sdcard/Download/" title="Target location on device" style="width:170px; padding:4px 8px; background:#0f1f3a; color:#e0e0e0; border:1px solid #2a3a5a; border-radius:4px; font-size:12px; font-family:monospace;">
+              <button class="adb-path-preset" data-path="/sdcard/Download/" style="font-size:10px; padding:2px 6px; background:#0d1929; border:1px solid #2a3a5a; color:#7090c0; border-radius:3px; cursor:pointer;">/sdcard/Download/</button>
+          <button class="adb-path-preset" data-path="/sdcard/" style="font-size:10px; padding:2px 6px; background:#0d1929; border:1px solid #2a3a5a; color:#7090c0; border-radius:3px; cursor:pointer;">/sdcard/</button>
+          <button class="adb-path-preset" data-path="/data/local/tmp/" style="font-size:10px; padding:2px 6px; background:#0d1929; border:1px solid #2a3a5a; color:#7090c0; border-radius:3px; cursor:pointer;">/tmp/</button>
+              <button id="adbPushBtn" class="conn-small-btn" disabled style="background:#1a5a3a; border-color:#2a8a5a; color:#80ffb0; font-weight:bold;">📤 Push</button>
+              <div id="adbPushProgressBox" class="conn-progress" style="display:none;">
+                <div style="font-size:11px; color:#80ffb0; margin-bottom:4px; word-break:break-all;" id="adbPushStatus">Pushing file...</div>
+                <div style="width:100%; background:#16213e; height:8px; border-radius:4px; overflow:hidden;">
+                  <div id="adbPushProgressBar" style="width:0%; height:100%; background:#2aee2a; transition:width 0.1s;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="adbOutput" tabindex="0" class="console-output empty"
+            data-placeholder="🤖 ADB offline. Click Connect ADB (ADB tab on the left), then type commands directly in this window.">
+          </div>
+        </div>
+      </div>
+
+      <div class="output-actions" style="margin-top: 10px;">
+        <button id="toggleConsoleSettingsBtn" style="margin-left: auto; background: #0f3460; border-color: #2a5a9a; color: #a0cfff;">⚙️ Console Customization</button>
+      </div>
+
+      <!-- Console Customization Sub-Panel -->
+      <div id="consoleSettingsPanel" style="display: none; margin-top: 12px; padding: 14px; background: #0b1526; border: 1px solid #2a3a5a; border-radius: 8px;">
+        <div style="font-weight: bold; font-size: 13px; color: #a0cfff; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+          <span>🎨 Console Colors & Keyword Highlighting</span>
+          <button id="closeConsoleSettingsBtn" style="padding: 2px 8px; font-size: 11px; background: transparent; border: 1px solid #2a3a5a; color: #7090c0; cursor: pointer;">✕ Close</button>
+        </div>
+
+        <!-- Color Settings -->
+        <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #1a2a4a;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <label for="consoleBgColorInput" style="margin: 0; font-size: 12px;">Background:</label>
+            <input type="color" id="consoleBgColorInput" value="#000000" style="width: 32px; height: 26px; padding: 0; border: 1px solid #2a3a5a; border-radius: 4px; cursor: pointer; background: transparent;">
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <label for="consoleTextColorInput" style="margin: 0; font-size: 12px;">Text Color:</label>
+            <input type="color" id="consoleTextColorInput" value="#2aee2a" style="width: 32px; height: 26px; padding: 0; border: 1px solid #2a3a5a; border-radius: 4px; cursor: pointer; background: transparent;">
+          </div>
+          <button id="resetConsoleColorsBtn" style="font-size: 11px; padding: 4px 10px; background: #1f2a3a; border: 1px solid #2a3a5a; color: #7a9ab0;">Revert Default Colors</button>
+        </div>
+
+        <!-- Keyword Rules Settings -->
+        <div>
+          <div style="font-size: 12px; font-weight: bold; color: #70a0d0; margin-bottom: 8px;">Add Custom Keyword Rule</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px;">
+            <input type="text" id="kwInput" placeholder="Keyword (e.g. ERROR)" style="flex: 1; min-width: 140px; padding: 5px 8px; background: #0f1f3a; color: #e0e0e0; border: 1px solid #2a3a5a; border-radius: 4px; font-size: 12px;">
+            
+            <div style="display: flex; align-items: center; gap: 4px;" title="Text Color">
+              <span style="font-size: 11px; color: #8a9ab0;">Text:</span>
+              <input type="color" id="kwTextColor" value="#ff5555" style="width: 28px; height: 24px; padding: 0; border: 1px solid #2a3a5a; border-radius: 4px; cursor: pointer; background: transparent;">
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 4px;" title="Background Highlight Color">
+              <span style="font-size: 11px; color: #8a9ab0;">Bg:</span>
+              <input type="color" id="kwBgColor" value="#3a0d0d" style="width: 28px; height: 24px; padding: 0; border: 1px solid #2a3a5a; border-radius: 4px; cursor: pointer; background: transparent;">
+            </div>
+
+            <label style="font-size: 11px; color: #a0b0c8; display: flex; align-items: center; gap: 3px; cursor: pointer; margin: 0;">
+              <input type="checkbox" id="kwMatchCase"> Match Case
+            </label>
+
+            <label style="font-size: 11px; color: #a0b0c8; display: flex; align-items: center; gap: 3px; cursor: pointer; margin: 0;">
+              <input type="checkbox" id="kwBold" checked> Bold
+            </label>
+
+            <button id="addKwRuleBtn" style="padding: 5px 12px; font-size: 12px; background: #1a5a3a; border: 1px solid #2a8a5a; color: #80ffb0;">+ Add Rule</button>
+          </div>
+
+          <!-- Quick Presets -->
+          <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 10px;">
+            <span style="font-size: 11px; color: #6a8aaa;">Quick Add:</span>
+            <button class="kw-preset-btn" data-kw="ERROR" data-fg="#ff5555" data-bg="#3a0d0d" style="font-size: 10px; padding: 2px 6px; background: #3a0d0d; color: #ff5555; border: 1px solid #ff5555; border-radius: 3px; cursor: pointer;">+ ERROR</button>
+            <button class="kw-preset-btn" data-kw="WARN" data-fg="#ffb86c" data-bg="#3a2d0d" style="font-size: 10px; padding: 2px 6px; background: #3a2d0d; color: #ffb86c; border: 1px solid #ffb86c; border-radius: 3px; cursor: pointer;">+ WARN</button>
+            <button class="kw-preset-btn" data-kw="SUCCESS" data-fg="#50fa7b" data-bg="#0d3a1a" style="font-size: 10px; padding: 2px 6px; background: #0d3a1a; color: #50fa7b; border: 1px solid #50fa7b; border-radius: 3px; cursor: pointer;">+ SUCCESS</button>
+            <button class="kw-preset-btn" data-kw="DEBUG" data-fg="#8be9fd" data-bg="#0d2d3a" style="font-size: 10px; padding: 2px 6px; background: #0d2d3a; color: #8be9fd; border: 1px solid #8be9fd; border-radius: 3px; cursor: pointer;">+ DEBUG</button>
+          </div>
+
+          <!-- Configured Rules List -->
+          <div style="font-size: 11px; color: #6a8aaa; margin-bottom: 6px;">Configured Highlight Rules:</div>
+          <div id="kwRulesList" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto; padding: 4px; background: #070d18; border: 1px solid #1a2a4a; border-radius: 6px;">
+            <!-- Dynamic keyword tags -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Command History -->
+      <div style="display:flex; align-items:center; margin-top: 18px; border-top: 1px solid #2a3a5a; padding-top: 12px;">
+        <div class="section-label" style="margin:0;">Command History</div>
+        <button id="clearHistoryBtn">Clear all</button>
+      </div>
+      <div id="historyList">
+        <span class="history-empty">No commands sent yet.</span>
+      </div>
+
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Script Builder</h2>
+      </div>
+      <div class="builder-split">
+        <div class="builder-pane" data-pane="script-uart" data-builder="uart">
+          <div class="builder-pane-title">📡 UART Script</div>
+        <div class="script-palette">
+          <button class="script-block palette-block command-palette" data-block-type="command" draggable="true">⛳ Command</button>
+          <button class="script-block palette-block delay-palette" data-block-type="delay" draggable="true">⏱ Delay</button>
+          <button class="script-block palette-block read-palette" data-block-type="read" draggable="true">📥 Read</button>
+          <button class="script-block palette-block parsestr-palette" data-block-type="parsestr" draggable="true">✂️ String</button>
+          <button class="script-block palette-block print-palette" data-block-type="print" draggable="true">🖨 Print</button>
+          <button class="script-block palette-block setvar-palette" data-block-type="setvar" draggable="true">📌 Set Var</button>
+          <button class="script-block palette-block waitfor-palette" data-block-type="waitfor" draggable="true">⏳ Wait For</button>
+          <button class="script-block palette-block math-palette" data-block-type="math" draggable="true">🧮 Math</button>
+          <button class="script-block palette-block plot-palette" data-block-type="plot" draggable="true">📈 Plot</button>
+          <button class="script-block palette-block condition-palette" data-block-type="condition" draggable="true">❓ If</button>
+          <button class="script-block palette-block repeat-palette" data-block-type="repeat" draggable="true">🔁 Loop</button>
+        </div>
+
+          <div class="script-canvas script-root-canvas" data-target="uart"></div>
+
+          <div class="builder-controls">
+            <div class="builder-buttons">
+              <button class="js-run">▶ Run Script</button>
+              <button class="js-stop" disabled>■ Stop</button>
+              <button class="js-export" title="Export script as JSON">📤 Export</button>
+              <button class="js-import" title="Import script from JSON">📥 Import</button>
+              <input type="file" class="js-import-file" accept=".json" style="display:none">
+            </div>
+          </div>
+          <div class="script-status js-status">Status: ready.</div>
+        </div>
+
+        <div class="builder-pane" data-pane="script-adb" data-builder="adb">
+          <div class="builder-pane-title">🤖 ADB Script</div>
+        <div class="script-palette">
+          <button class="script-block palette-block command-palette" data-block-type="command" draggable="true">⛳ Command</button>
+          <button class="script-block palette-block delay-palette" data-block-type="delay" draggable="true">⏱ Delay</button>
+          <button class="script-block palette-block read-palette" data-block-type="read" draggable="true">📥 Read</button>
+          <button class="script-block palette-block parsestr-palette" data-block-type="parsestr" draggable="true">✂️ String</button>
+          <button class="script-block palette-block print-palette" data-block-type="print" draggable="true">🖨 Print</button>
+          <button class="script-block palette-block setvar-palette" data-block-type="setvar" draggable="true">📌 Set Var</button>
+          <button class="script-block palette-block waitfor-palette" data-block-type="waitfor" draggable="true">⏳ Wait For</button>
+          <button class="script-block palette-block math-palette" data-block-type="math" draggable="true">🧮 Math</button>
+          <button class="script-block palette-block plot-palette" data-block-type="plot" draggable="true">📈 Plot</button>
+          <button class="script-block palette-block condition-palette" data-block-type="condition" draggable="true">❓ If</button>
+          <button class="script-block palette-block repeat-palette" data-block-type="repeat" draggable="true">🔁 Loop</button>
+        </div>
+
+          <div class="script-canvas script-root-canvas" data-target="adb"></div>
+
+          <div class="builder-controls">
+            <div class="builder-buttons">
+              <button class="js-run">▶ Run Script</button>
+              <button class="js-stop" disabled>■ Stop</button>
+              <button class="js-export" title="Export script as JSON">📤 Export</button>
+              <button class="js-import" title="Import script from JSON">📥 Import</button>
+              <input type="file" class="js-import-file" accept=".json" style="display:none">
+            </div>
+          </div>
+          <div class="script-status js-status">Status: ready.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Live Dashboard Panel -->
+    <div class="panel" id="dashboardPanel" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a3a5a; padding-bottom: 5px; margin-bottom: 10px;">
+        <h2 style="color: #f48fb1; border: none; padding: 0; margin: 0;">Live Dashboard</h2>
+        <div>
+          <button id="clearChartBtn" style="font-size: 11px; padding: 3px 10px; margin-right: 5px; background: #5a2a2a; color: #ff9b9b; border: 1px solid #ff9b9b;">🗑️ Clear</button>
+          <button id="exportCsvBtn" style="font-size: 11px; padding: 3px 10px;">📥 Export CSV</button>
+          <button id="closeDashboardBtn" style="font-size: 11px; padding: 3px 10px; margin-left: 5px; background: #2a1a2a; border: 1px solid #3a3a5a; color: #ff9b9b; border-radius: 4px; cursor: pointer;">✕</button>
+        </div>
+      </div>
+      <div style="height: 300px; width: 100%; position: relative;">
+        <canvas id="mainChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+  // ══════════════════════════════════════════════════════════════
+  // LIVE DASHBOARD (Chart.js)
+  // ══════════════════════════════════════════════════════════════
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  const liveChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: [], datasets: [] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 0 },
+      scales: {
+        x: { title: { display: true, text: 'Time', color: '#a0cfff' }, ticks: { color: '#6a8aaa' }, grid: { color: '#2a3a5a' } },
+        y: { title: { display: true, text: 'Value', color: '#f48fb1' }, ticks: { color: '#6a8aaa' }, grid: { color: '#2a3a5a' } }
+      },
+      plugins: { legend: { labels: { color: '#e0e0e0' } } }
+    }
+  });
+
+  const MAX_CHART_POINTS = 50;
+  function updateChart(dataPoints, yLabel) {
+    document.getElementById('dashboardPanel').style.display = 'block';
+    if (yLabel && liveChart.options.scales.y.title.text !== yLabel) {
+      liveChart.options.scales.y.title.text = yLabel;
+    }
+
+    const now = new Date();
+    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+    liveChart.data.labels.push(timeStr);
+
+    const updatedDatasets = new Set();
+    for (const pt of dataPoints) {
+      let dataset = liveChart.data.datasets.find(ds => ds.label === pt.name);
+      if (!dataset) {
+        const color = pt.color || `hsl(${Math.floor(Math.random() * 360)}, 80%, 60%)`;
+        dataset = { label: pt.name, data: new Array(Math.max(0, liveChart.data.labels.length - 1)).fill(null), borderColor: color, backgroundColor: color, borderWidth: 2, tension: 0.1, pointRadius: 3 };
+        liveChart.data.datasets.push(dataset);
+      } else if (pt.color) {
+        dataset.borderColor = pt.color;
+        dataset.backgroundColor = pt.color;
+      }
+      dataset.data.push(pt.value);
+      updatedDatasets.add(dataset);
+    }
+
+    for (let ds of liveChart.data.datasets) {
+      if (!updatedDatasets.has(ds)) {
+        ds.data.push(null);
+      }
+      while (ds.data.length > MAX_CHART_POINTS) ds.data.shift();
+    }
+    while (liveChart.data.labels.length > MAX_CHART_POINTS) liveChart.data.labels.shift();
+    liveChart.update();
+  }
+
+  document.getElementById('clearChartBtn').addEventListener('click', () => {
+    liveChart.data.labels = [];
+    liveChart.data.datasets.forEach(ds => ds.data = []);
+    liveChart.update();
+  });
+
+  document.getElementById('closeDashboardBtn').addEventListener('click', () => {
+    document.getElementById('dashboardPanel').style.display = 'none';
+  });
+
+  document.getElementById('exportCsvBtn').addEventListener('click', () => {
+    if (!liveChart.data.labels.length) return;
+    let csv = 'Time';
+    liveChart.data.datasets.forEach(ds => { csv += ',' + ds.label; });
+    csv += '\n';
+    
+    for (let i = 0; i < liveChart.data.labels.length; i++) {
+      csv += liveChart.data.labels[i];
+      liveChart.data.datasets.forEach(ds => {
+        const val = ds.data[i];
+        csv += ',' + (val !== null ? val : '');
+      });
+      csv += '\n';
+    }
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `LiveDashboard_${new Date().getTime()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // SHARED STATE
+  // ══════════════════════════════════════════════════════════════
+
+  let currentMode = 'serial'; // 'serial' | 'adb'
+  const ta = document.getElementById('uartOutput');    // UART console
+  const adbTa = document.getElementById('adbOutput');  // ADB console
+  const consoleState = new Map([[ta, { raw: '' }], [adbTa, { raw: '' }]]);
+  let lastFocusedConsole = 'serial'; // 'serial' | 'adb' — target for history clicks
+
+  // ── Console Customization & Highlighting State ──
+  const KEYWORD_RULES_KEY = 'console_keyword_rules';
+  const CONSOLE_BG_KEY = 'console_bg_color';
+  const CONSOLE_TEXT_KEY = 'console_text_color';
+
+  const DEFAULT_CONSOLE_BG = '#000000';
+  const DEFAULT_CONSOLE_TEXT = '#2aee2a';
+
+  let consoleBgColor = localStorage.getItem(CONSOLE_BG_KEY) || DEFAULT_CONSOLE_BG;
+  let consoleTextColor = localStorage.getItem(CONSOLE_TEXT_KEY) || DEFAULT_CONSOLE_TEXT;
+
+  let consoleKeywordRules = [];
+  try {
+    const saved = localStorage.getItem(KEYWORD_RULES_KEY);
+    if (saved) {
+      consoleKeywordRules = JSON.parse(saved);
+    } else {
+      consoleKeywordRules = [
+        { id: '1', keyword: 'ERROR', textColor: '#ff5555', bgColor: '#3a0d0d', matchCase: false, bold: true },
+        { id: '2', keyword: 'WARN', textColor: '#ffb86c', bgColor: '#3a2d0d', matchCase: false, bold: true },
+        { id: '3', keyword: 'SUCCESS', textColor: '#50fa7b', bgColor: '#0d3a1a', matchCase: false, bold: true }
+      ];
+      localStorage.setItem(KEYWORD_RULES_KEY, JSON.stringify(consoleKeywordRules));
+    }
+  } catch(e) {
+    consoleKeywordRules = [];
+  }
+
+  // Compatibility property definitions for ta element
+  for (const el of [ta, adbTa]) {
+    try {
+      Object.defineProperty(el, 'value', {
+        get() { return consoleState.get(el).raw; },
+        set(val) { setTerminalText(val, el); },
+        configurable: true
+      });
+      Object.defineProperty(el, 'placeholder', {
+        get() { return el.getAttribute('data-placeholder') || ''; },
+        set(val) { el.setAttribute('data-placeholder', val); },
+        configurable: true
+      });
+    } catch(e) {}
+  }
+
+  function applyConsoleColors() {
+    for (const el of [ta, adbTa]) {
+      el.style.backgroundColor = consoleBgColor;
+      el.style.color = consoleTextColor;
+      el.style.caretColor = consoleTextColor;
+    }
+    document.getElementById('consoleBgColorInput').value = consoleBgColor;
+    document.getElementById('consoleTextColorInput').value = consoleTextColor;
+  }
+
+  function renderKwRulesList() {
+    const list = document.getElementById('kwRulesList');
+    if (!consoleKeywordRules || consoleKeywordRules.length === 0) {
+      list.innerHTML = '<span style="font-size:11px; color:#4a6a8a; font-style:italic;">No highlight rules configured.</span>';
+      return;
+    }
+    list.innerHTML = consoleKeywordRules.map(rule => `
+      <div class="kw-rule-tag" style="display: inline-flex; align-items: center; gap: 6px; padding: 2px 7px; border-radius: 4px; background: #0d1929; border: 1px solid #2a3a5a; font-size: 11px;">
+        <span style="color: ${rule.textColor}; background-color: ${rule.bgColor || 'transparent'}; font-weight: ${rule.bold ? 'bold' : 'normal'}; padding: 1px 5px; border-radius: 3px; font-family: monospace;">${escapeHtml(rule.keyword)}</span>
+        <span style="font-size: 10px; color: #5a7a9a;">${rule.matchCase ? 'MatchCase' : 'IgnoreCase'}</span>
+        <span class="kw-del-btn" data-id="${rule.id}" style="color: #6a8aaa; cursor: pointer; font-weight: bold; line-height: 1; font-size: 13px;" title="Remove Rule">×</span>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.kw-del-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        consoleKeywordRules = consoleKeywordRules.filter(r => r.id !== id);
+        localStorage.setItem(KEYWORD_RULES_KEY, JSON.stringify(consoleKeywordRules));
+        renderKwRulesList();
+        renderConsole();
+      });
+    });
+  }
+
+  function renderConsole(el) {
+    if (!el) { renderConsole(ta); renderConsole(adbTa); return; }
+    const rawConsoleContent = consoleState.get(el).raw;
+    const savedScrollTop = el.scrollTop;
+    const scrolledToBottom = (savedScrollTop + el.clientHeight) >= (el.scrollHeight - 15);
+
+    if (!rawConsoleContent) {
+      el.classList.add('empty');
+      el.innerHTML = '';
+      return;
+    }
+
+    el.classList.remove('empty');
+    let html = escapeHtml(rawConsoleContent);
+
+    if (consoleKeywordRules && consoleKeywordRules.length > 0) {
+      const sortedRules = [...consoleKeywordRules].sort((a, b) => b.keyword.length - a.keyword.length);
+      const patterns = sortedRules.map(r => r.keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).map(escapeHtml);
+      const combinedRegex = new RegExp(`(${patterns.join('|')})`, 'gi');
+
+      html = html.replace(combinedRegex, (match) => {
+        const rule = sortedRules.find(r => 
+          r.matchCase ? escapeHtml(r.keyword) === match : escapeHtml(r.keyword).toLowerCase() === match.toLowerCase()
+        );
+        if (rule) {
+          const bgStyle = rule.bgColor ? `background-color:${rule.bgColor};` : '';
+          const boldStyle = rule.bold ? 'font-weight:bold;' : 'font-weight:normal;';
+          return `<span style="color:${rule.textColor};${bgStyle}${boldStyle}border-radius:2px;padding:0 2px;">${match}</span>`;
+        }
+        return match;
+      });
+    }
+
+    el.innerHTML = html;
+
+    if (scrolledToBottom) {
+      el.scrollTop = el.scrollHeight;
+    } else {
+      el.scrollTop = savedScrollTop;
+    }
+  }
+
+  function getBaseText(el = ta) {
+    return consoleState.get(el).raw;
+  }
+
+  function setTerminalText(text, el = ta) {
+    consoleState.get(el).raw = text;
+    renderConsole(el);
+  }
+
+  function appendOutput(text, el = ta) {
+    let val = consoleState.get(el).raw;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (c === '\x08' || c === '\x7f') { val = val.slice(0, -1); }
+      else if (c === '\x00') { continue; }
+      else { val += c; }
+    }
+    setTerminalText(val, el);
+  }
+
+  function appendAdbOutput(text) { appendOutput(text, adbTa); }
+
+  function startCursorBlink() {}
+  function stopCursorBlink() {}
+
+  // ── History helpers ──
+  const HISTORY_KEY = 'serial_cmd_history';
+  const MAX_HISTORY = 30;
+
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; }
+  }
+  function saveHistory(arr) { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); }
+  function addToHistory(cmd) {
+    let h = loadHistory();
+    h = h.filter(c => c !== cmd);
+    h.unshift(cmd);
+    if (h.length > MAX_HISTORY) h = h.slice(0, MAX_HISTORY);
+    saveHistory(h);
+    renderHistory();
+  }
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function renderHistory() {
+    const list = document.getElementById('historyList');
+    const h = loadHistory();
+    if (h.length === 0) {
+      list.innerHTML = '<span class="history-empty">No commands sent yet.</span>';
+      return;
+    }
+    list.innerHTML = h.map((cmd, i) => `
+      <div class="history-tag" data-index="${i}" draggable="true">
+        <span class="cmd-text" title="${escapeHtml(cmd)}">${escapeHtml(cmd)}</span>
+        <span class="del-btn" data-del="${i}" title="Remove">×</span>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.history-tag').forEach(tag => {
+      tag.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('del-btn')) return;
+        const idx = parseInt(tag.dataset.index);
+        const cmd = loadHistory()[idx];
+        if (lastFocusedConsole === 'serial') {
+          if (!isConnected || !writer) return;
+          if (inputBuffer.length > 0) { await sendRawData('\x08'.repeat(inputBuffer.length)); inputBuffer = ''; }
+          inputBuffer = cmd;
+          await sendRawData(inputBuffer);
+          ta.focus();
+        } else {
+          if (isAdbConnected && adbShellStream) {
+            if (adbInputBuffer.length > 0) {
+              await adbShellStream.send('\x15');
+              adbInputBuffer = '';
+            }
+            adbInputBuffer = cmd;
+            await adbShellStream.send(cmd);
+            adbTa.focus();
+          }
+        }
+      });
+
+      tag.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('block-type', 'command');
+        e.dataTransfer.effectAllowed = 'copy';
+      });
+    });
+
+    list.querySelectorAll('.del-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.del);
+        const h = loadHistory();
+        h.splice(idx, 1);
+        saveHistory(h);
+        renderHistory();
+      });
+    });
+  }
+
+  // ── Mode Tabs ──
+  document.querySelectorAll('.mode-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const mode = tab.dataset.mode;
+      if (mode === currentMode) return;
+      currentMode = mode;
+
+      document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+      document.querySelectorAll('.mode-panel').forEach(p => p.classList.toggle('active', p.id === (mode === 'serial' ? 'panelSerial' : 'panelAdb')));
+
+    });
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // SERIAL MODE
+  // ══════════════════════════════════════════════════════════════
+
+  let port, writer, reader;
+  let isConnected = false;
+  let inputBuffer = '';
+  let historyIndex = -1;
+  let tempInput = '';
+  let ansiBuffer = '';
+
+  const adbAnsiState = { buf: '' };
+  function stripAnsi(chunk, st) {
+    const pending = st ? st.buf : ansiBuffer;
+    if (st) st.buf = ''; else ansiBuffer = '';
+    const str = pending + chunk;
+    let result = '';
+    let i = 0;
+    while (i < str.length) {
+      if (str[i] === '\x1b') {
+        const rest = str.slice(i);
+        const csi = rest.match(/^\x1b\[[0-9;]*[a-zA-Z]/);
+        const osc = rest.match(/^\x1b\][^\x07\x1b]*(\x07|\x1b\\)/);
+        const match = csi || osc;
+        if (match) { i += match[0].length; continue; }
+        if (rest.length < 24) { if (st) st.buf = rest; else ansiBuffer = rest; break; }
+        else { i += 1; }
+      } else { result += str[i]; i += 1; }
+    }
+    return result;
+  }
+
+  function displayUartOutput(data) {
+    const cleanData = stripAnsi(data);
+    appendOutput(cleanData);
+  }
+
+  async function sendRawData(data) {
+    if (!writer || writer.locked) return;
+    try { await writer.write(new TextEncoder().encode(data)); }
+    catch (err) { console.error('Send error:', err); }
+  }
+
+  async function connectToSerialPort() {
+    try {
+      const baudRate = parseInt(document.getElementById('baudRateSelect').value, 10);
+      const dataBits = parseInt(document.getElementById('dataBitsSelect').value, 10);
+      const stopBits = parseInt(document.getElementById('stopBitsSelect').value, 10);
+      const parity   = document.getElementById('paritySelect').value;
+
+      port = await navigator.serial.requestPort({ filters: [] });
+      await port.open({ baudRate, dataBits, stopBits, parity });
+      writer = port.writable.getWriter();
+      ansiBuffer = '';
+
+      isConnected = true;
+      const btn = document.getElementById('connectButton');
+      btn.textContent = '✕ Disconnect';
+      btn.classList.add('disconnect');
+      document.getElementById('baudRateSelect').disabled = true;
+      document.getElementById('dataBitsSelect').disabled = true;
+      document.getElementById('stopBitsSelect').disabled = true;
+      document.getElementById('paritySelect').disabled   = true;
+      document.getElementById('xmodemUploadBtn').disabled = false;
+      document.getElementById('ymodemUploadBtn').disabled = false;
+      ta.placeholder = '⚡ Connected. Type directly in this window to send data to the serial port…';
+      ta.focus();
+
+      // Non-fatal Web Serial errors: the port stays open and a new readable
+      // stream is provided. Typical during device reboot (line glitch / break /
+      // bootloader at another baud). minicom ignores these, so do we.
+      const RECOVERABLE_SERIAL_ERRORS = ['BreakError', 'FramingError', 'ParityError', 'BufferOverrunError'];
+      const serialDecoder = new TextDecoder('utf-8');
+
+      while (port && port.readable && isConnected) {
+        reader = port.readable.getReader();
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            if (value) {
+              if (activeUploadProtocol) {
+                handleUploadRxBytes(value);
+              } else {
+                displayUartOutput(serialDecoder.decode(value, { stream: true }));
+              }
+            }
+          }
+        } catch (err) {
+          if (!RECOVERABLE_SERIAL_ERRORS.includes(err.name)) {
+            console.error('Serial read error:', err);
+            break; // fatal (e.g. adapter unplugged) → disconnect below
+          }
+          console.warn('Serial recoverable error, continuing:', err.name);
+        } finally {
+          if (reader) { try { reader.releaseLock(); } catch {} }
+          reader = null;
+        }
+      }
+      if (isConnected) await doDisconnect();
+    } catch (err) {
+      if (err.name !== 'NotFoundError' && err.name !== 'AbortError') console.error('Serial connect error:', err);
+      await doDisconnect();
+    }
+  }
+
+  async function doDisconnect() {
+    isConnected = false;
+    uploadCancelRequested = true;
+    finishSerialUpload();
+    const btn = document.getElementById('connectButton');
+    btn.textContent = '⚡ Connect';
+    btn.classList.remove('disconnect');
+    document.getElementById('baudRateSelect').disabled = false;
+    document.getElementById('dataBitsSelect').disabled = false;
+    document.getElementById('stopBitsSelect').disabled = false;
+    document.getElementById('paritySelect').disabled   = false;
+    document.getElementById('xmodemUploadBtn').disabled = true;
+    document.getElementById('ymodemUploadBtn').disabled = true;
+    ta.placeholder = '⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom).';
+    inputBuffer = '';
+    historyIndex = -1;
+    stopCursorBlink();
+    try { if (writer) { writer.releaseLock(); writer = null; } } catch {}
+    try { if (reader) { await reader.cancel(); reader = null; } } catch {}
+    try { if (port)   { await port.close();   port   = null; } } catch {}
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // ADB PROTOCOL IMPLEMENTATION (WebUSB)
+  // ══════════════════════════════════════════════════════════════
+
+  const A_CNXN = 0x4e584e43;  // MKID('C','N','X','N')
+  const A_AUTH = 0x48545541;  // MKID('A','U','T','H')  ← was wrong: 0x41555448
+  const A_OPEN = 0x4e45504f;  // MKID('O','P','E','N')
+  const A_OKAY = 0x59414b4f;  // MKID('O','K','A','Y')
+  const A_CLSE = 0x45534c43;  // MKID('C','L','S','E')
+  const A_WRTE = 0x45545257;  // MKID('W','R','T','E')
+
+  const ADB_AUTH_TOKEN       = 1;
+  const ADB_AUTH_SIGNATURE   = 2;
+  const ADB_AUTH_RSAPUBLICKEY = 3;
+
+  const A_VERSION  = 0x01000001;
+  const MAX_PAYLOAD = 256 * 1024;
+
+  const ADB_KEY_JWK  = 'adb_private_key_jwk';
+  const ADB_KEY_PUB  = 'adb_public_key_adb';
+
+  // ── RSA Key management ──
+  async function getOrCreateAdbKey() {
+    const stored = localStorage.getItem(ADB_KEY_JWK);
+    if (stored) {
+      try {
+        const jwk = JSON.parse(stored);
+        const publicKeyAdb = localStorage.getItem(ADB_KEY_PUB);
+        // Validate the JWK has the fields we need for manual signing
+        if (publicKeyAdb && jwk.d && jwk.n && jwk.p && jwk.q && jwk.dp && jwk.dq && jwk.qi) {
+          return { privateJwk: jwk, publicKeyAdb };
+        }
+      } catch(e) { /* fall through to regenerate */ }
+      localStorage.removeItem(ADB_KEY_JWK);
+      localStorage.removeItem(ADB_KEY_PUB);
+    }
+    appendAdbOutput('[ADB] Generating new RSA-2048 key pair…\n');
+    // Generate new 2048-bit RSA key pair
+    const kp = await crypto.subtle.generateKey(
+      { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048,
+        publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-1' },
+      true, ['sign', 'verify']
+    );
+    // Export private key as JWK (we need d,p,q,dp,dq,qi for manual signing)
+    const jwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
+    localStorage.setItem(ADB_KEY_JWK, JSON.stringify(jwk));
+
+    const spki = await crypto.subtle.exportKey('spki', kp.publicKey);
+    const publicKeyAdb = spkiToAdbPublicKey(new Uint8Array(spki));
+    localStorage.setItem(ADB_KEY_PUB, publicKeyAdb);
+    appendAdbOutput('[ADB] RSA key pair generated and saved.\n');
+
+    return { privateJwk: jwk, publicKeyAdb };
+  }
+
+  // ── Manual RSA PKCS#1 v1.5 signing ──
+  // ADB authentication: device sends 20 random bytes as "token".
+  // The host must treat those bytes as a raw SHA-1 digest and sign with PKCS#1 v1.5.
+  // WebCrypto's subtle.sign always re-hashes the input (double-SHA1 → wrong).
+  // So we implement the signing manually using BigInt.
+  function adbRsaSign(jwk, tokenBytes) {
+    function b64urlToBigInt(s) {
+      const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
+      const raw = atob(b64);
+      let n = 0n;
+      for (let i = 0; i < raw.length; i++) n = (n << 8n) | BigInt(raw.charCodeAt(i));
+      return n;
+    }
+    // Fast modular exponentiation (square-and-multiply)
+    function modPow(base, exp, mod) {
+      let result = 1n;
+      base = base % mod;
+      while (exp > 0n) {
+        if (exp & 1n) result = result * base % mod;
+        exp >>= 1n;
+        base = base * base % mod;
+      }
+      return result;
+    }
+
+    const p  = b64urlToBigInt(jwk.p);
+    const q  = b64urlToBigInt(jwk.q);
+    const dp = b64urlToBigInt(jwk.dp);
+    const dq = b64urlToBigInt(jwk.dq);
+    const qi = b64urlToBigInt(jwk.qi);
+    const n  = p * q;
+    const keyLen = 256; // 2048 / 8
+
+    // PKCS#1 v1.5 DigestInfo for SHA-1 (RFC 3447)
+    // SEQUENCE { SEQUENCE { OID 1.3.14.3.2.26 (sha1), NULL }, OCTET STRING [hash] }
+    const SHA1_DIGESTINFO_PREFIX = new Uint8Array([
+      0x30, 0x21, 0x30, 0x09,
+      0x06, 0x05, 0x2b, 0x0e, 0x03, 0x02, 0x1a,
+      0x05, 0x00,
+      0x04, 0x14
+    ]); // 15 bytes
+
+    // Build T = DigestInfo prefix (15 bytes) + token (20 bytes) = 35 bytes
+    const T = new Uint8Array(35);
+    T.set(SHA1_DIGESTINFO_PREFIX, 0);
+    T.set(tokenBytes, 15);
+
+    // Build EM = 0x00 || 0x01 || PS (0xFF padding) || 0x00 || T
+    // Total = keyLen = 256 bytes; PS length = 256 - 3 - 35 = 218 bytes
+    const EM = new Uint8Array(keyLen);
+    EM[0] = 0x00;
+    EM[1] = 0x01;
+    const psLen = keyLen - 3 - T.length; // 218
+    for (let i = 0; i < psLen; i++) EM[2 + i] = 0xFF;
+    EM[2 + psLen] = 0x00;
+    EM.set(T, 3 + psLen);
+
+    // Convert EM to BigInt (big-endian)
+    let m = 0n;
+    for (const b of EM) m = (m << 8n) | BigInt(b);
+
+    // RSA CRT private key operation
+    // mp = m^dp mod p,  mq = m^dq mod q
+    const mp = modPow(m % p, dp, p);
+    const mq = modPow(m % q, dq, q);
+    // CRT recombination: s = mq + q * ((qi * (mp - mq)) mod p)
+    let diff = mp - mq;
+    if (diff < 0n) diff += p;
+    const h = qi * diff % p;
+    const s = mq + q * h;
+
+    // Convert s to big-endian byte array (256 bytes)
+    const sig = new Uint8Array(keyLen);
+    let tmp = s;
+    for (let i = keyLen - 1; i >= 0; i--) {
+      sig[i] = Number(tmp & 0xFFn);
+      tmp >>= 8n;
+    }
+    return sig;
+  }
+
+  // Convert WebCrypto SPKI → ADB RSAPublicKey binary → base64 string
+  function spkiToAdbPublicKey(spkiBytes) {
+    const modulus = parseSpkiModulus(spkiBytes);
+    const adbKey  = buildAdbRsaPublicKey(modulus);
+    const b64 = btoa(String.fromCharCode(...adbKey));
+    return b64 + ' webserial@browser\n';
+  }
+
+  function parseSpkiModulus(bytes) {
+    let pos = 0;
+    function readLen() {
+      let len = bytes[pos++];
+      if (len & 0x80) {
+        const n = len & 0x7f; len = 0;
+        for (let i = 0; i < n; i++) len = (len << 8) | bytes[pos++];
+      }
+      return len;
+    }
+    // SEQUENCE (outer)
+    pos++; readLen();
+    // AlgorithmIdentifier SEQUENCE
+    pos++; pos += readLen();
+    // BIT STRING
+    pos++; readLen();
+    pos++; // unused bits = 0
+    // RSAPublicKey SEQUENCE
+    pos++; readLen();
+    // modulus INTEGER
+    pos++;
+    let modLen = readLen();
+    if (bytes[pos] === 0x00) { pos++; modLen--; }
+    return bytes.slice(pos, pos + modLen);
+  }
+
+  function buildAdbRsaPublicKey(modulusBytes) {
+    const W = 64; // 2048 / 32
+    let n = 0n;
+    for (const b of modulusBytes) n = (n << 8n) | BigInt(b);
+
+    // n0inv = -(n^-1) mod 2^32
+    const n0 = n & 0xFFFFFFFFn;
+    const inv = modInv(n0, 1n << 32n);
+    const n0inv = Number(((1n << 32n) - inv) & 0xFFFFFFFFn);
+
+    // rr = 2^(64*W) mod n
+    const rr = (1n << BigInt(64 * W)) % n;
+
+    // struct: len(4) + n0inv(4) + n[W*4] + rr[W*4] + exponent(4)
+    const out = new DataView(new ArrayBuffer(4 + 4 + W * 4 + W * 4 + 4));
+    let off = 0;
+    out.setInt32(off, W, true);     off += 4;
+    out.setUint32(off, n0inv, true); off += 4;
+
+    let tmp = n;
+    for (let i = 0; i < W; i++) {
+      out.setUint32(off, Number(tmp & 0xFFFFFFFFn), true); off += 4;
+      tmp >>= 32n;
+    }
+    tmp = rr;
+    for (let i = 0; i < W; i++) {
+      out.setUint32(off, Number(tmp & 0xFFFFFFFFn), true); off += 4;
+      tmp >>= 32n;
+    }
+    out.setInt32(off, 65537, true);
+    return new Uint8Array(out.buffer);
+  }
+
+  function modInv(a, m) {
+    let [r, nr] = [m, a], [s, ns] = [0n, 1n];
+    while (nr !== 0n) {
+      const q = r / nr;
+      [r, nr] = [nr, r - q * nr];
+      [s, ns] = [ns, s - q * ns];
+    }
+    return ((s % m) + m) % m;
+  }
+
+  // ── ADB USB Transport ──
+  class AdbUsb {
+    constructor(device, inEp, outEp, ifaceNumber) {
+      this.device = device;
+      this.inEp   = inEp;
+      this.outEp  = outEp;
+      this.ifaceNumber = ifaceNumber;
+      this._buf   = new Uint8Array(0);
+      this.closed = false;
+      this._writeQueue = Promise.resolve();
+    }
+
+    async _fillBuf(needed) {
+      while (!this.closed && this._buf.length < needed) {
+        let result;
+        try {
+          result = await this.device.transferIn(this.inEp.endpointNumber, 16384);
+        } catch(e) {
+          if (this.closed) return;
+          throw e;
+        }
+        if (result.status === 'stall') {
+          try { await this.device.clearHalt('in', this.inEp.endpointNumber); } catch {}
+          continue;
+        }
+        if (result.data && result.data.byteLength > 0) {
+          const chunk = new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength);
+          const next = new Uint8Array(this._buf.length + chunk.length);
+          next.set(this._buf); next.set(chunk, this._buf.length);
+          this._buf = next;
+        }
+      }
+    }
+
+    async _read(n) {
+      await this._fillBuf(n);
+      const r = this._buf.slice(0, n);
+      this._buf = this._buf.slice(n);
+      return r;
+    }
+
+    async readPacket() {
+      const hdr = await this._read(24);
+      const v = new DataView(hdr.buffer, hdr.byteOffset);
+      const cmd  = v.getUint32(0, true);
+      const arg0 = v.getUint32(4, true);
+      const arg1 = v.getUint32(8, true);
+      const dlen = v.getUint32(12, true);
+      // skip crc(16) and magic(20)
+      const data = dlen > 0 ? await this._read(dlen) : new Uint8Array(0);
+      return { cmd, arg0, arg1, data };
+    }
+
+    async sendPacket(cmd, arg0, arg1, data) {
+      const exec = async () => {
+        const dataBytes = typeof data === 'string'
+          ? new TextEncoder().encode(data)
+          : (data instanceof Uint8Array ? data : new Uint8Array(0));
+
+        let crc = 0;
+        for (const b of dataBytes) crc = (crc + b) >>> 0;
+
+        const hdr = new DataView(new ArrayBuffer(24));
+        hdr.setUint32(0,  cmd,                    true);
+        hdr.setUint32(4,  arg0,                   true);
+        hdr.setUint32(8,  arg1,                   true);
+        hdr.setUint32(12, dataBytes.length,        true);
+        hdr.setUint32(16, crc,                     true);
+        hdr.setUint32(20, (cmd ^ 0xFFFFFFFF) >>> 0, true);
+
+        // 重要：header (24 bytes) 與 payload 必須分成「兩次」USB transfer 送出。
+        // 舊版 adbd（多數 Android 9 以前、車機/電視盒/開發板）會先單獨讀 24 bytes header，
+        // 若 header+payload 合併在同一個 transfer，裝置端會 overflow 並丟掉整個封包
+        // → 永遠收不到 CNXN 回應 → 35 秒逾時。官方 adb.exe 也是分開送的。
+        const writeChunk = async (chunk) => {
+          let result = await this.device.transferOut(this.outEp.endpointNumber, chunk);
+          if (result.status === 'stall') {
+            try { await this.device.clearHalt('out', this.outEp.endpointNumber); } catch {}
+            result = await this.device.transferOut(this.outEp.endpointNumber, chunk);
+          }
+          if (result.status !== 'ok') {
+            throw new Error(`USB write failed (status=${result.status}).`);
+          }
+        };
+
+        if (this.closed) return;
+        await writeChunk(new Uint8Array(hdr.buffer));
+
+        const CHUNK = 16384;
+        for (let i = 0; i < dataBytes.length; i += CHUNK) {
+          if (this.closed) return;
+          await writeChunk(dataBytes.slice(i, i + CHUNK));
+        }
+      };
+
+      let res, rej;
+      const promise = new Promise((r, e) => { res = r; rej = e; });
+      this._writeQueue = this._writeQueue.then(async () => {
+        try { await exec(); res(); } catch(e) { rej(e); }
+      });
+      return promise;
+    }
+
+    close() {
+      if (this.closed) return;
+      this.closed = true;
+      // 釋放 USB 介面並關閉裝置，避免逾時/斷線後裝置仍被網頁佔住，
+      // 導致下一次連線失敗，或命令列 adb.exe 抓不到裝置。
+      (async () => {
+        try { await this.device.releaseInterface(this.ifaceNumber); } catch {}
+        try { await this.device.close(); } catch {}
+      })();
+    }
+  }
+
+  // ── ADB Client ──
+  class AdbClient {
+    constructor(transport, privateJwk, publicKeyAdb) {
+      this.transport    = transport;
+      this.privateJwk   = privateJwk;   // raw JWK for manual RSA signing
+      this.publicKeyAdb = publicKeyAdb;
+      this._localId = 1;
+      this.streams  = new Map();
+      this.connected = false;
+      this.deviceBanner = '';
+      this._readLoopActive = false;
+    }
+
+    async connect(onStatus) {
+      // Wrap entire connect sequence in a 35-second timeout
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          this.transport.close();
+          reject(new Error(
+            'ADB connection timeout (35s). The device did not respond.\n' +
+            'Possible causes:\n' +
+            '  1. adb.exe (adb server) is still running and holding the device.\n' +
+            '     → Run "adb kill-server", then unplug/replug and try again.\n' +
+            '  2. Authorization dialog not accepted on the device\n' +
+            '     (this browser uses a different key than adb.exe).\n' +
+            '  3. [Windows] The ADB interface needs WinUSB driver.\n' +
+            '     → Download Zadig (zadig.akeo.ie), select the ADB interface,\n' +
+            '       and replace the driver with WinUSB.\n' +
+            '  4. USB Debugging not enabled / screen locked.'
+          ));
+        }, 35000);
+
+        this._doConnect(onStatus)
+          .then(resolve)
+          .catch(reject)
+          .finally(() => clearTimeout(timer));
+      });
+    }
+
+    async _doConnect(onStatus) {
+      if (onStatus) onStatus('Connecting…');
+      await this.transport.sendPacket(A_CNXN, A_VERSION, MAX_PAYLOAD, 'host::\0');
+
+      let triedSig = false;
+
+      while (true) {
+        const pkt = await this.transport.readPacket();
+        if (this.transport.closed) throw new Error('Transport closed');
+
+        if (pkt.cmd === A_CNXN) {
+          this.deviceVersion    = pkt.arg0;
+          this.deviceMaxPayload = pkt.arg1;
+          this.deviceBanner = new TextDecoder('utf-8', { fatal: false }).decode(pkt.data);
+          this.connected = true;
+          this._startReadLoop();
+          return;
+        }
+
+        if (pkt.cmd === A_AUTH && pkt.arg0 === ADB_AUTH_TOKEN) {
+          if (!triedSig) {
+            triedSig = true;
+            appendAdbOutput('[ADB] Device responded (AUTH token received). Signing…\n');
+            if (onStatus) onStatus('Authenticating…');
+            // Use manual signing — WebCrypto would double-hash the token
+            const sig = adbRsaSign(this.privateJwk, pkt.data);
+            await this.transport.sendPacket(A_AUTH, ADB_AUTH_SIGNATURE, 0, sig);
+          } else {
+            // Signature not in device’s trusted list → ask user to authorize
+            if (onStatus) onStatus('⚠ Check your phone…');
+            appendAdbOutput(
+              '\n[ADB] ⚠ Please authorize on your phone:\n' +
+              '  1. Tap "Allow" in the USB debugging dialog\n' +
+              '  2. ✔ Check "Always allow from this computer"\n' +
+              '     (so you won\'t need to approve again next time)\n\n'
+            );
+            const pub = new TextEncoder().encode(this.publicKeyAdb);
+            await this.transport.sendPacket(A_AUTH, ADB_AUTH_RSAPUBLICKEY, 0, pub);
+            // Keep looping — CNXN arrives after user taps Allow
+          }
+        }
+      }
+    }
+
+    _startReadLoop() {
+      if (this._readLoopActive) return;
+      this._readLoopActive = true;
+      (async () => {
+        while (this.connected) {
+          try {
+            const pkt = await this.transport.readPacket();
+            this._dispatch(pkt);
+          } catch(e) {
+            if (this.connected) {
+              console.error('ADB read error:', e);
+              this.connected = false;
+              // Notify streams of closure
+              for (const [, st] of this.streams) {
+                if (st.onClose) st.onClose();
+              }
+              this.streams.clear();
+              if (onAdbDisconnect) onAdbDisconnect('Connection lost: ' + e.message);
+            }
+            break;
+          }
+        }
+        this._readLoopActive = false;
+      })();
+    }
+
+    _dispatch(pkt) {
+      const localId = pkt.arg1;
+      const st = this.streams.get(localId);
+      switch (pkt.cmd) {
+        case A_OKAY:
+          if (st) {
+            st.remoteId = pkt.arg0;
+            if (!st.ready) { st.ready = true; if (st.onReady) st.onReady(); }
+          }
+          break;
+        case A_WRTE:
+          if (st) {
+            const text = new TextDecoder('utf-8', { fatal: false }).decode(pkt.data);
+            if (st.onData) st.onData(text);
+            this.transport.sendPacket(A_OKAY, localId, pkt.arg0, null).catch(() => {});
+          }
+          break;
+        case A_CLSE:
+          if (st) {
+            if (st.onClose) st.onClose();
+            if (st.remoteId && this.connected) {
+              this.transport.sendPacket(A_CLSE, localId, st.remoteId, null).catch(() => {});
+            }
+            this.streams.delete(localId);
+          }
+          break;
+      }
+    }
+
+    async openStream(destination, onData, onClose) {
+      const localId = this._localId++;
+      return new Promise((resolve, reject) => {
+        const st = {
+          localId, remoteId: 0, ready: false,
+          onData, onClose,
+          onReady: () => resolve(st),
+          send: async (data) => {
+            if (!st.remoteId || !this.connected) return;
+            const bytes = typeof data === 'string'
+              ? new TextEncoder().encode(data)
+              : data;
+            await this.transport.sendPacket(A_WRTE, localId, st.remoteId, bytes);
+          },
+          close: async () => {
+            if (st.remoteId && this.connected) {
+              await this.transport.sendPacket(A_CLSE, localId, st.remoteId, null).catch(() => {});
+            }
+            this.streams.delete(localId);
+          }
+        };
+        this.streams.set(localId, st);
+        this.transport.sendPacket(A_OPEN, localId, 0, destination).catch(reject);
+
+        const t = setTimeout(() => {
+          if (!st.ready) { this.streams.delete(localId); reject(new Error('Stream open timed out')); }
+        }, 15000);
+        st._clearTimeout = () => clearTimeout(t);
+        const origReady = st.onReady;
+        st.onReady = () => { clearTimeout(t); origReady(); };
+      });
+    }
+
+    async runCommand(cmd, onData) {
+      return new Promise((resolve) => {
+        let out = '';
+        this.openStream(
+          `shell:${cmd}\0`,
+          (d) => { out += d; if (onData) onData(d); },
+          () => resolve(out)
+        ).catch(e => { if (onData) onData(`\n[Error: ${e.message}]\n`); resolve(''); });
+      });
+    }
+
+    disconnect() {
+      this.connected = false;
+      this.transport.close();
+      this.streams.clear();
+    }
+  }
+
+  // ── ADB UI State ──
+  let adbClient      = null;
+  let adbShellStream = null;
+  let isAdbConnected = false;
+
+  function onAdbDisconnect(reason) {
+    isAdbConnected = false;
+    adbShellStream = null;
+    adbClient = null;
+    updateAdbUI(false);
+    if (reason) appendAdbOutput(`\n[ADB] ${reason}\n`);
+  }
+
+  function setAdbStatus(text, state) {
+    const dot  = document.getElementById('adbStatusDot');
+    const span = document.getElementById('adbStatusText');
+    span.textContent = text;
+    dot.className = 'adb-status-dot' + (state === 'connected' ? ' connected' : state === 'waiting' ? ' waiting' : '');
+  }
+
+  function updateAdbUI(connected) {
+    const btn = document.getElementById('adbConnectButton');
+    const info    = document.getElementById('adbDeviceInfo');
+    document.querySelectorAll('.adb-quick-btn').forEach(b => b.disabled = !connected);
+    document.getElementById('adbPushBtn').disabled = !connected || !selectedAdbPushFile;
+
+    if (connected) {
+      btn.textContent = '✕ Disconnect ADB';
+      btn.classList.add('disconnect');
+      setAdbStatus('Connected', 'connected');
+    } else {
+      btn.textContent = '🤖 Connect ADB';
+      btn.classList.remove('disconnect');
+      setAdbStatus('Disconnected', '');
+      info.style.display = 'none';
+      info.textContent = '';
+      stopCursorBlink();
+    }
+  }
+
+  async function connectAdb() {
+    try {
+      setAdbStatus('Requesting device…', 'waiting');
+
+      const device = await navigator.usb.requestDevice({
+        filters: [{ classCode: 0xFF, subclassCode: 0x42, protocolCode: 0x01 }]
+      });
+
+      setAdbStatus('Opening device…', 'waiting');
+      await device.open();
+
+      if (device.configuration === null) {
+        await device.selectConfiguration(1);
+      }
+
+      // Find ADB interface (class=0xFF, subclass=0x42, proto=0x01)
+      let adbIface = null, inEp = null, outEp = null;
+      for (const iface of device.configuration.interfaces) {
+        for (const alt of iface.alternates) {
+          if (alt.interfaceClass === 0xFF && alt.interfaceSubclass === 0x42 && alt.interfaceProtocol === 0x01) {
+            adbIface = iface;
+            for (const ep of alt.endpoints) {
+              if (ep.type === 'bulk') {
+                if (ep.direction === 'in') inEp = ep;
+                else outEp = ep;
+              }
+            }
+            break;
+          }
+        }
+        if (adbIface) break;
+      }
+
+      if (!adbIface || !inEp || !outEp) {
+        await device.close();
+        throw new Error('No ADB interface found. Make sure USB Debugging is enabled on the device.');
+      }
+
+      await device.claimInterface(adbIface.interfaceNumber);
+
+      // Clear any previous endpoint stalls (DO NOT call selectAlternateInterface on Linux as it causes endpoint STALL)
+      try {
+        await device.clearHalt('in', inEp.endpointNumber);
+        await device.clearHalt('out', outEp.endpointNumber);
+      } catch(_) {}
+
+      const transport = new AdbUsb(device, inEp, outEp, adbIface.interfaceNumber);
+      const { privateJwk, publicKeyAdb } = await getOrCreateAdbKey();
+
+      adbClient = new AdbClient(transport, privateJwk, publicKeyAdb);
+
+      setAdbStatus('Connecting…', 'waiting');
+      appendAdbOutput('\n[ADB] Connecting…\n');
+
+      await adbClient.connect((msg) => {
+        setAdbStatus(msg, 'waiting');
+      });
+
+      isAdbConnected = true;
+      updateAdbUI(true);
+
+      // Parse device banner (e.g. "device::ro.product.name=xxx;...")
+      const banner = adbClient.deviceBanner;
+      const info = document.getElementById('adbDeviceInfo');
+      info.style.display = 'block';
+      const model = banner.match(/ro\.product\.model=([^;]+)/)?.[1]
+                 || banner.match(/ro\.product\.name=([^;]+)/)?.[1]
+                 || 'Android Device';
+      info.textContent = `📱 ${model}`;
+
+      appendAdbOutput(`[ADB] ✓ Connected: ${banner.split('\0')[0]}\n`);
+      appendAdbOutput('[ADB] Opening interactive shell… (type commands directly in the console below)\n');
+
+      // Open interactive shell
+      adbShellStream = await adbClient.openStream(
+        'shell:\0',
+        (data) => {
+          // Strip ANSI codes for clean display
+          const clean = stripAnsi(data, adbAnsiState);
+          appendAdbOutput(clean);
+        },
+        () => {
+          appendAdbOutput('\n[ADB] Shell closed.\n');
+          adbShellStream = null;
+          if (isAdbConnected) {
+            // Shell closed but still connected — try to reopen
+            openAdbShell();
+          }
+        }
+      );
+
+      adbTa.focus();
+
+    } catch(err) {
+      if (err.name === 'NotFoundError') {
+        setAdbStatus('Disconnected', '');
+        return;
+      }
+
+      // Detect Linux/Ubuntu USB transfer error
+      const isTransferErr = /transfer\s*error|transferout/i.test(err.message);
+      let msg = err.message;
+      if (isTransferErr) {
+        msg = 'USB Transfer Failed.\n\n' +
+              '[⚠ Linux/Ubuntu 解答說明]\n' +
+              '在 Linux 上若已執行 adb kill-server 仍出現傳輸錯誤，通常為 USB 裝置權限 (udev) 問題：\n\n' +
+              '方案 1 (快速測試):\n' +
+              '  在 Terminal 執行： sudo chmod 666 /dev/bus/usb/*/*\n\n' +
+              '方案 2 (永久生效 - 推薦):\n' +
+              '  1. 安裝 udev 規則： sudo apt install android-sdk-platform-tools-common\n' +
+              '  2. 或將當前使用者加入 plugdev 群組： sudo usermod -aG plugdev $USER\n' +
+              '  3. 重新插拔 USB 線。\n';
+        setAdbStatus('⚠ Linux: Check udev permissions', '');
+      } else {
+        setAdbStatus('Error — ' + err.message.slice(0, 28), '');
+      }
+
+      appendAdbOutput(`\n[ADB Error] ${msg}\n`);
+      updateAdbUI(false);
+      isAdbConnected = false;
+      if (adbClient) { adbClient.disconnect(); adbClient = null; }
+    }
+  }
+
+  async function openAdbShell() {
+    if (!adbClient || !adbClient.connected) return;
+    try {
+      adbShellStream = await adbClient.openStream(
+        'shell:\0',
+        (data) => appendAdbOutput(stripAnsi(data, adbAnsiState)),
+        () => {
+          appendAdbOutput('\n[ADB] Shell closed.\n');
+          adbShellStream = null;
+        }
+      );
+    } catch(e) {
+      appendAdbOutput(`\n[ADB] Could not open shell: ${e.message}\n`);
+    }
+  }
+
+  async function disconnectAdb() {
+    if (adbShellStream) {
+      await adbShellStream.close().catch(() => {});
+      adbShellStream = null;
+    }
+    if (adbClient) {
+      adbClient.disconnect();
+      adbClient = null;
+    }
+    isAdbConnected = false;
+    updateAdbUI(false);
+    appendAdbOutput('\n[ADB] Disconnected.\n');
+  }
+
+  // ── ADB: Run one-shot command (from command bar or quick buttons) ──
+  async function runAdbCommand(cmd) {
+    if (!adbClient || !adbClient.connected) return '';
+    addToHistory(cmd);
+    appendAdbOutput(`\n$ ${cmd}\n`);
+    const output = await adbClient.runCommand(cmd, (data) => appendAdbOutput(stripAnsi(data, adbAnsiState)));
+    return output.trim();
+  }
+
+  // ── ADB keyboard handler (interactive shell) ──
+  let adbInputBuffer = '';    // tracks what user is typing in interactive shell
+  let adbHistoryIndex = -1;
+  let adbTempInput = '';
+
+  async function handleAdbKeydown(e) {
+    if (!isAdbConnected || !adbShellStream) return;
+
+    // Allow Ctrl+C copy
+    if (e.ctrlKey && e.key.toLowerCase() === 'c' && window.getSelection().toString() !== '') return;
+    if (e.ctrlKey && e.key.toLowerCase() === 'v') return;
+
+    // Ctrl+letter → control code
+    if (e.ctrlKey && !e.altKey && !e.metaKey) {
+      const key = e.key.toLowerCase();
+      if (key >= 'a' && key <= 'z') {
+        e.preventDefault();
+        const code = key.charCodeAt(0) - 96;
+        // Ctrl+U clears line — reset our buffer too
+        if (key === 'u') { adbInputBuffer = ''; adbHistoryIndex = -1; }
+        // Ctrl+C clears line
+        if (key === 'c') { adbInputBuffer = ''; adbHistoryIndex = -1; }
+        await adbShellStream.send(new Uint8Array([code]));
+        return;
+      }
+    }
+
+    const h = loadHistory();
+
+    switch (e.key) {
+      case 'Enter':
+        e.preventDefault();
+        await adbShellStream.send('\r\n');
+        if (adbInputBuffer.trim()) addToHistory(adbInputBuffer);
+        adbInputBuffer = '';
+        adbHistoryIndex = -1;
+        break;
+
+      case 'Backspace':
+        e.preventDefault();
+        await adbShellStream.send('\x08');
+        if (adbInputBuffer.length > 0) adbInputBuffer = adbInputBuffer.slice(0, -1);
+        break;
+
+      case 'ArrowUp':
+        e.preventDefault();
+        if (h.length > 0) {
+          if (adbHistoryIndex === -1) adbTempInput = adbInputBuffer;
+          if (adbHistoryIndex < h.length - 1) {
+            adbHistoryIndex++;
+            const cmd = h[adbHistoryIndex];
+            // Clear current line with Ctrl+U, then send new command
+            if (adbInputBuffer.length > 0) await adbShellStream.send('\x15');
+            adbInputBuffer = cmd;
+            await adbShellStream.send(cmd);
+          }
+        }
+        break;
+
+      case 'ArrowDown':
+        e.preventDefault();
+        if (h.length > 0 && adbHistoryIndex >= 0) {
+          adbHistoryIndex--;
+          const cmd = adbHistoryIndex >= 0 ? h[adbHistoryIndex] : adbTempInput;
+          if (adbInputBuffer.length > 0) await adbShellStream.send('\x15');
+          adbInputBuffer = adbHistoryIndex >= 0 ? cmd : adbTempInput;
+          if (adbInputBuffer) await adbShellStream.send(adbInputBuffer);
+        }
+        break;
+
+      case 'Delete':     e.preventDefault(); await adbShellStream.send('\x1b[3~'); break;
+      case 'Tab':        e.preventDefault(); await adbShellStream.send('\x09'); break;
+      case 'Escape':     e.preventDefault(); await adbShellStream.send('\x1b'); break;
+      case 'ArrowRight': e.preventDefault(); await adbShellStream.send('\x1b[C'); break;
+      case 'ArrowLeft':  e.preventDefault(); await adbShellStream.send('\x1b[D'); break;
+      case 'Home':       e.preventDefault(); await adbShellStream.send('\x1b[H'); break;
+      case 'End':        e.preventDefault(); await adbShellStream.send('\x1b[F'); break;
+      case 'PageUp':     e.preventDefault(); await adbShellStream.send('\x1b[5~'); break;
+      case 'PageDown':   e.preventDefault(); await adbShellStream.send('\x1b[6~'); break;
+      default:
+        if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          e.preventDefault();
+          adbInputBuffer += e.key;
+          await adbShellStream.send(e.key);
+        }
+        break;
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // SHARED EVENT LISTENERS
+  // ══════════════════════════════════════════════════════════════
+
+  adbTa.addEventListener('keydown', handleAdbKeydown);
+
+  ta.addEventListener('keydown', async (e) => {
+    // ── Serial console ──
+    if (!isConnected || !writer) return;
+
+    if (e.ctrlKey && e.key.toLowerCase() === 'c' && window.getSelection().toString() !== '') return;
+    if (e.ctrlKey && e.key.toLowerCase() === 'v') return;
+
+    if (e.ctrlKey && !e.altKey && !e.metaKey) {
+      const key = e.key.toLowerCase();
+      if (key >= 'a' && key <= 'z') {
+        e.preventDefault();
+        const code = key.charCodeAt(0) - 96;
+        await sendRawData(String.fromCharCode(code));
+        return;
+      }
+    }
+
+    const h = loadHistory();
+    switch (e.key) {
+      case 'Enter':
+        e.preventDefault();
+        await sendRawData('\r\n');
+        if (inputBuffer.trim()) addToHistory(inputBuffer);
+        inputBuffer = ''; historyIndex = -1;
+        break;
+      case 'Backspace':
+        e.preventDefault();
+        if (inputBuffer.length > 0) { inputBuffer = inputBuffer.slice(0, -1); await sendRawData('\x08'); }
+        break;
+      case 'Delete':
+        e.preventDefault(); await sendRawData('\x1b[3~'); break;
+      case 'Tab':
+        e.preventDefault(); await sendRawData('\x09'); break;
+      case 'Escape':
+        e.preventDefault(); await sendRawData('\x1b'); break;
+      case 'ArrowUp':
+        e.preventDefault();
+        if (h.length > 0) {
+          if (historyIndex === -1) tempInput = inputBuffer;
+          if (historyIndex < h.length - 1) {
+            historyIndex++;
+            const cmd = h[historyIndex];
+            if (inputBuffer.length > 0) await sendRawData('\x08'.repeat(inputBuffer.length));
+            inputBuffer = cmd; await sendRawData(inputBuffer);
+          }
+        }
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        if (h.length > 0) {
+          if (historyIndex > 0) {
+            historyIndex--;
+            const cmd = h[historyIndex];
+            if (inputBuffer.length > 0) await sendRawData('\x08'.repeat(inputBuffer.length));
+            inputBuffer = cmd; await sendRawData(inputBuffer);
+          } else if (historyIndex === 0) {
+            historyIndex = -1;
+            if (inputBuffer.length > 0) await sendRawData('\x08'.repeat(inputBuffer.length));
+            inputBuffer = tempInput; await sendRawData(inputBuffer);
+          }
+        }
+        break;
+      case 'ArrowRight': e.preventDefault(); await sendRawData('\x1b[C'); break;
+      case 'ArrowLeft':  e.preventDefault(); await sendRawData('\x1b[D'); break;
+      case 'Home':       e.preventDefault(); await sendRawData('\x1b[H'); break;
+      case 'End':        e.preventDefault(); await sendRawData('\x1b[F'); break;
+      case 'PageUp':     e.preventDefault(); await sendRawData('\x1b[5~'); break;
+      case 'PageDown':   e.preventDefault(); await sendRawData('\x1b[6~'); break;
+      default:
+        if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+          e.preventDefault(); inputBuffer += e.key; await sendRawData(e.key);
+        }
+        break;
+    }
+  });
+
+  ta.addEventListener('paste', async (e) => {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    if (!text) return;
+    if (!isConnected || !writer) return;
+    inputBuffer += text;
+    await sendRawData(text);
+  });
+
+  adbTa.addEventListener('paste', async (e) => {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    if (text && isAdbConnected && adbShellStream) await adbShellStream.send(text);
+  });
+
+  adbTa.addEventListener('focus', () => { lastFocusedConsole = 'adb'; });
+
+  ta.addEventListener('focus', () => {
+    lastFocusedConsole = 'serial';
+    isFocused = true;
+    if (isConnected || isAdbConnected) startCursorBlink();
+  });
+
+  ta.addEventListener('blur', () => {
+    isFocused = false;
+    stopCursorBlink();
+  });
+
+  // ── Serial buttons ──
+  document.getElementById('connectButton').addEventListener('click', () => {
+    if (isConnected) doDisconnect(); else connectToSerialPort();
+  });
+
+  // ── ADB buttons ──
+  document.getElementById('adbConnectButton').addEventListener('click', () => {
+    if (isAdbConnected) disconnectAdb(); else connectAdb();
+  });
+
+  document.getElementById('adbResetKeyBtn').addEventListener('click', () => {
+    if (isAdbConnected) {
+      appendAdbOutput('[ADB] Please disconnect first before resetting the key.\n');
+      return;
+    }
+    localStorage.removeItem('adb_private_key_jwk');
+    localStorage.removeItem('adb_public_key_adb');
+    appendAdbOutput('[ADB] RSA key cleared. A new key will be generated on next connect.\n');
+    appendAdbOutput('[ADB] ⚠ You will need to re-authorize this computer on your Android device.\n');
+    setAdbStatus('Key reset — reconnect to re-authorize', '');
+  });
+
+  // ── ADB Quick Command buttons ──
+  document.querySelectorAll('.adb-quick-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cmd = btn.dataset.cmd;
+      if (cmd) runAdbCommand(cmd);
+    });
+  });
+
+  // ── Script Builder helpers ──
+  // Each builder (UART / ADB) has its own canvas, run state and status line.
+  const scriptBuilders = {};
+  document.querySelectorAll('[data-builder]').forEach(pane => {
+    const target = pane.dataset.builder; // 'uart' | 'adb'
+    scriptBuilders[target] = {
+      target,
+      pane,
+      canvas: pane.querySelector('.script-root-canvas'),
+      runBtn: pane.querySelector('.js-run'),
+      stopBtn: pane.querySelector('.js-stop'),
+      statusEl: pane.querySelector('.js-status'),
+      consoleEl: target === 'adb' ? adbTa : ta,
+      stopRequested: false
+    };
+  });
+  let draggedScriptBlock = null;
+  let lastMousedownTarget = null;
+  document.addEventListener('mousedown', (e) => { lastMousedownTarget = e.target; });
+
+  function setScriptStatus(ctx, message) {
+    ctx.statusEl.textContent = `Status: ${message}`;
+  }
+
+  function createScriptBlock(type, value = '') {
+    const block = document.createElement('div');
+    block.className = 'script-block-item';
+    block.draggable = true;
+    block.dataset.type = type;
+
+    const header = document.createElement('div');
+    header.className = 'script-block-header';
+    
+    const dragHandle = document.createElement('div');
+    dragHandle.className = 'drag-handle';
+    dragHandle.innerHTML = '⠿';
+    dragHandle.title = 'Drag to move';
+    dragHandle.style.cssText = 'cursor:grab;color:#6a8aaa;padding:0 6px 0 0;font-size:14px;user-select:none;display:flex;align-items:center;';
+
+    const title = document.createElement('div');
+    title.className = 'block-title';
+    title.style.flex = '1';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = '✕';
+    removeBtn.style.cssText = 'font-size:12px;padding:2px 6px;background:#2a1a2a;border:1px solid #3a3a5a;color:#ff9b9b;border-radius:4px;cursor:pointer;';
+    removeBtn.addEventListener('click', () => { const root = block.closest('.script-root-canvas'); block.remove(); if (root) showEmptyCanvasHint(root); });
+
+    header.appendChild(dragHandle);
+    header.appendChild(title);
+    header.appendChild(removeBtn);
+    block.appendChild(header);
+
+    const controls = document.createElement('div');
+    controls.className = 'script-block-controls';
+
+    if (type === 'command') {
+      block.classList.add('script-block-command');
+      title.textContent = 'Command';
+      const textarea = document.createElement('textarea');
+      textarea.placeholder = 'adb/serial command...';
+      textarea.value = value;
+      controls.appendChild(textarea);
+    } else if (type === 'delay') {
+      block.classList.add('script-block-delay');
+      title.textContent = 'Delay';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = '1000us / 1.5ms / 0.100s';
+      input.value = value || '0.100s';
+      input.title = 'Delay value with units (us/ms/s)';
+      controls.appendChild(input);
+    } else if (type === 'read') {
+      title.textContent = 'Read';
+      block.classList.add('script-block-read');
+
+      const varInput = document.createElement('input');
+      varInput.type = 'text';
+      varInput.className = 'read-variable';
+      varInput.placeholder = 'variable name (optional)';
+      varInput.title = 'Variable name to store read data';
+      controls.appendChild(varInput);
+
+      const textarea = document.createElement('textarea');
+      textarea.className = 'read-command';
+      textarea.placeholder = 'command to send before reading...';
+      textarea.value = value;
+      controls.appendChild(textarea);
+
+      const parseModeLabel = document.createElement('label');
+      parseModeLabel.textContent = 'Extract Mode:';
+      parseModeLabel.style.cssText = 'font-size:12px;margin-top:4px;';
+      controls.appendChild(parseModeLabel);
+
+      const parseModeSelect = document.createElement('select');
+      parseModeSelect.className = 'read-parsemode';
+      [
+        ['all', 'Full Output (No Extraction)'],
+        ['column', 'Column Index (Split Delimiter)'],
+        ['header', 'Header Match (Column by Header)'],
+        ['regex', 'Regex (Pattern Capture)'],
+        ['between', 'Between Substrings'],
+        ['keyword', 'Keyword Search']
+      ].forEach(([val, label]) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        parseModeSelect.appendChild(opt);
+      });
+      controls.appendChild(parseModeSelect);
+
+      const lineInput = document.createElement('input');
+      lineInput.type = 'text';
+      lineInput.className = 'read-line';
+      lineInput.placeholder = 'line # (e.g. last, 1, 2)';
+      lineInput.value = 'last';
+      lineInput.title = 'Target line number: "last" or "-1" for last line, "1" for 1st line, "2" for 2nd line, etc.';
+      lineInput.style.maxWidth = '150px';
+      controls.appendChild(lineInput);
+
+      const colInput = document.createElement('input');
+      colInput.type = 'text';
+      colInput.className = 'read-column';
+      colInput.placeholder = 'col # (e.g. 5 or last)';
+      colInput.value = '5';
+      colInput.title = '1-based column number (e.g. 5 for dial_d, or "last" / "-1")';
+      colInput.style.maxWidth = '150px';
+      controls.appendChild(colInput);
+
+      const delimSelect = document.createElement('select');
+      delimSelect.className = 'read-delimiter';
+      [
+        ['whitespace', 'Whitespace (Space/Tab)'],
+        ['comma', 'Comma (,)'],
+        ['tab', 'Tab (\\t)'],
+        ['newline', 'Newline (\\n)'],
+        ['semicolon', 'Semicolon (;)']
+      ].forEach(([val, label]) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        delimSelect.appendChild(opt);
+      });
+      delimSelect.style.maxWidth = '160px';
+      controls.appendChild(delimSelect);
+
+      const headerInput = document.createElement('input');
+      headerInput.type = 'text';
+      headerInput.className = 'read-header';
+      headerInput.placeholder = 'header name (e.g. dial_d)';
+      controls.appendChild(headerInput);
+
+      const regexInput = document.createElement('input');
+      regexInput.type = 'text';
+      regexInput.className = 'read-regex';
+      regexInput.placeholder = 'regex e.g. ([-\\d\\.]+)\\s*$';
+      controls.appendChild(regexInput);
+
+      const startInput = document.createElement('input');
+      startInput.type = 'text';
+      startInput.className = 'read-start';
+      startInput.placeholder = 'start prefix';
+      controls.appendChild(startInput);
+
+      const endInput = document.createElement('input');
+      endInput.type = 'text';
+      endInput.className = 'read-end';
+      endInput.placeholder = 'end suffix';
+      controls.appendChild(endInput);
+
+      const keywordInput = document.createElement('input');
+      keywordInput.type = 'text';
+      keywordInput.className = 'read-keyword';
+      keywordInput.placeholder = 'keyword (optional)';
+      controls.appendChild(keywordInput);
+
+      const positionSelect = document.createElement('select');
+      positionSelect.className = 'read-position';
+      ['before', 'after'].forEach(val => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val;
+        positionSelect.appendChild(opt);
+      });
+      positionSelect.style.maxWidth = '100px';
+      controls.appendChild(positionSelect);
+
+      const lengthInput = document.createElement('input');
+      lengthInput.type = 'number';
+      lengthInput.className = 'read-length';
+      lengthInput.placeholder = 'length';
+      lengthInput.min = '1';
+      lengthInput.style.maxWidth = '80px';
+      controls.appendChild(lengthInput);
+
+      const updateVisibility = () => {
+        const mode = parseModeSelect.value;
+        lineInput.style.display = (mode === 'column') ? '' : 'none';
+        colInput.style.display = (mode === 'column') ? '' : 'none';
+        delimSelect.style.display = (mode === 'column') ? '' : 'none';
+        headerInput.style.display = (mode === 'header') ? '' : 'none';
+        regexInput.style.display = (mode === 'regex') ? '' : 'none';
+        startInput.style.display = (mode === 'between') ? '' : 'none';
+        endInput.style.display = (mode === 'between') ? '' : 'none';
+        
+        const isKw = (mode === 'keyword');
+        keywordInput.style.display = isKw ? '' : 'none';
+        positionSelect.style.display = isKw ? '' : 'none';
+        lengthInput.style.display = isKw ? '' : 'none';
+      };
+      parseModeSelect.addEventListener('change', updateVisibility);
+      keywordInput.addEventListener('input', () => {
+        if (keywordInput.value.trim() && parseModeSelect.value === 'all') {
+          parseModeSelect.value = 'keyword';
+          updateVisibility();
+        }
+      });
+      setTimeout(updateVisibility, 0);
+
+      // Data type selector: treat read value as text or number (hex/dec)
+      const dataTypeLabel = document.createElement('label');
+      dataTypeLabel.textContent = 'Data Type:';
+      dataTypeLabel.style.fontSize = '12px';
+      dataTypeLabel.style.marginTop = '4px';
+      controls.appendChild(dataTypeLabel);
+
+      const dataTypeSelect = document.createElement('select');
+      dataTypeSelect.className = 'read-datatype';
+      [['text', 'Text (String)'], ['hex', 'Number - Hex'], ['dec', 'Number - Dec']].forEach(([val, label]) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        dataTypeSelect.appendChild(opt);
+      });
+      controls.appendChild(dataTypeSelect);
+
+      const debugLabel = document.createElement('div');
+      debugLabel.className = 'read-value';
+      debugLabel.style.fontSize = '12px';
+      debugLabel.style.color = '#a8d4ff';
+      controls.appendChild(debugLabel);
+    } else if (type === 'parsestr') {
+      title.textContent = '✂️ Parse String';
+      block.classList.add('script-block-parsestr');
+
+      const inputVal = document.createElement('input');
+      inputVal.type = 'text';
+      inputVal.className = 'parsestr-input';
+      inputVal.placeholder = 'source string / ${var} (blank = last read)';
+      inputVal.title = 'Input variable (e.g. ${raw_data}) or text to parse. If left blank, uses last read data.';
+      controls.appendChild(inputVal);
+
+      const targetVal = document.createElement('input');
+      targetVal.type = 'text';
+      targetVal.className = 'parsestr-target';
+      targetVal.placeholder = 'save to variable (e.g. dial_d)';
+      targetVal.title = 'Variable name to store extracted value';
+      controls.appendChild(targetVal);
+
+      const modeLabel = document.createElement('label');
+      modeLabel.textContent = 'Extract Mode:';
+      modeLabel.style.cssText = 'font-size:12px;margin-top:4px;';
+      controls.appendChild(modeLabel);
+
+      const modeSelect = document.createElement('select');
+      modeSelect.className = 'parsestr-mode';
+      [
+        ['column', 'Column Index (Split Delimiter)'],
+        ['header', 'Header Match (Column by Header)'],
+        ['regex', 'Regex (Pattern Capture)'],
+        ['between', 'Between Substrings'],
+        ['keyword', 'Keyword Search']
+      ].forEach(([val, label]) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        modeSelect.appendChild(opt);
+      });
+      controls.appendChild(modeSelect);
+
+      const lineInput = document.createElement('input');
+      lineInput.type = 'text';
+      lineInput.className = 'parsestr-line';
+      lineInput.placeholder = 'line # (e.g. last, 1, 2)';
+      lineInput.value = 'last';
+      lineInput.title = 'Target line number: "last" or "-1" for last line, "1" for 1st line, "2" for 2nd line, etc.';
+      lineInput.style.maxWidth = '150px';
+      controls.appendChild(lineInput);
+
+      const colInput = document.createElement('input');
+      colInput.type = 'text';
+      colInput.className = 'parsestr-column';
+      colInput.placeholder = 'col # (e.g. 5 or last)';
+      colInput.value = '5';
+      colInput.title = '1-based column number (e.g. 5 for dial_d, or "last" / "-1")';
+      colInput.style.maxWidth = '150px';
+      controls.appendChild(colInput);
+
+      const delimSelect = document.createElement('select');
+      delimSelect.className = 'parsestr-delimiter';
+      [
+        ['whitespace', 'Whitespace (Space/Tab)'],
+        ['comma', 'Comma (,)'],
+        ['tab', 'Tab (\\t)'],
+        ['newline', 'Newline (\\n)'],
+        ['semicolon', 'Semicolon (;)']
+      ].forEach(([val, label]) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        delimSelect.appendChild(opt);
+      });
+      delimSelect.style.maxWidth = '160px';
+      controls.appendChild(delimSelect);
+
+      const headerInput = document.createElement('input');
+      headerInput.type = 'text';
+      headerInput.className = 'parsestr-header';
+      headerInput.placeholder = 'header name (e.g. dial_d)';
+      headerInput.title = 'Column header text in table header row (e.g. dial_d)';
+      controls.appendChild(headerInput);
+
+      const regexInput = document.createElement('input');
+      regexInput.type = 'text';
+      regexInput.className = 'parsestr-regex';
+      regexInput.placeholder = 'regex pattern e.g. ([-\\d\\.]+)\\s*$';
+      regexInput.title = 'Regex pattern with capture group ()';
+      controls.appendChild(regexInput);
+
+      const startInput = document.createElement('input');
+      startInput.type = 'text';
+      startInput.className = 'parsestr-start';
+      startInput.placeholder = 'start prefix string';
+      controls.appendChild(startInput);
+
+      const endInput = document.createElement('input');
+      endInput.type = 'text';
+      endInput.className = 'parsestr-end';
+      endInput.placeholder = 'end suffix string';
+      controls.appendChild(endInput);
+
+      const keywordInput = document.createElement('input');
+      keywordInput.type = 'text';
+      keywordInput.className = 'parsestr-keyword';
+      keywordInput.placeholder = 'keyword';
+      controls.appendChild(keywordInput);
+
+      const positionSelect = document.createElement('select');
+      positionSelect.className = 'parsestr-position';
+      ['after', 'before'].forEach(val => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val;
+        positionSelect.appendChild(opt);
+      });
+      positionSelect.style.maxWidth = '90px';
+      controls.appendChild(positionSelect);
+
+      const lengthInput = document.createElement('input');
+      lengthInput.type = 'number';
+      lengthInput.className = 'parsestr-length';
+      lengthInput.placeholder = 'length';
+      lengthInput.value = '10';
+      lengthInput.style.maxWidth = '80px';
+      controls.appendChild(lengthInput);
+
+      const updateModeVisibility = () => {
+        const mode = modeSelect.value;
+        lineInput.style.display = (mode === 'column') ? '' : 'none';
+        colInput.style.display = (mode === 'column') ? '' : 'none';
+        delimSelect.style.display = (mode === 'column') ? '' : 'none';
+        headerInput.style.display = (mode === 'header') ? '' : 'none';
+        regexInput.style.display = (mode === 'regex') ? '' : 'none';
+        startInput.style.display = (mode === 'between') ? '' : 'none';
+        endInput.style.display = (mode === 'between') ? '' : 'none';
+        keywordInput.style.display = (mode === 'keyword') ? '' : 'none';
+        positionSelect.style.display = (mode === 'keyword') ? '' : 'none';
+        lengthInput.style.display = (mode === 'keyword') ? '' : 'none';
+      };
+      modeSelect.addEventListener('change', updateModeVisibility);
+      setTimeout(updateModeVisibility, 0);
+
+      const dataTypeLabel = document.createElement('label');
+      dataTypeLabel.textContent = 'Data Type:';
+      dataTypeLabel.style.cssText = 'font-size:12px;margin-top:4px;';
+      controls.appendChild(dataTypeLabel);
+
+      const dataTypeSelect = document.createElement('select');
+      dataTypeSelect.className = 'parsestr-datatype';
+      [['text', 'Text (String)'], ['dec', 'Number - Dec'], ['hex', 'Number - Hex']].forEach(([val, label]) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        dataTypeSelect.appendChild(opt);
+      });
+      controls.appendChild(dataTypeSelect);
+
+      const debugLabel = document.createElement('div');
+      debugLabel.className = 'parsestr-value';
+      debugLabel.style.cssText = 'font-size:12px;color:#80e5ff;margin-top:4px;';
+      controls.appendChild(debugLabel);
+    } else if (type === 'print') {
+      title.textContent = 'Print';
+      block.classList.add('script-block-print');
+
+      const templateInput = document.createElement('textarea');
+      templateInput.className = 'print-template';
+      templateInput.placeholder = 'Mix text and variables: e.g. Result is ${myVar} done';
+      templateInput.title = 'Use ${variableName} to embed variables in text';
+      controls.appendChild(templateInput);
+
+      const hint = document.createElement('div');
+      hint.style.cssText = 'font-size:11px;color:#8a6abf;margin-top:2px;';
+      hint.textContent = 'Tip: use ${varName} to insert variables';
+      controls.appendChild(hint);
+    } else if (type === 'setvar') {
+      title.textContent = 'Set Variable';
+      block.classList.add('script-block-setvar');
+
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.className = 'setvar-name';
+      nameInput.placeholder = 'variable name';
+      nameInput.title = 'Name of the variable to set';
+      nameInput.style.maxWidth = '150px';
+      controls.appendChild(nameInput);
+
+      const valueInput = document.createElement('input');
+      valueInput.type = 'text';
+      valueInput.className = 'setvar-value';
+      valueInput.placeholder = 'value (supports ${otherVar})';
+      valueInput.title = 'Value to assign. Use ${varName} to reference other variables.';
+      controls.appendChild(valueInput);
+    } else if (type === 'waitfor') {
+      title.textContent = 'Wait For';
+      block.classList.add('script-block-waitfor');
+
+      const keywordInput = document.createElement('input');
+      keywordInput.type = 'text';
+      keywordInput.className = 'waitfor-keyword';
+      keywordInput.placeholder = 'keyword to wait for';
+      keywordInput.title = 'String to watch for in the output';
+      controls.appendChild(keywordInput);
+
+      const timeoutInput = document.createElement('input');
+      timeoutInput.type = 'number';
+      timeoutInput.className = 'waitfor-timeout';
+      timeoutInput.placeholder = 'timeout (ms)';
+      timeoutInput.title = 'Maximum time to wait in milliseconds (0 = no timeout)';
+      timeoutInput.min = '0';
+      timeoutInput.value = '5000';
+      timeoutInput.style.maxWidth = '120px';
+      controls.appendChild(timeoutInput);
+
+      const debugLabel = document.createElement('div');
+      debugLabel.className = 'waitfor-result';
+      debugLabel.style.cssText = 'font-size:11px;color:#ffee58;min-height:16px;';
+      controls.appendChild(debugLabel);
+    } else if (type === 'math') {
+      title.textContent = 'Math';
+      block.classList.add('script-block-math');
+
+      const resultInput = document.createElement('input');
+      resultInput.type = 'text';
+      resultInput.className = 'math-result';
+      resultInput.placeholder = 'result variable';
+      resultInput.title = 'Variable to store the result';
+      resultInput.style.maxWidth = '130px';
+      controls.appendChild(resultInput);
+
+      const eqSign = document.createElement('span');
+      eqSign.textContent = ' = ';
+      eqSign.style.cssText = 'color:#ef5350;font-weight:bold;font-size:14px;';
+      controls.appendChild(eqSign);
+
+      const leftInput = document.createElement('input');
+      leftInput.type = 'text';
+      leftInput.className = 'math-left';
+      leftInput.placeholder = 'left (number or ${var})';
+      leftInput.title = 'Left operand: number or ${varName}';
+      controls.appendChild(leftInput);
+
+      const opSelect = document.createElement('select');
+      opSelect.className = 'math-operator';
+      [['+', '+'], ['-', '-'], ['*', '×'], ['/', '÷'], ['%', '%']].forEach(([val, label]) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        opSelect.appendChild(opt);
+      });
+      opSelect.style.maxWidth = '60px';
+      controls.appendChild(opSelect);
+
+      const rightInput = document.createElement('input');
+      rightInput.type = 'text';
+      rightInput.className = 'math-right';
+      rightInput.placeholder = 'right (number or ${var})';
+      rightInput.title = 'Right operand: number or ${varName}';
+      controls.appendChild(rightInput);
+
+      const debugLabel = document.createElement('div');
+      debugLabel.className = 'math-debug';
+      debugLabel.style.cssText = 'font-size:11px;color:#ef9a9a;min-height:16px;';
+      controls.appendChild(debugLabel);
+    } else if (type === 'plot') {
+      title.textContent = 'Plot Sender';
+      block.classList.add('script-block-plot');
+
+      const varsContainer = document.createElement('div');
+      varsContainer.className = 'plot-vars-container';
+      controls.appendChild(varsContainer);
+
+      const addVarRow = (variable = '', name = 'Data', color = '#ff3366') => {
+        const row = document.createElement('div');
+        row.className = 'plot-var-row';
+        row.style.cssText = 'display:flex; gap:4px; margin-bottom:4px; align-items:center;';
+        
+        const varInput = document.createElement('input');
+        varInput.type = 'text';
+        varInput.className = 'plot-variable';
+        varInput.placeholder = 'var (e.g. val)';
+        varInput.value = variable;
+        varInput.style.flex = '1';
+        
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.className = 'plot-name';
+        nameInput.placeholder = 'Name';
+        nameInput.value = name;
+        nameInput.style.flex = '1';
+
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.className = 'plot-color';
+        colorInput.value = color;
+        colorInput.style.width = '30px';
+        colorInput.style.padding = '0';
+        colorInput.style.border = 'none';
+        
+        const rmBtn = document.createElement('button');
+        rmBtn.textContent = '✕';
+        rmBtn.style.cssText = 'font-size:10px; padding:2px 4px; background:#4a2a2a; border:none; color:#ff9b9b; cursor:pointer;';
+        rmBtn.onclick = () => row.remove();
+
+        row.appendChild(varInput);
+        row.appendChild(nameInput);
+        row.appendChild(colorInput);
+        row.appendChild(rmBtn);
+        varsContainer.appendChild(row);
+      };
+
+      block.addVarRow = addVarRow;
+      addVarRow();
+
+      const addVarBtn = document.createElement('button');
+      addVarBtn.textContent = '+ Add Variable';
+      addVarBtn.style.cssText = 'font-size:11px; margin-bottom:6px; padding:2px 6px;';
+      addVarBtn.onclick = () => addVarRow();
+      controls.appendChild(addVarBtn);
+
+      const labelInput = document.createElement('input');
+      labelInput.type = 'text';
+      labelInput.className = 'plot-label';
+      labelInput.placeholder = 'Y-Axis Label';
+      labelInput.title = 'Label for the Y-Axis (e.g. °C)';
+      labelInput.style.maxWidth = '100px';
+      controls.appendChild(labelInput);
+    } else if (type === 'condition') {
+      title.textContent = 'IF';
+      block.classList.add('script-block-condition');
+
+      // Compare mode selector
+      const modeLabel = document.createElement('label');
+      modeLabel.textContent = 'Compare Mode:';
+      modeLabel.style.fontSize = '12px';
+      controls.appendChild(modeLabel);
+
+      const modeSelect = document.createElement('select');
+      modeSelect.className = 'condition-mode';
+      [['text-exact', 'Text Exact Match'], ['text-contains', 'Text Contains'], ['hex', 'Number - Hex'], ['dec', 'Number - Dec']].forEach(([val, label]) => {
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        modeSelect.appendChild(opt);
+      });
+      controls.appendChild(modeSelect);
+
+      const varInput = document.createElement('input');
+      varInput.type = 'text';
+      varInput.className = 'condition-variable';
+      varInput.placeholder = 'variable name';
+      varInput.title = 'Variable to compare';
+      varInput.style.maxWidth = '120px';
+      controls.appendChild(varInput);
+
+      const opSelect = document.createElement('select');
+      opSelect.className = 'condition-operator';
+      const updateOperators = () => {
+        const mode = modeSelect.value;
+        opSelect.innerHTML = '';
+        let ops;
+        if (mode === 'text-contains') {
+          ops = [['contains', 'Contains'], ['not-contains', 'Not Contains']];
+        } else if (mode === 'text-exact') {
+          ops = [['=', '='], ['!=', '!=']];
+        } else {
+          ops = [['=', '='], ['!=', '!='], ['<', '<'], ['>', '>']];
+        }
+        ops.forEach(([val, label]) => {
+          const opt = document.createElement('option');
+          opt.value = val;
+          opt.textContent = label;
+          opSelect.appendChild(opt);
+        });
+      };
+      updateOperators();
+      modeSelect.addEventListener('change', updateOperators);
+      opSelect.style.maxWidth = '100px';
+      controls.appendChild(opSelect);
+
+      const compareInput = document.createElement('input');
+      compareInput.type = 'text';
+      compareInput.className = 'condition-compare';
+      compareInput.placeholder = 'compare value';
+      compareInput.title = 'Value to compare against';
+      controls.appendChild(compareInput);
+
+      const thenLabel = document.createElement('div');
+      thenLabel.textContent = 'Then:';
+      thenLabel.style.color = '#9abcff';
+      thenLabel.style.fontSize = '12px';
+      thenLabel.style.marginTop = '6px';
+      controls.appendChild(thenLabel);
+
+      const thenCanvas = document.createElement('div');
+      thenCanvas.className = 'script-canvas';
+      thenCanvas.style.background = '#09131f';
+      thenCanvas.style.minHeight = '80px';
+      thenCanvas.style.padding = '8px';
+      thenCanvas.style.borderRadius = '6px';
+      thenCanvas.dataset.branch = 'then';
+      thenCanvas.innerHTML = '<div class="script-canvas-empty">Drop actions for true branch.</div>';
+      makeScriptCanvasDroppable(thenCanvas);
+      controls.appendChild(thenCanvas);
+
+      const elseLabel = document.createElement('div');
+      elseLabel.textContent = 'Else:';
+      elseLabel.style.color = '#9abcff';
+      elseLabel.style.fontSize = '12px';
+      elseLabel.style.marginTop = '6px';
+      controls.appendChild(elseLabel);
+
+      const elseCanvas = document.createElement('div');
+      elseCanvas.className = 'script-canvas';
+      elseCanvas.style.background = '#09131f';
+      elseCanvas.style.minHeight = '80px';
+      elseCanvas.style.padding = '8px';
+      elseCanvas.style.borderRadius = '6px';
+      elseCanvas.dataset.branch = 'else';
+      elseCanvas.innerHTML = '<div class="script-canvas-empty">Drop actions for false branch.</div>';
+      makeScriptCanvasDroppable(elseCanvas);
+      controls.appendChild(elseCanvas);
+    } else if (type === 'repeat') {
+      title.textContent = 'LOOP';
+      block.classList.add('script-block-repeat');
+
+      const modeSelect = document.createElement('select');
+      modeSelect.className = 'repeat-mode';
+      [['count', 'Count'], ['infinite', 'Infinite']].forEach(([v, l]) => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = l;
+        modeSelect.appendChild(opt);
+      });
+      controls.appendChild(modeSelect);
+
+      const repeatInput = document.createElement('input');
+      repeatInput.type = 'number';
+      repeatInput.className = 'repeat-count';
+      repeatInput.min = '1';
+      repeatInput.value = '2';
+      repeatInput.title = 'Repeat count';
+      repeatInput.style.maxWidth = '80px';
+      controls.appendChild(repeatInput);
+
+      modeSelect.addEventListener('change', () => {
+        repeatInput.style.display = modeSelect.value === 'count' ? '' : 'none';
+      });
+
+      const childLabel = document.createElement('div');
+      childLabel.style.color = '#9abcff';
+      childLabel.style.fontSize = '12px';
+      childLabel.style.marginTop = '6px';
+      childLabel.textContent = 'Drop actions into this LOOP:';
+      controls.appendChild(childLabel);
+
+      const nested = document.createElement('div');
+      nested.className = 'script-canvas';
+      nested.style.background = '#09131f';
+      nested.style.minHeight = '100px';
+      nested.style.padding = '8px';
+      nested.style.borderRadius = '6px';
+      nested.dataset.nested = 'true';
+      nested.innerHTML = '<div class="script-canvas-empty">Drop blocks here.</div>';
+      makeScriptCanvasDroppable(nested);
+      controls.appendChild(nested);
+    }
+
+    block.appendChild(controls);
+    setBlockDragHandlers(block);
+    return block;
+  }
+
+  function showEmptyCanvasHint(canvasEl) {
+    if (!canvasEl.querySelector('.script-block-item')) {
+      canvasEl.innerHTML = '<div class="script-canvas-empty">Drop blocks here to build a script.</div>';
+    }
+  }
+
+  function makeScriptCanvasDroppable(canvasEl) {
+    canvasEl.addEventListener('dragover', (e) => {
+      const dropTarget = e.target.closest('.script-canvas');
+      if (dropTarget !== canvasEl) return;
+      
+      // Do not allow a block to be dropped inside itself or its own inner canvases
+      if (draggedScriptBlock && draggedScriptBlock.contains(canvasEl)) {
+        return; // Allow the event to bubble to outer canvas
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      canvasEl.classList.add('drag-over');
+
+      if (draggedScriptBlock) {
+        let targetBefore = null;
+        const children = [...canvasEl.children].filter(c => c.classList.contains('script-block-item') && c !== draggedScriptBlock);
+        for (const child of children) {
+          const box = child.getBoundingClientRect();
+          if (e.clientY < box.top + box.height / 2) {
+            targetBefore = child;
+            break;
+          }
+        }
+        
+        const oldParent = draggedScriptBlock.parentElement;
+        if (targetBefore) {
+          canvasEl.insertBefore(draggedScriptBlock, targetBefore);
+        } else {
+          canvasEl.appendChild(draggedScriptBlock);
+        }
+        
+        if (oldParent && !oldParent.querySelector('.script-block-item')) {
+          oldParent.innerHTML = '<div class="script-canvas-empty">Drop blocks here.</div>';
+        }
+        const emptyHint = canvasEl.querySelector('.script-canvas-empty');
+        if (emptyHint) emptyHint.remove();
+      }
+    });
+
+    canvasEl.addEventListener('dragleave', (e) => {
+      canvasEl.classList.remove('drag-over');
+    });
+
+    canvasEl.addEventListener('drop', (e) => {
+      const dropTarget = e.target.closest('.script-canvas');
+      if (dropTarget !== canvasEl) return;
+      if (draggedScriptBlock && draggedScriptBlock.contains(canvasEl)) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      canvasEl.classList.remove('drag-over');
+      
+      const type = e.dataTransfer.getData('block-type');
+      const commandText = e.dataTransfer.getData('text/plain');
+
+      if (draggedScriptBlock) {
+        draggedScriptBlock = null;
+        const emptyHint = canvasEl.querySelector('.script-canvas-empty');
+        if (emptyHint) emptyHint.remove();
+        return;
+      }
+
+      if (!type && !commandText) return;
+      if (type === 'command') {
+        const block = createScriptBlock('command', commandText || '');
+        insertBlockIntoCanvas(canvasEl, block);
+      } else if (type) {
+        const block = createScriptBlock(type);
+        insertBlockIntoCanvas(canvasEl, block);
+      } else if (commandText) {
+        const block = createScriptBlock('command', commandText);
+        insertBlockIntoCanvas(canvasEl, block);
+      }
+    });
+  }
+
+  function insertBlockIntoCanvas(canvasEl, block) {
+    const emptyHint = canvasEl.querySelector('.script-canvas-empty');
+    if (emptyHint) emptyHint.remove();
+    canvasEl.appendChild(block);
+  }
+
+  function setBlockDragHandlers(block) {
+    block.addEventListener('dragstart', (e) => {
+      e.stopPropagation();
+      if (!lastMousedownTarget || !lastMousedownTarget.closest('.drag-handle')) {
+        e.preventDefault();
+        return;
+      }
+      draggedScriptBlock = block;
+      setTimeout(() => block.style.opacity = '0.4', 0);
+      e.dataTransfer.setData('block-type', block.dataset.type);
+      if (block.dataset.type === 'command') {
+        const cmd = block.querySelector('textarea');
+        if (cmd) e.dataTransfer.setData('text/plain', cmd.value);
+      }
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    block.addEventListener('dragend', () => {
+      draggedScriptBlock = null;
+      block.style.opacity = '1';
+    });
+  }
+
+  function parseDelayValue(text) {
+    const normalized = String(text).trim().toLowerCase();
+    if (!normalized) return NaN;
+    if (normalized.endsWith('us')) return parseFloat(normalized.slice(0, -2)) * 0.001;
+    if (normalized.endsWith('ms')) return parseFloat(normalized.slice(0, -2));
+    if (normalized.endsWith('s')) return parseFloat(normalized.slice(0, -1)) * 1000;
+    return parseFloat(normalized) * 1000;
+  }
+
+  function normalizeScriptValue(value) {
+    return String(value).replace(/\r/g, '').trim();
+  }
+
+  function busyWait(ms) {
+    const start = performance.now();
+    while (performance.now() - start < ms) {
+      // busy loop for sub-millisecond wait
+    }
+  }
+
+  function delay(ms) {
+    if (ms <= 0) return Promise.resolve();
+    const whole = Math.floor(ms);
+    const fraction = ms - whole;
+    return new Promise((resolve) => {
+      if (whole > 0) {
+        setTimeout(() => {
+          if (fraction > 0) busyWait(fraction);
+          resolve();
+        }, whole);
+      } else {
+        busyWait(fraction);
+        resolve();
+      }
+    });
+  }
+
+  function extractStringValue(input, config) {
+    if (!input && input !== 0) return '';
+    const rawStr = String(input);
+    const lines = rawStr.trim().split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+    if (lines.length === 0) return '';
+
+    const mode = config.mode || config.parsemode || 'column';
+    
+    if (mode === 'column') {
+      const lineChoice = config.lineChoice || 'last';
+      let targetLine = lines[lines.length - 1];
+      if (lineChoice === 'first') {
+        targetLine = lines[0];
+      } else if (lineChoice === 'line2' && lines.length >= 2) {
+        targetLine = lines[1];
+      } else if (lineChoice === 'line3' && lines.length >= 3) {
+        targetLine = lines[2];
+      } else if (!isNaN(parseInt(lineChoice, 10))) {
+        const lineIdx = parseInt(lineChoice, 10);
+        if (lineIdx > 0 && lineIdx <= lines.length) {
+          targetLine = lines[lineIdx - 1];
+        } else if (lineIdx < 0 && Math.abs(lineIdx) <= lines.length) {
+          targetLine = lines[lines.length + lineIdx];
+        }
+      }
+
+      if (config.delimiter === 'newline') {
+        const colRaw = String(config.column !== undefined ? config.column : '5').trim();
+        if (colRaw === 'last' || colRaw === '-1') {
+          return lines[lines.length - 1];
+        }
+        const idx = parseInt(colRaw, 10) - 1;
+        if (!isNaN(idx) && idx >= 0 && idx < lines.length) {
+          return lines[idx];
+        }
+        return '';
+      }
+
+      let delim = /\s+/;
+      if (config.delimiter === 'comma') delim = ',';
+      else if (config.delimiter === 'tab') delim = '\t';
+      else if (config.delimiter === 'semicolon') delim = ';';
+      else if (config.delimiter && config.delimiter !== 'whitespace') delim = new RegExp(config.delimiter);
+      
+      const parts = targetLine.split(delim).map(p => p.trim()).filter(p => p.length > 0);
+      if (parts.length === 0) return '';
+      const colRaw = String(config.column !== undefined ? config.column : '5').trim();
+      if (colRaw === 'last' || colRaw === '-1') {
+        return parts[parts.length - 1];
+      }
+      const idx = parseInt(colRaw, 10) - 1;
+      if (!isNaN(idx) && idx >= 0 && idx < parts.length) {
+        return parts[idx];
+      }
+      return '';
+    } else if (mode === 'header') {
+      const headerName = (config.headerName || config.header || '').trim().toLowerCase();
+      if (!headerName) return '';
+      let headerIdx = -1;
+      let colIdx = -1;
+      for (let i = 0; i < lines.length; i++) {
+        const parts = lines[i].split(/\s+/).map(p => p.toLowerCase());
+        const c = parts.indexOf(headerName);
+        if (c !== -1) {
+          headerIdx = i;
+          colIdx = c;
+          break;
+        }
+      }
+      if (headerIdx !== -1 && colIdx !== -1) {
+        const dataLine = lines[lines.length - 1];
+        const dataParts = dataLine.split(/\s+/);
+        if (colIdx < dataParts.length) {
+          return dataParts[colIdx];
+        }
+      }
+      return '';
+    } else if (mode === 'regex') {
+      const patternStr = config.regexPattern || config.regex || '';
+      if (!patternStr) return '';
+      try {
+        const reg = new RegExp(patternStr, 'm');
+        const match = String(input).match(reg);
+        if (match) {
+          return match[1] !== undefined ? match[1] : match[0];
+        }
+      } catch (e) {
+        console.error('Regex parse error:', e);
+      }
+      return '';
+    } else if (mode === 'between') {
+      const startStr = config.startStr || config.start || '';
+      const endStr = config.endStr || config.end || '';
+      let text = String(input);
+      if (startStr) {
+        const idx = text.indexOf(startStr);
+        if (idx === -1) return '';
+        text = text.slice(idx + startStr.length);
+      }
+      if (endStr) {
+        const idx = text.indexOf(endStr);
+        if (idx !== -1) {
+          text = text.slice(0, idx);
+        }
+      }
+      return text.trim();
+    } else if (mode === 'keyword') {
+      const keyword = config.keyword || '';
+      const length = Math.max(0, Number(config.length) || 0);
+      const position = config.position || 'before';
+      if (!keyword) return String(input);
+      const idx = String(input).indexOf(keyword);
+      if (idx >= 0) {
+        if (position === 'before') {
+          const end = idx;
+          const start = Math.max(0, end - length);
+          return String(input).slice(start, end);
+        } else {
+          const start = idx + keyword.length;
+          return String(input).slice(start, start + length);
+        }
+      }
+      return '';
+    }
+    return String(input);
+  }
+
+  function parseScriptCanvas(canvasEl) {
+    const blocks = [];
+    for (const child of canvasEl.children) {
+      if (!child.classList.contains('script-block-item')) continue;
+      const type = child.dataset.type;
+      if (type === 'command') {
+        const cmd = child.querySelector('textarea').value.trim();
+        if (!cmd) continue;
+        blocks.push({ type: 'command', command: cmd, element: child });
+      } else if (type === 'delay') {
+        const raw = child.querySelector('input').value;
+        const ms = parseDelayValue(raw);
+        if (Number.isNaN(ms) || ms < 0) continue;
+        blocks.push({ type: 'delay', ms, element: child });
+      } else if (type === 'read') {
+        const source = child.querySelector('.read-source')?.value || 'uart';
+        const variable = child.querySelector('.read-variable')?.value.trim();
+        const command = child.querySelector('.read-command')?.value.trim();
+        const parsemode = child.querySelector('.read-parsemode')?.value || 'all';
+        const lineChoice = child.querySelector('.read-line')?.value || 'last';
+        const column = child.querySelector('.read-column')?.value || '5';
+        const delimiter = child.querySelector('.read-delimiter')?.value || 'whitespace';
+        const headerName = child.querySelector('.read-header')?.value || '';
+        const regexPattern = child.querySelector('.read-regex')?.value || '';
+        const startStr = child.querySelector('.read-start')?.value || '';
+        const endStr = child.querySelector('.read-end')?.value || '';
+        const keyword = child.querySelector('.read-keyword')?.value || '';
+        const position = child.querySelector('.read-position')?.value || 'before';
+        const length = parseInt(child.querySelector('.read-length')?.value, 10) || 0;
+        const datatype = child.querySelector('.read-datatype')?.value || 'text';
+        blocks.push({
+          type: 'read',
+          source,
+          variable,
+          command,
+          parsemode,
+          lineChoice,
+          column,
+          delimiter,
+          headerName,
+          regexPattern,
+          startStr,
+          endStr,
+          keyword,
+          position,
+          length,
+          datatype,
+          element: child
+        });
+      } else if (type === 'parsestr') {
+        const inputVar = child.querySelector('.parsestr-input')?.value || '';
+        const targetVar = child.querySelector('.parsestr-target')?.value.trim() || '';
+        const mode = child.querySelector('.parsestr-mode')?.value || 'column';
+        const lineChoice = child.querySelector('.parsestr-line')?.value || 'last';
+        const column = child.querySelector('.parsestr-column')?.value || '5';
+        const delimiter = child.querySelector('.parsestr-delimiter')?.value || 'whitespace';
+        const headerName = child.querySelector('.parsestr-header')?.value || '';
+        const regexPattern = child.querySelector('.parsestr-regex')?.value || '';
+        const startStr = child.querySelector('.parsestr-start')?.value || '';
+        const endStr = child.querySelector('.parsestr-end')?.value || '';
+        const keyword = child.querySelector('.parsestr-keyword')?.value || '';
+        const position = child.querySelector('.parsestr-position')?.value || 'after';
+        const length = parseInt(child.querySelector('.parsestr-length')?.value, 10) || 10;
+        const datatype = child.querySelector('.parsestr-datatype')?.value || 'text';
+        blocks.push({
+          type: 'parsestr',
+          inputVar,
+          targetVar,
+          mode,
+          lineChoice,
+          column,
+          delimiter,
+          headerName,
+          regexPattern,
+          startStr,
+          endStr,
+          keyword,
+          position,
+          length,
+          datatype,
+          element: child
+        });
+      } else if (type === 'print') {
+        const template = child.querySelector('.print-template')?.value || '';
+        blocks.push({ type: 'print', template, element: child });
+      } else if (type === 'condition') {
+        const variable = child.querySelector('.condition-variable')?.value.trim();
+        const operator = child.querySelector('.condition-operator')?.value || '=';
+        const compare = child.querySelector('.condition-compare')?.value ?? '';
+        const conditionMode = child.querySelector('.condition-mode')?.value || 'text-exact';
+        const thenCanvas = child.querySelector('[data-branch="then"]');
+        const elseCanvas = child.querySelector('[data-branch="else"]');
+        const thenActions = thenCanvas ? parseScriptCanvas(thenCanvas) : [];
+        const elseActions = elseCanvas ? parseScriptCanvas(elseCanvas) : [];
+        blocks.push({ type: 'condition', variable, operator, compare, conditionMode, thenActions, elseActions, element: child });
+      } else if (type === 'repeat') {
+        const mode = child.querySelector('.repeat-mode')?.value || 'count';
+        const repeatInput = child.querySelector('.repeat-count');
+        const rawCount = repeatInput ? repeatInput.value : child.querySelector('input')?.value;
+        const count = mode === 'infinite' ? 0 : Math.max(1, Number(rawCount) || 1);
+        const nested = child.querySelector('[data-nested]');
+        const nestedActions = nested ? parseScriptCanvas(nested) : [];
+        if (nestedActions.length === 0) continue;
+        blocks.push({ type: 'repeat', count, actions: nestedActions, element: child });
+      } else if (type === 'setvar') {
+        const name = child.querySelector('.setvar-name')?.value.trim() || '';
+        const value = child.querySelector('.setvar-value')?.value || '';
+        blocks.push({ type: 'setvar', name, value, element: child });
+      } else if (type === 'waitfor') {
+        const keyword = child.querySelector('.waitfor-keyword')?.value || '';
+        const tStr = child.querySelector('.waitfor-timeout')?.value;
+        const timeout = (tStr !== undefined && tStr !== '') ? parseInt(tStr, 10) : 5000;
+        blocks.push({ type: 'waitfor', keyword, timeout, element: child });
+      } else if (type === 'math') {
+        const result = child.querySelector('.math-result')?.value.trim() || '';
+        const left = child.querySelector('.math-left')?.value || '';
+        const operator = child.querySelector('.math-operator')?.value || '+';
+        const right = child.querySelector('.math-right')?.value || '';
+        blocks.push({ type: 'math', result, left, operator, right, element: child });
+      } else if (type === 'plot') {
+        const rows = child.querySelectorAll('.plot-var-row');
+        const variables = [];
+        for (const row of rows) {
+          const variable = row.querySelector('.plot-variable')?.value.trim() || '';
+          const name = row.querySelector('.plot-name')?.value.trim() || 'Data';
+          const color = row.querySelector('.plot-color')?.value || '#ff3366';
+          if (variable) variables.push({ variable, name, color });
+        }
+        const label = child.querySelector('.plot-label')?.value.trim() || '';
+        blocks.push({ type: 'plot', variables, label, element: child });
+      }
+    }
+    return blocks;
+  }
+
+  function setActionRunning(action, running) {
+    if (action.element) {
+      action.element.classList.toggle('running', running);
+    }
+  }
+
+  async function executeScriptActions(actions, vars, ctx) {
+    const updateScriptStatus = (m) => setScriptStatus(ctx, m);
+    const conEl = ctx.consoleEl;
+    for (const action of actions) {
+      if (ctx.stopRequested) throw new Error('Script stopped');
+      setActionRunning(action, true);
+      try {
+        if (action.type === 'command') {
+          if (ctx.target === 'adb') {
+            if (!isAdbConnected) throw new Error('ADB not connected');
+            await runAdbCommand(action.command);
+          } else {
+            if (!isConnected || !writer) throw new Error('Serial not connected');
+            addToHistory(action.command);
+            appendOutput(`\n> ${action.command}\n`);
+            await sendRawData(action.command + '\r\n');
+          }
+        } else if (action.type === 'delay') {
+          updateScriptStatus(`Waiting ${action.ms / 1000}s...`);
+          await delay(action.ms);
+        } else if (action.type === 'read') {
+          const variable = action.variable || `var_${Math.floor(Math.random() * 1000)}`;
+          const source = ctx.target;
+          const command = action.command || '';
+          let value = '';
+          updateScriptStatus(`Reading ${source} into ${variable}...`);
+          if (source === 'adb') {
+            if (!isAdbConnected) throw new Error('ADB not connected');
+            value = await runAdbCommand(command || '');
+          } else {
+            if (!isConnected || !writer) throw new Error('Serial not connected');
+            const before = ta.value;
+            if (command) {
+              addToHistory(command);
+              appendOutput(`\n> ${command}\n`);
+              await sendRawData(command + '\r\n');
+            }
+            await delay(250);
+            const after = ta.value;
+            value = after.slice(before.length);
+          }
+          vars['_last_read'] = value;
+          value = normalizeScriptValue(value);
+
+          const parsemode = action.parsemode || (action.keyword ? 'keyword' : 'all');
+          if (parsemode !== 'all') {
+            value = extractStringValue(value, {
+              mode: parsemode,
+              lineChoice: action.lineChoice,
+              column: action.column,
+              delimiter: action.delimiter,
+              headerName: action.headerName,
+              regexPattern: action.regexPattern,
+              startStr: action.startStr,
+              endStr: action.endStr,
+              keyword: action.keyword,
+              position: action.position,
+              length: action.length
+            });
+          }
+
+          // Apply data type conversion
+          const datatype = action.datatype || 'text';
+          if (datatype === 'hex') {
+            const parsed = parseInt(value.trim(), 16);
+            value = Number.isNaN(parsed) ? value : String(parsed);
+          } else if (datatype === 'dec') {
+            const parsed = parseFloat(value.trim());
+            value = Number.isNaN(parsed) ? value : String(parsed);
+          }
+          vars[variable] = value;
+          if (action.element) {
+            const debugLabel = action.element.querySelector('.read-value');
+            if (debugLabel) {
+              const typeLabel = datatype === 'hex' ? ' [Hex→Dec]' : datatype === 'dec' ? ' [Dec]' : ' [Text]';
+              debugLabel.textContent = `Value: ${value}${typeLabel}`;
+            }
+          }
+        } else if (action.type === 'parsestr') {
+          const targetVar = action.targetVar || `var_${Math.floor(Math.random() * 1000)}`;
+          let rawText = '';
+          if (action.inputVar && action.inputVar.trim()) {
+            const inputVal = action.inputVar.trim();
+            if (inputVal.startsWith('${') && inputVal.endsWith('}')) {
+              const vn = inputVal.slice(2, -1).trim();
+              rawText = vars[vn] !== undefined ? vars[vn] : '';
+            } else if (vars[inputVal] !== undefined) {
+              rawText = vars[inputVal];
+            } else {
+              rawText = inputVal.replace(/\$\{(\w+)\}/g, (_, name) => vars[name] ?? '');
+            }
+          } else {
+            rawText = (vars['_last_read'] !== undefined) ? vars['_last_read'] : conEl.value;
+          }
+
+          let value = extractStringValue(rawText, action);
+          value = normalizeScriptValue(value);
+
+          const datatype = action.datatype || 'text';
+          if (datatype === 'hex') {
+            const parsed = parseInt(value.trim(), 16);
+            value = Number.isNaN(parsed) ? value : String(parsed);
+          } else if (datatype === 'dec') {
+            const parsed = parseFloat(value.trim());
+            value = Number.isNaN(parsed) ? value : String(parsed);
+          }
+
+          vars[targetVar] = value;
+          updateScriptStatus(`Parsed string: ${targetVar} = ${value}`);
+          if (action.element) {
+            const debugLabel = action.element.querySelector('.parsestr-value');
+            if (debugLabel) {
+              const typeLabel = datatype === 'hex' ? ' [Hex→Dec]' : datatype === 'dec' ? ' [Dec]' : ' [Text]';
+              debugLabel.textContent = `Result: ${targetVar} = "${value}"${typeLabel}`;
+            }
+          }
+        } else if (action.type === 'print') {
+          const template = action.template || '';
+          const output = template.replace(/\$\{(\w+)\}/g, (_, name) => vars[name] ?? '');
+          appendOutput(`\n${output}\n`, conEl);
+          updateScriptStatus('Print output');
+        } else if (action.type === 'condition') {
+          const variable = action.variable || '';
+          const operator = action.operator || '=';
+          const compare = normalizeScriptValue(action.compare ?? '');
+          const left = normalizeScriptValue(vars[variable] ?? '');
+          const condMode = action.conditionMode || 'text-exact';
+          let result = false;
+
+          if (condMode === 'text-exact') {
+            // Text exact match
+            if (operator === '=') result = left === compare;
+            else if (operator === '!=') result = left !== compare;
+          } else if (condMode === 'text-contains') {
+            // Text partial match (substring)
+            if (operator === 'contains') result = left.includes(compare);
+            else if (operator === 'not-contains') result = !left.includes(compare);
+          } else if (condMode === 'hex') {
+            // Hex number comparison: parse both as hex
+            const leftNum = parseInt(left.trim(), 16);
+            const rightNum = parseInt(compare.trim(), 16);
+            if (!Number.isNaN(leftNum) && !Number.isNaN(rightNum)) {
+              if (operator === '=') result = leftNum === rightNum;
+              else if (operator === '!=') result = leftNum !== rightNum;
+              else if (operator === '<') result = leftNum < rightNum;
+              else if (operator === '>') result = leftNum > rightNum;
+            }
+          } else if (condMode === 'dec') {
+            // Decimal number comparison
+            const leftNum = parseFloat(left.trim());
+            const rightNum = parseFloat(compare.trim());
+            if (!Number.isNaN(leftNum) && !Number.isNaN(rightNum)) {
+              if (operator === '=') result = leftNum === rightNum;
+              else if (operator === '!=') result = leftNum !== rightNum;
+              else if (operator === '<') result = leftNum < rightNum;
+              else if (operator === '>') result = leftNum > rightNum;
+            }
+          }
+          const modeLabel = {"text-exact": "Text Exact", "text-contains": "Text Contains", "hex": "Hex Number", "dec": "Dec Number"}[condMode] || condMode;
+          updateScriptStatus(`IF [${modeLabel}] ${variable} ${operator} ${compare} => ${result}`);
+          await executeScriptActions(result ? action.thenActions : action.elseActions, vars, ctx);
+        } else if (action.type === 'repeat') {
+          const isInfinite = action.mode === 'infinite' || action.count === 0;
+          const loopCount = isInfinite ? Infinity : Math.max(1, Number(action.count) || 1);
+          updateScriptStatus(isInfinite ? 'Repeating ∞' : `Repeating ${loopCount}×`);
+          for (let i = 0; i < loopCount; i++) {
+            if (ctx.stopRequested) throw new Error('Script stopped');
+            await executeScriptActions(action.actions, vars, ctx);
+          }
+        } else if (action.type === 'setvar') {
+          const name = action.name || '';
+          const rawValue = action.value || '';
+          const resolved = rawValue.replace(/\$\{(\w+)\}/g, (_, v) => vars[v] ?? '');
+          vars[name] = resolved;
+          updateScriptStatus(`Set ${name} = ${resolved}`);
+        } else if (action.type === 'waitfor') {
+          const keyword = action.keyword || '';
+          const timeout = action.timeout !== undefined ? Math.max(0, Number(action.timeout)) : 5000;
+          if (!keyword) { updateScriptStatus('Wait For: no keyword'); }
+          else {
+            updateScriptStatus(`Waiting for "${keyword}"...`);
+            const startTime = Date.now();
+            const startLen = conEl.value.length;
+            let found = false;
+            while (!found) {
+              if (ctx.stopRequested) throw new Error('Script stopped');
+              if (timeout > 0 && (Date.now() - startTime) >= timeout) break;
+              const newContent = conEl.value.slice(startLen);
+              if (newContent.includes(keyword)) { found = true; break; }
+              await delay(100);
+            }
+            if (action.element) {
+              const dbg = action.element.querySelector('.waitfor-result');
+              if (dbg) dbg.textContent = found ? `Found "${keyword}" (${Date.now() - startTime}ms)` : `Timeout (${timeout}ms)`;
+            }
+            updateScriptStatus(found ? `Found "${keyword}"` : `Wait For timeout (${timeout}ms)`);
+          }
+        } else if (action.type === 'math') {
+          const resultVar = action.result || '';
+          const rawLeft = (action.left || '').replace(/\$\{(\w+)\}/g, (_, v) => vars[v] ?? '0');
+          const rawRight = (action.right || '').replace(/\$\{(\w+)\}/g, (_, v) => vars[v] ?? '0');
+          const l = parseFloat(rawLeft) || 0;
+          const r = parseFloat(rawRight) || 0;
+          const op = action.operator || '+';
+          let res = 0;
+          if (op === '+') res = l + r;
+          else if (op === '-') res = l - r;
+          else if (op === '*') res = l * r;
+          else if (op === '/') res = r !== 0 ? l / r : 0;
+          else if (op === '%') res = r !== 0 ? l % r : 0;
+          vars[resultVar] = String(res);
+          if (action.element) {
+            const dbg = action.element.querySelector('.math-debug');
+            if (dbg) dbg.textContent = `${resultVar} = ${l} ${op} ${r} = ${res}`;
+          }
+          updateScriptStatus(`Math: ${resultVar} = ${res}`);
+        } else if (action.type === 'plot') {
+          const dataPoints = [];
+          const varsToIterate = action.variables && action.variables.length > 0 
+                                  ? action.variables 
+                                  : [{ variable: action.variable, name: action.name, color: '#ff3366' }];
+
+          for (const v of varsToIterate) {
+            let rawVal = v.variable || '';
+            if (rawVal && !rawVal.includes('${')) {
+               rawVal = vars[rawVal] ?? '0';
+            } else {
+               rawVal = rawVal.replace(/\$\{(\w+)\}/g, (_, name) => vars[name] ?? '0');
+            }
+            const val = parseFloat(rawVal);
+            if (!Number.isNaN(val)) {
+              dataPoints.push({ name: v.name, value: val, color: v.color });
+            }
+          }
+          if (dataPoints.length > 0) {
+            updateChart(dataPoints, action.label);
+            updateScriptStatus(`Plot: ${dataPoints.map(d=>d.name+'='+d.value).join(', ')}`);
+          }
+        }
+      } finally {
+        setActionRunning(action, false);
+      }
+    }
+  }
+
+  for (const ctx of Object.values(scriptBuilders)) {
+    ctx.runBtn.addEventListener('click', async () => {
+      const actions = parseScriptCanvas(ctx.canvas);
+      if (actions.length === 0) {
+        setScriptStatus(ctx, 'Add blocks first.');
+        return;
+      }
+      ctx.stopRequested = false;
+      ctx.runBtn.disabled = true;
+      ctx.stopBtn.disabled = false;
+      setScriptStatus(ctx, 'Running...');
+      try {
+        await executeScriptActions(actions, {}, ctx);
+        if (!ctx.stopRequested) setScriptStatus(ctx, 'Completed.');
+      } catch (err) {
+        setScriptStatus(ctx, err.message || 'Error during run.');
+      } finally {
+        ctx.stopRequested = false;
+        ctx.runBtn.disabled = false;
+        ctx.stopBtn.disabled = true;
+      }
+    });
+
+    ctx.stopBtn.addEventListener('click', () => {
+      ctx.stopRequested = true;
+      setScriptStatus(ctx, 'Stopping...');
+    });
+  }
+
+  // ── Script Export / Import ──
+
+  function serializeCanvasToJSON(canvasEl) {
+    const blocks = [];
+    for (const child of canvasEl.children) {
+      if (!child.classList.contains('script-block-item')) continue;
+      const type = child.dataset.type;
+      if (type === 'command') {
+        const cmd = child.querySelector('textarea')?.value || '';
+        blocks.push({ type: 'command', command: cmd });
+      } else if (type === 'delay') {
+        const val = child.querySelector('input')?.value || '0.100s';
+        blocks.push({ type: 'delay', value: val });
+      } else if (type === 'read') {
+        blocks.push({
+          type: 'read',
+          source: canvasEl.closest('.script-root-canvas')?.dataset.target || 'uart',
+          variable: child.querySelector('.read-variable')?.value || '',
+          command: child.querySelector('.read-command')?.value || '',
+          parsemode: child.querySelector('.read-parsemode')?.value || 'all',
+          lineChoice: child.querySelector('.read-line')?.value || 'last',
+          column: child.querySelector('.read-column')?.value || '5',
+          delimiter: child.querySelector('.read-delimiter')?.value || 'whitespace',
+          headerName: child.querySelector('.read-header')?.value || '',
+          regexPattern: child.querySelector('.read-regex')?.value || '',
+          startStr: child.querySelector('.read-start')?.value || '',
+          endStr: child.querySelector('.read-end')?.value || '',
+          keyword: child.querySelector('.read-keyword')?.value || '',
+          position: child.querySelector('.read-position')?.value || 'before',
+          length: parseInt(child.querySelector('.read-length')?.value, 10) || 0,
+          datatype: child.querySelector('.read-datatype')?.value || 'text'
+        });
+      } else if (type === 'parsestr') {
+        blocks.push({
+          type: 'parsestr',
+          inputVar: child.querySelector('.parsestr-input')?.value || '',
+          targetVar: child.querySelector('.parsestr-target')?.value || '',
+          mode: child.querySelector('.parsestr-mode')?.value || 'column',
+          lineChoice: child.querySelector('.parsestr-line')?.value || 'last',
+          column: child.querySelector('.parsestr-column')?.value || '5',
+          delimiter: child.querySelector('.parsestr-delimiter')?.value || 'whitespace',
+          headerName: child.querySelector('.parsestr-header')?.value || '',
+          regexPattern: child.querySelector('.parsestr-regex')?.value || '',
+          startStr: child.querySelector('.parsestr-start')?.value || '',
+          endStr: child.querySelector('.parsestr-end')?.value || '',
+          keyword: child.querySelector('.parsestr-keyword')?.value || '',
+          position: child.querySelector('.parsestr-position')?.value || 'after',
+          length: parseInt(child.querySelector('.parsestr-length')?.value, 10) || 10,
+          datatype: child.querySelector('.parsestr-datatype')?.value || 'text'
+        });
+      } else if (type === 'print') {
+        blocks.push({
+          type: 'print',
+          template: child.querySelector('.print-template')?.value || ''
+        });
+      } else if (type === 'condition') {
+        const thenCanvas = child.querySelector('[data-branch="then"]');
+        const elseCanvas = child.querySelector('[data-branch="else"]');
+        blocks.push({
+          type: 'condition',
+          mode: child.querySelector('.condition-mode')?.value || 'text-exact',
+          variable: child.querySelector('.condition-variable')?.value || '',
+          operator: child.querySelector('.condition-operator')?.value || '=',
+          compare: child.querySelector('.condition-compare')?.value || '',
+          then: thenCanvas ? serializeCanvasToJSON(thenCanvas) : [],
+          else: elseCanvas ? serializeCanvasToJSON(elseCanvas) : []
+        });
+      } else if (type === 'repeat') {
+        const mode = child.querySelector('.repeat-mode')?.value || 'count';
+        const repeatInput = child.querySelector('.repeat-count');
+        const count = mode === 'infinite' ? 0 : (parseInt(repeatInput?.value, 10) || 2);
+        const nested = child.querySelector('[data-nested]');
+        blocks.push({
+          type: 'repeat',
+          mode: mode,
+          count: count,
+          actions: nested ? serializeCanvasToJSON(nested) : []
+        });
+      } else if (type === 'setvar') {
+        blocks.push({
+          type: 'setvar',
+          name: child.querySelector('.setvar-name')?.value || '',
+          value: child.querySelector('.setvar-value')?.value || ''
+        });
+      } else if (type === 'waitfor') {
+        const tStr = child.querySelector('.waitfor-timeout')?.value;
+        blocks.push({
+          type: 'waitfor',
+          keyword: child.querySelector('.waitfor-keyword')?.value || '',
+          timeout: (tStr !== undefined && tStr !== '') ? parseInt(tStr, 10) : 5000
+        });
+      } else if (type === 'math') {
+        blocks.push({
+          type: 'math',
+          result: child.querySelector('.math-result')?.value || '',
+          left: child.querySelector('.math-left')?.value || '',
+          operator: child.querySelector('.math-operator')?.value || '+',
+          right: child.querySelector('.math-right')?.value || ''
+        });
+      } else if (type === 'plot') {
+        const rows = child.querySelectorAll('.plot-var-row');
+        const variables = [];
+        for (const row of rows) {
+          const variable = row.querySelector('.plot-variable')?.value.trim() || '';
+          const name = row.querySelector('.plot-name')?.value.trim() || 'Data';
+          const color = row.querySelector('.plot-color')?.value || '#ff3366';
+          if (variable) variables.push({ variable, name, color });
+        }
+        blocks.push({
+          type: 'plot',
+          variables,
+          label: child.querySelector('.plot-label')?.value || ''
+        });
+      }
+    }
+    return blocks;
+  }
+
+  function importBlocksToCanvas(canvasEl, blocks) {
+    for (const b of blocks) {
+      let block;
+      if (b.type === 'command') {
+        block = createScriptBlock('command', b.command || '');
+      } else if (b.type === 'delay') {
+        block = createScriptBlock('delay', b.value || '0.100s');
+      } else if (b.type === 'read') {
+        block = createScriptBlock('read', b.command || '');
+        const el = block;
+        if (b.source) { const s = el.querySelector('.read-source'); if (s) s.value = b.source; }
+        if (b.variable) { const v = el.querySelector('.read-variable'); if (v) v.value = b.variable; }
+        if (b.parsemode) { const pm = el.querySelector('.read-parsemode'); if (pm) { pm.value = b.parsemode; pm.dispatchEvent(new Event('change')); } }
+        if (b.lineChoice) { const lc = el.querySelector('.read-line'); if (lc) lc.value = b.lineChoice; }
+        if (b.column) { const col = el.querySelector('.read-column'); if (col) col.value = b.column; }
+        if (b.delimiter) { const d = el.querySelector('.read-delimiter'); if (d) d.value = b.delimiter; }
+        if (b.headerName) { const h = el.querySelector('.read-header'); if (h) h.value = b.headerName; }
+        if (b.regexPattern) { const r = el.querySelector('.read-regex'); if (r) r.value = b.regexPattern; }
+        if (b.startStr) { const st = el.querySelector('.read-start'); if (st) st.value = b.startStr; }
+        if (b.endStr) { const en = el.querySelector('.read-end'); if (en) en.value = b.endStr; }
+        if (b.keyword) { const k = el.querySelector('.read-keyword'); if (k) { k.value = b.keyword; k.dispatchEvent(new Event('input')); } }
+        if (b.position) { const p = el.querySelector('.read-position'); if (p) p.value = b.position; }
+        if (b.length) { const l = el.querySelector('.read-length'); if (l) l.value = b.length; }
+        if (b.datatype) { const d = el.querySelector('.read-datatype'); if (d) d.value = b.datatype; }
+      } else if (b.type === 'parsestr') {
+        block = createScriptBlock('parsestr');
+        const el = block;
+        if (b.inputVar) { const i = el.querySelector('.parsestr-input'); if (i) i.value = b.inputVar; }
+        if (b.targetVar) { const t = el.querySelector('.parsestr-target'); if (t) t.value = b.targetVar; }
+        if (b.mode) { const m = el.querySelector('.parsestr-mode'); if (m) { m.value = b.mode; m.dispatchEvent(new Event('change')); } }
+        if (b.lineChoice) { const lc = el.querySelector('.parsestr-line'); if (lc) lc.value = b.lineChoice; }
+        if (b.column) { const c = el.querySelector('.parsestr-column'); if (c) c.value = b.column; }
+        if (b.delimiter) { const d = el.querySelector('.parsestr-delimiter'); if (d) d.value = b.delimiter; }
+        if (b.headerName) { const h = el.querySelector('.parsestr-header'); if (h) h.value = b.headerName; }
+        if (b.regexPattern) { const r = el.querySelector('.parsestr-regex'); if (r) r.value = b.regexPattern; }
+        if (b.startStr) { const s = el.querySelector('.parsestr-start'); if (s) s.value = b.startStr; }
+        if (b.endStr) { const e = el.querySelector('.parsestr-end'); if (e) e.value = b.endStr; }
+        if (b.keyword) { const k = el.querySelector('.parsestr-keyword'); if (k) k.value = b.keyword; }
+        if (b.position) { const p = el.querySelector('.parsestr-position'); if (p) p.value = b.position; }
+        if (b.length) { const l = el.querySelector('.parsestr-length'); if (l) l.value = b.length; }
+        if (b.datatype) { const dt = el.querySelector('.parsestr-datatype'); if (dt) dt.value = b.datatype; }
+      } else if (b.type === 'print') {
+        block = createScriptBlock('print');
+        const tmpl = block.querySelector('.print-template');
+        if (tmpl) tmpl.value = b.template || '';
+      } else if (b.type === 'condition') {
+        block = createScriptBlock('condition');
+        const modeSel = block.querySelector('.condition-mode');
+        if (modeSel && b.mode) { modeSel.value = b.mode; modeSel.dispatchEvent(new Event('change')); }
+        const varIn = block.querySelector('.condition-variable');
+        if (varIn && b.variable) varIn.value = b.variable;
+        const opSel = block.querySelector('.condition-operator');
+        if (opSel && b.operator) opSel.value = b.operator;
+        const cmpIn = block.querySelector('.condition-compare');
+        if (cmpIn && b.compare) cmpIn.value = b.compare;
+        if (b.then && b.then.length > 0) {
+          const thenCanvas = block.querySelector('[data-branch="then"]');
+          if (thenCanvas) { thenCanvas.innerHTML = ''; importBlocksToCanvas(thenCanvas, b.then); }
+        }
+        if (b.else && b.else.length > 0) {
+          const elseCanvas = block.querySelector('[data-branch="else"]');
+          if (elseCanvas) { elseCanvas.innerHTML = ''; importBlocksToCanvas(elseCanvas, b.else); }
+        }
+      } else if (b.type === 'repeat') {
+        block = createScriptBlock('repeat');
+        const modeSel = block.querySelector('.repeat-mode');
+        if (modeSel) {
+          modeSel.value = b.mode || (b.count === 0 ? 'infinite' : 'count');
+          modeSel.dispatchEvent(new Event('change'));
+        }
+        const countIn = block.querySelector('.repeat-count');
+        if (countIn && b.count !== undefined && b.count !== 0) countIn.value = b.count;
+        if (b.actions && b.actions.length > 0) {
+          const nested = block.querySelector('[data-nested]');
+          if (nested) { nested.innerHTML = ''; importBlocksToCanvas(nested, b.actions); }
+        }
+      } else if (b.type === 'setvar') {
+        block = createScriptBlock('setvar');
+        const nameIn = block.querySelector('.setvar-name');
+        if (nameIn && b.name) nameIn.value = b.name;
+        const valIn = block.querySelector('.setvar-value');
+        if (valIn && b.value) valIn.value = b.value;
+      } else if (b.type === 'waitfor') {
+        block = createScriptBlock('waitfor');
+        const kwIn = block.querySelector('.waitfor-keyword');
+        if (kwIn && b.keyword) kwIn.value = b.keyword;
+        const toIn = block.querySelector('.waitfor-timeout');
+        if (toIn) toIn.value = b.timeout || 5000;
+      } else if (b.type === 'math') {
+        block = createScriptBlock('math');
+        const rIn = block.querySelector('.math-result');
+        if (rIn && b.result) rIn.value = b.result;
+        const lIn = block.querySelector('.math-left');
+        if (lIn && b.left) lIn.value = b.left;
+        const opSel = block.querySelector('.math-operator');
+        if (opSel && b.operator) opSel.value = b.operator;
+        const riIn = block.querySelector('.math-right');
+        if (riIn && b.right) riIn.value = b.right;
+      } else if (b.type === 'plot') {
+        block = createScriptBlock('plot');
+        if (b.variables && b.variables.length > 0) {
+          const varsContainer = block.querySelector('.plot-vars-container');
+          if (varsContainer) varsContainer.innerHTML = '';
+          b.variables.forEach(v => block.addVarRow && block.addVarRow(v.variable, v.name, v.color));
+        } else {
+          const varIn = block.querySelector('.plot-variable');
+          if (varIn && b.variable) varIn.value = b.variable;
+          const nameIn = block.querySelector('.plot-name');
+          if (nameIn && b.name) nameIn.value = b.name;
+        }
+        const lblIn = block.querySelector('.plot-label');
+        if (lblIn && b.label) lblIn.value = b.label;
+      }
+      if (block) insertBlockIntoCanvas(canvasEl, block);
+    }
+  }
+
+  for (const ctx of Object.values(scriptBuilders)) {
+    const fileInput = ctx.pane.querySelector('.js-import-file');
+
+    ctx.pane.querySelector('.js-export').addEventListener('click', () => {
+      const blocks = serializeCanvasToJSON(ctx.canvas);
+      if (blocks.length === 0) {
+        setScriptStatus(ctx, 'Nothing to export.');
+        return;
+      }
+      const json = JSON.stringify({ version: 1, name: 'Untitled Script', target: ctx.target, blocks }, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `script_${ctx.target}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setScriptStatus(ctx, 'Script exported.');
+    });
+
+    ctx.pane.querySelector('.js-import').addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (!data.blocks || !Array.isArray(data.blocks)) {
+            setScriptStatus(ctx, 'Invalid script file: missing blocks array.');
+            return;
+          }
+          ctx.canvas.innerHTML = '';
+          importBlocksToCanvas(ctx.canvas, data.blocks);
+          if (!ctx.canvas.querySelector('.script-block-item')) showEmptyCanvasHint(ctx.canvas);
+          setScriptStatus(ctx, `Imported: ${data.name || 'script'} (${data.blocks.length} blocks)`);
+        } catch (err) {
+          setScriptStatus(ctx, 'Import error: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+  }
+
+  document.querySelectorAll('.script-block').forEach(btn => {
+    btn.addEventListener('dragstart', (e) => {
+      const blockType = btn.dataset.blockType;
+      if (blockType) {
+        e.dataTransfer.setData('block-type', blockType);
+      }
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+  });
+
+  for (const ctx of Object.values(scriptBuilders)) {
+    makeScriptCanvasDroppable(ctx.canvas);
+    showEmptyCanvasHint(ctx.canvas);
+  }
+
+  // ── View toggle: one switch per side controls both its console and its script builder ──
+  const VIEW_KEY = 'view_visibility';
+  let viewPrefs = { uart: true, adb: true };
+  try {
+    const saved = JSON.parse(localStorage.getItem(VIEW_KEY));
+    if (saved) {
+      const src = saved.console || saved;   // accept the earlier per-section format
+      if ('uart' in src && 'adb' in src) viewPrefs = { uart: !!src.uart, adb: !!src.adb };
+    }
+    if (!viewPrefs.uart && !viewPrefs.adb) viewPrefs = { uart: true, adb: true };
+  } catch {}
+
+  function applyView() {
+    for (const target of ['uart', 'adb']) {
+      const on = viewPrefs[target];
+      for (const view of ['console', 'script']) {
+        document.querySelector(`[data-pane="${view}-${target}"]`).style.display = on ? '' : 'none';
+      }
+      document.querySelector(`.view-toggle[data-target="${target}"]`).classList.toggle('on', on);
+    }
+  }
+
+  document.querySelectorAll('.view-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.target;
+      const other = target === 'uart' ? 'adb' : 'uart';
+      if (viewPrefs[target] && !viewPrefs[other]) return; // keep at least one side visible
+      viewPrefs[target] = !viewPrefs[target];
+      try { localStorage.setItem(VIEW_KEY, JSON.stringify(viewPrefs)); } catch {}
+      applyView();
+    });
+  });
+  applyView();
+
+  // ── Shared save / clear ──
+  document.getElementById('saveButton').addEventListener('click', () => {
+    const text = getBaseText();
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([text], { type: 'text/plain' })),
+      download: 'serial_output.txt'
+    });
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  });
+
+  document.getElementById('adbSaveButton').addEventListener('click', () => {
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([getBaseText(adbTa)], { type: 'text/plain' })),
+      download: 'adb_output.txt'
+    });
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  });
+
+  document.getElementById('clearButton').addEventListener('click', () => {
+    setTerminalText('');
+    inputBuffer = ''; historyIndex = -1;
+  });
+
+  document.getElementById('adbClearButton').addEventListener('click', () => {
+    setTerminalText('', adbTa);
+  });
+
+  document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+    saveHistory([]); renderHistory();
+  });
+
+  // ── Console Customization Panel Event Listeners ──
+  const toggleBtn = document.getElementById('toggleConsoleSettingsBtn');
+  const closeBtn = document.getElementById('closeConsoleSettingsBtn');
+  const panel = document.getElementById('consoleSettingsPanel');
+
+  toggleBtn.addEventListener('click', () => {
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  });
+
+  closeBtn.addEventListener('click', () => {
+    panel.style.display = 'none';
+  });
+
+  const bgInput = document.getElementById('consoleBgColorInput');
+  const textInput = document.getElementById('consoleTextColorInput');
+  const resetColorsBtn = document.getElementById('resetConsoleColorsBtn');
+
+  bgInput.addEventListener('input', (e) => {
+    consoleBgColor = e.target.value;
+    localStorage.setItem(CONSOLE_BG_KEY, consoleBgColor);
+    applyConsoleColors();
+  });
+
+  textInput.addEventListener('input', (e) => {
+    consoleTextColor = e.target.value;
+    localStorage.setItem(CONSOLE_TEXT_KEY, consoleTextColor);
+    applyConsoleColors();
+  });
+
+  resetColorsBtn.addEventListener('click', () => {
+    consoleBgColor = DEFAULT_CONSOLE_BG;
+    consoleTextColor = DEFAULT_CONSOLE_TEXT;
+    localStorage.setItem(CONSOLE_BG_KEY, consoleBgColor);
+    localStorage.setItem(CONSOLE_TEXT_KEY, consoleTextColor);
+    applyConsoleColors();
+  });
+
+  // ── Keyword Rule Add Handler ──
+  function addKeywordRule(keyword, textColor, bgColor, matchCase, bold) {
+    if (!keyword) return;
+    const existingIdx = consoleKeywordRules.findIndex(r => r.keyword === keyword);
+    const newRule = {
+      id: existingIdx >= 0 ? consoleKeywordRules[existingIdx].id : String(Date.now()),
+      keyword,
+      textColor: textColor || '#ff5555',
+      bgColor: bgColor || '#3a0d0d',
+      matchCase: !!matchCase,
+      bold: bold !== undefined ? !!bold : true
+    };
+
+    if (existingIdx >= 0) {
+      consoleKeywordRules[existingIdx] = newRule;
+    } else {
+      consoleKeywordRules.push(newRule);
+    }
+
+    localStorage.setItem(KEYWORD_RULES_KEY, JSON.stringify(consoleKeywordRules));
+    renderKwRulesList();
+    renderConsole();
+  }
+
+  document.getElementById('addKwRuleBtn').addEventListener('click', () => {
+    const kw = document.getElementById('kwInput').value.trim();
+    if (!kw) return;
+    const fg = document.getElementById('kwTextColor').value;
+    const bg = document.getElementById('kwBgColor').value;
+    const mc = document.getElementById('kwMatchCase').checked;
+    const bld = document.getElementById('kwBold').checked;
+
+    addKeywordRule(kw, fg, bg, mc, bld);
+    document.getElementById('kwInput').value = '';
+  });
+
+  document.getElementById('kwInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('addKwRuleBtn').click();
+    }
+  });
+
+  document.querySelectorAll('.kw-preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const kw = btn.dataset.kw;
+      const fg = btn.dataset.fg;
+      const bg = btn.dataset.bg;
+      if (kw) addKeywordRule(kw, fg, bg, false, true);
+    });
+  });
+
+  // Initial colors & rules setup
+  applyConsoleColors();
+  renderKwRulesList();
+  renderConsole();
+
+  // ══════════════════════════════════════════════════════════════
+  // XMODEM / YMODEM FILE UPLOAD ENGINE
+  // ══════════════════════════════════════════════════════════════
+
+  let activeUploadProtocol = null;
+  let uploadRxBuffer = [];
+  let uploadCancelRequested = false;
+
+  function showSerialUploadProgress(show) {
+    document.getElementById('serialUploadProgressBox').style.display = show ? 'block' : 'none';
+    document.getElementById('cancelSerialUploadBtn').style.display = show ? 'block' : 'none';
+    document.getElementById('xmodemUploadBtn').disabled = show || !isConnected;
+    document.getElementById('ymodemUploadBtn').disabled = show || !isConnected;
+  }
+
+  function updateSerialUploadStatus(msg, percent = 0) {
+    document.getElementById('serialUploadStatus').textContent = msg;
+    document.getElementById('serialUploadProgressBar').style.width = `${Math.min(100, Math.max(0, percent))}%`;
+  }
+
+  function finishSerialUpload() {
+    activeUploadProtocol = null;
+    uploadCancelRequested = false;
+    showSerialUploadProgress(false);
+  }
+
+  function handleUploadRxBytes(chunk) {
+    for (let i = 0; i < chunk.length; i++) {
+      uploadRxBuffer.push(chunk[i]);
+    }
+  }
+
+  async function readRxByte(timeoutMs = 10000) {
+    const start = Date.now();
+    while (uploadRxBuffer.length === 0) {
+      if (uploadCancelRequested) return null;
+      if (Date.now() - start > timeoutMs) return null;
+      await delay(10);
+    }
+    return uploadRxBuffer.shift();
+  }
+
+  const SOH = 0x01;
+  const STX = 0x02;
+  const EOT = 0x04;
+  const ACK = 0x06;
+  const NAK = 0x15;
+  const CAN = 0x18;
+  const CHAR_C = 0x43;
+
+  function calcCrc16(bytes) {
+    let crc = 0x0000;
+    for (let i = 0; i < bytes.length; i++) {
+      crc ^= (bytes[i] << 8);
+      for (let j = 0; j < 8; j++) {
+        if (crc & 0x8000) crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+        else crc = (crc << 1) & 0xFFFF;
+      }
+    }
+    return crc;
+  }
+
+  function calcChecksum(bytes) {
+    let sum = 0;
+    for (let i = 0; i < bytes.length; i++) sum = (sum + bytes[i]) & 0xFF;
+    return sum;
+  }
+
+  async function startXmodemUpload(fileBuffer, fileName) {
+    if (!writer) return;
+    activeUploadProtocol = 'xmodem';
+    uploadRxBuffer = [];
+    uploadCancelRequested = false;
+    
+    showSerialUploadProgress(true);
+    updateSerialUploadStatus(`[XMODEM] Waiting for receiver ('C' or NAK)...`, 0);
+
+    let mode = null;
+    let attempts = 0;
+    
+    while (attempts < 40 && !uploadCancelRequested) {
+      const b = await readRxByte(1000);
+      if (b === CHAR_C) { mode = 'crc'; break; }
+      if (b === NAK) { mode = 'checksum'; break; }
+      attempts++;
+    }
+
+    if (!mode || uploadCancelRequested) {
+      appendOutput('\n[XMODEM Error] Handshake timeout. Receiver did not send "C" or NAK.\n');
+      finishSerialUpload();
+      return;
+    }
+
+    const fileData = new Uint8Array(fileBuffer);
+    appendOutput(`\n[XMODEM] Starting upload (${fileName}, ${fileData.length} bytes, ${mode === 'crc' ? 'CRC-16' : 'Checksum'} mode)\n`);
+
+    const totalBlocks = Math.ceil(fileData.length / 128) || 1;
+    let blockNum = 1;
+
+    for (let i = 0; i < totalBlocks; i++) {
+      if (uploadCancelRequested) {
+        await writer.write(new Uint8Array([CAN, CAN, CAN]));
+        appendOutput('\n[XMODEM] Transfer cancelled by user.\n');
+        finishSerialUpload();
+        return;
+      }
+
+      const blockData = new Uint8Array(128);
+      blockData.fill(0x1A);
+      const startIdx = i * 128;
+      const endIdx = Math.min(fileData.length, startIdx + 128);
+      blockData.set(fileData.subarray(startIdx, endIdx));
+
+      const pktLen = mode === 'crc' ? 3 + 128 + 2 : 3 + 128 + 1;
+      const pkt = new Uint8Array(pktLen);
+      const blkIdx = blockNum & 0xFF;
+      const invBlkIdx = (255 - blkIdx) & 0xFF;
+
+      pkt[0] = SOH;
+      pkt[1] = blkIdx;
+      pkt[2] = invBlkIdx;
+      pkt.set(blockData, 3);
+
+      if (mode === 'crc') {
+        const crc = calcCrc16(blockData);
+        pkt[3 + 128] = (crc >> 8) & 0xFF;
+        pkt[3 + 128 + 1] = crc & 0xFF;
+      } else {
+        pkt[3 + 128] = calcChecksum(blockData);
+      }
+
+      let retry = 0;
+      let acked = false;
+
+      while (retry < 10 && !acked && !uploadCancelRequested) {
+        uploadRxBuffer = [];
+        await writer.write(pkt);
+        const pct = Math.floor((blockNum / totalBlocks) * 100);
+        updateSerialUploadStatus(`[XMODEM] Block ${blockNum}/${totalBlocks} (${pct}%)`, pct);
+
+        const resp = await readRxByte(5000);
+        if (resp === ACK) {
+          acked = true;
+          blockNum++;
+        } else if (resp === CAN) {
+          appendOutput('\n[XMODEM] Cancelled by receiver.\n');
+          finishSerialUpload();
+          return;
+        } else {
+          retry++;
+        }
+      }
+
+      if (!acked) {
+        appendOutput(`\n[XMODEM Error] Block ${blockNum} failed after 10 retries.\n`);
+        finishSerialUpload();
+        return;
+      }
+    }
+
+    let eotAcked = false;
+    for (let e = 0; e < 5 && !eotAcked; e++) {
+      uploadRxBuffer = [];
+      await writer.write(new Uint8Array([EOT]));
+      const resp = await readRxByte(3000);
+      if (resp === ACK) eotAcked = true;
+    }
+
+    appendOutput(`\n[XMODEM] ✓ Upload complete (${fileData.length} bytes sent).\n`);
+    finishSerialUpload();
+  }
+
+  async function startYmodemUpload(fileBuffer, fileName) {
+    if (!writer) return;
+    activeUploadProtocol = 'ymodem';
+    uploadRxBuffer = [];
+    uploadCancelRequested = false;
+
+    showSerialUploadProgress(true);
+    updateSerialUploadStatus(`[YMODEM] Waiting for receiver 'C'...`, 0);
+
+    let attempts = 0;
+    let started = false;
+    while (attempts < 40 && !uploadCancelRequested) {
+      const b = await readRxByte(1000);
+      if (b === CHAR_C) { started = true; break; }
+      attempts++;
+    }
+
+    if (!started || uploadCancelRequested) {
+      appendOutput('\n[YMODEM Error] Handshake timeout. Receiver did not send "C".\n');
+      finishSerialUpload();
+      return;
+    }
+
+    const fileData = new Uint8Array(fileBuffer);
+    appendOutput(`\n[YMODEM] Starting upload (${fileName}, ${fileData.length} bytes)\n`);
+
+    async function sendYmodemBlock(blkIdx, dataBytes, is1K = false) {
+      const len = is1K ? 1024 : 128;
+      const pkt = new Uint8Array(3 + len + 2);
+      pkt[0] = is1K ? STX : SOH;
+      pkt[1] = blkIdx & 0xFF;
+      pkt[2] = (255 - (blkIdx & 0xFF)) & 0xFF;
+      
+      const payload = new Uint8Array(len);
+      payload.fill(0x00);
+      payload.set(dataBytes.subarray(0, len));
+      pkt.set(payload, 3);
+
+      const crc = calcCrc16(payload);
+      pkt[3 + len] = (crc >> 8) & 0xFF;
+      pkt[3 + len + 1] = crc & 0xFF;
+
+      let retry = 0;
+      while (retry < 10 && !uploadCancelRequested) {
+        uploadRxBuffer = [];
+        await writer.write(pkt);
+        const resp = await readRxByte(5000);
+        if (resp === ACK) return true;
+        if (resp === CAN) return false;
+        retry++;
+      }
+      return false;
+    }
+
+    // Block 0
+    const hdrPayload = new Uint8Array(128);
+    const fileSpecStr = `${fileName}\0${fileData.length}\0`;
+    const specBytes = new TextEncoder().encode(fileSpecStr);
+    hdrPayload.set(specBytes.subarray(0, 128));
+
+    updateSerialUploadStatus(`[YMODEM] Sending header block...`, 0);
+    const hdrOk = await sendYmodemBlock(0, hdrPayload, false);
+    if (!hdrOk) {
+      appendOutput('\n[YMODEM Error] Header block 0 failed.\n');
+      finishSerialUpload();
+      return;
+    }
+
+    const dataStartC = await readRxByte(5000);
+    if (dataStartC !== CHAR_C) {
+      appendOutput('\n[YMODEM Error] Receiver did not request data after header.\n');
+      finishSerialUpload();
+      return;
+    }
+
+    const totalBlocks = Math.ceil(fileData.length / 1024) || 1;
+    let blkNum = 1;
+
+    for (let i = 0; i < totalBlocks; i++) {
+      if (uploadCancelRequested) {
+        await writer.write(new Uint8Array([CAN, CAN, CAN]));
+        appendOutput('\n[YMODEM] Transfer cancelled by user.\n');
+        finishSerialUpload();
+        return;
+      }
+
+      const startIdx = i * 1024;
+      const blockChunk = fileData.subarray(startIdx, startIdx + 1024);
+      const pct = Math.floor((blkNum / totalBlocks) * 100);
+
+      updateSerialUploadStatus(`[YMODEM] Block ${blkNum}/${totalBlocks} (${pct}%)`, pct);
+      const blockOk = await sendYmodemBlock(blkNum, blockChunk, true);
+      if (!blockOk) {
+        appendOutput(`\n[YMODEM Error] Block ${blkNum} failed.\n`);
+        finishSerialUpload();
+        return;
+      }
+      blkNum++;
+    }
+
+    uploadRxBuffer = [];
+    await writer.write(new Uint8Array([EOT]));
+    let eotResp = await readRxByte(3000);
+
+    if (eotResp === NAK) {
+      uploadRxBuffer = [];
+      await writer.write(new Uint8Array([EOT]));
+      eotResp = await readRxByte(3000);
+    }
+
+    if (eotResp === ACK) {
+      const endC = await readRxByte(3000);
+      if (endC === CHAR_C) {
+        const emptyBlk = new Uint8Array(128);
+        await sendYmodemBlock(0, emptyBlk, false);
+      }
+    }
+
+    appendOutput(`\n[YMODEM] ✓ Upload complete (${fileData.length} bytes sent).\n`);
+    finishSerialUpload();
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // ADB FILE PUSH ENGINE
+  // ══════════════════════════════════════════════════════════════
+
+  let selectedAdbPushFile = null;
+
+  function showAdbPushProgress(show) {
+    document.getElementById('adbPushProgressBox').style.display = show ? 'block' : 'none';
+  }
+
+  function updateAdbPushStatus(msg, percent = 0) {
+    document.getElementById('adbPushStatus').textContent = msg;
+    document.getElementById('adbPushProgressBar').style.width = `${Math.min(100, Math.max(0, percent))}%`;
+  }
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  async function pushFileAdb(fileObj, remotePath) {
+    if (!isAdbConnected || !adbClient) throw new Error('ADB not connected');
+
+    showAdbPushProgress(true);
+    updateAdbPushStatus(`Opening sync stream...`, 0);
+
+    const syncStream = await adbClient.openStream('sync:\0', null, () => {});
+
+    try {
+      let finalPath = remotePath.trim();
+      if (!finalPath.startsWith('/')) finalPath = '/' + finalPath;
+      if (finalPath.endsWith('/')) {
+        finalPath += fileObj.name;
+      }
+
+      appendAdbOutput(`\n[ADB Push] Sending ${fileObj.name} (${formatBytes(fileObj.size)}) to ${finalPath}...\n`);
+      updateAdbPushStatus(`Reading local file...`, 0);
+
+      const destSpec = `${finalPath},33188`;
+      const destSpecBytes = new TextEncoder().encode(destSpec);
+
+      const sendHdr = new DataView(new ArrayBuffer(8));
+      sendHdr.setUint32(0, 0x444e4553, true); // "SEND"
+      sendHdr.setUint32(4, destSpecBytes.length, true);
+
+      const initReq = new Uint8Array(8 + destSpecBytes.length);
+      initReq.set(new Uint8Array(sendHdr.buffer), 0);
+      initReq.set(destSpecBytes, 8);
+
+      await syncStream.send(initReq);
+
+      const reader = new FileReader();
+      const arrayBuffer = await new Promise((resolve, reject) => {
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(fileObj);
+      });
+
+      const fileBytes = new Uint8Array(arrayBuffer);
+      const CHUNK_SIZE = 64 * 1024;
+      const totalBytes = fileBytes.length;
+      let sentBytes = 0;
+
+      for (let offset = 0; offset < totalBytes; offset += CHUNK_SIZE) {
+        const chunkSize = Math.min(CHUNK_SIZE, totalBytes - offset);
+        const chunkData = fileBytes.subarray(offset, offset + chunkSize);
+
+        const dataHdr = new DataView(new ArrayBuffer(8));
+        dataHdr.setUint32(0, 0x41544144, true); // "DATA"
+        dataHdr.setUint32(4, chunkSize, true);
+
+        const packet = new Uint8Array(8 + chunkSize);
+        packet.set(new Uint8Array(dataHdr.buffer), 0);
+        packet.set(chunkData, 8);
+
+        await syncStream.send(packet);
+        sentBytes += chunkSize;
+
+        const pct = Math.min(100, Math.floor((sentBytes / totalBytes) * 100));
+        updateAdbPushStatus(`Pushing: ${pct}% (${formatBytes(sentBytes)} / ${formatBytes(totalBytes)})`, pct);
+      }
+
+      const nowSec = Math.floor(Date.now() / 1000);
+      const doneHdr = new DataView(new ArrayBuffer(8));
+      doneHdr.setUint32(0, 0x454e4f44, true); // "DONE"
+      doneHdr.setUint32(4, nowSec, true);
+
+      await syncStream.send(new Uint8Array(doneHdr.buffer));
+
+      updateAdbPushStatus(`Finished!`, 100);
+      appendAdbOutput(`[ADB Push] ✓ Success: ${fileObj.name} pushed to ${finalPath}\n`);
+
+    } catch (err) {
+      appendAdbOutput(`\n[ADB Push Error] ${err.message}\n`);
+    } finally {
+      await syncStream.close().catch(() => {});
+      setTimeout(() => showAdbPushProgress(false), 2000);
+    }
+  }
+
+  // ── Serial Upload (XMODEM / YMODEM) Event Listeners ──
+  const serialFileInput = document.getElementById('serialUploadFileInput');
+  const xmodemBtn = document.getElementById('xmodemUploadBtn');
+  const ymodemBtn = document.getElementById('ymodemUploadBtn');
+  const cancelSerialUploadBtn = document.getElementById('cancelSerialUploadBtn');
+
+  let pendingSerialProtocol = null;
+
+  xmodemBtn.addEventListener('click', () => {
+    if (!isConnected || !writer) return;
+    pendingSerialProtocol = 'xmodem';
+    serialFileInput.value = '';
+    serialFileInput.click();
+  });
+
+  ymodemBtn.addEventListener('click', () => {
+    if (!isConnected || !writer) return;
+    pendingSerialProtocol = 'ymodem';
+    serialFileInput.value = '';
+    serialFileInput.click();
+  });
+
+  serialFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file || !pendingSerialProtocol) return;
+    const proto = pendingSerialProtocol;
+    pendingSerialProtocol = null;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (proto === 'xmodem') {
+        startXmodemUpload(ev.target.result, file.name);
+      } else if (proto === 'ymodem') {
+        startYmodemUpload(ev.target.result, file.name);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  cancelSerialUploadBtn.addEventListener('click', () => {
+    uploadCancelRequested = true;
+  });
+
+  // ── ADB File Push Event Listeners ──
+  const adbFileInput = document.getElementById('adbPushFileInput');
+  const adbSelectFileBtn = document.getElementById('adbSelectFileBtn');
+  const adbFileLabel = document.getElementById('adbSelectedFileLabel');
+  const adbPushBtn = document.getElementById('adbPushBtn');
+  const adbTargetPathInput = document.getElementById('adbPushTargetPath');
+
+  adbSelectFileBtn.addEventListener('click', () => {
+    adbFileInput.value = '';
+    adbFileInput.click();
+  });
+
+  adbFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      selectedAdbPushFile = file;
+      adbFileLabel.textContent = `📄 ${file.name} (${formatBytes(file.size)})`;
+      adbPushBtn.disabled = !isAdbConnected;
+    } else {
+      selectedAdbPushFile = null;
+      adbFileLabel.textContent = 'No file selected';
+      adbPushBtn.disabled = true;
+    }
+  });
+
+  document.querySelectorAll('.adb-path-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = btn.dataset.path;
+      if (p) adbTargetPathInput.value = p;
+    });
+  });
+
+  adbPushBtn.addEventListener('click', async () => {
+    if (!isAdbConnected || !selectedAdbPushFile) return;
+    const targetPath = adbTargetPathInput.value.trim() || '/sdcard/Download/';
+    adbPushBtn.disabled = true;
+    try {
+      await pushFileAdb(selectedAdbPushFile, targetPath);
+    } catch(err) {
+      appendAdbOutput(`\n[ADB Push Error] ${err.message}\n`);
+    } finally {
+      adbPushBtn.disabled = !isAdbConnected || !selectedAdbPushFile;
+    }
+  });
+
+  renderHistory();
+});
+</script>
+</body>
+</html>
