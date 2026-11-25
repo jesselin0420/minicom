@@ -343,19 +343,43 @@
     .builder-pane { flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
     .builder-pane-title { font-size: 13px; font-weight: bold; color: #a0cfff; }
 
-    /* ── Connection bar above each console ── */
-    .conn-panel { background: #0d1929; border: 1px solid #2a3a5a; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
-    .console-pane .conn-panel { flex: 1 0 auto; } /* side-by-side: shorter bar stretches so both consoles line up */
-    .conn-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-    .conn-field { display: flex; align-items: center; gap: 5px; }
-    .conn-field label { margin: 0; }
-    .conn-field select { flex: 0 0 auto; }
-    .conn-row-label { font-size: 11px; color: #4a6a8a; text-transform: uppercase; letter-spacing: 0.07em; min-width: 44px; }
+    /* ── Toolbar card above each console ── */
+    .pane-bar { background: linear-gradient(180deg, #13223f 0%, #0f1c33 100%); border: 1px solid #2a3a5a; border-radius: 8px; margin-bottom: 8px; display: flex; flex-direction: column; }
+    .console-pane .pane-bar { flex: 1 0 auto; } /* side by side: shorter card stretches so both consoles line up */
+    .bar-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #22314f; }
+    .bar-title { font-size: 14px; font-weight: bold; color: #cfe4ff; letter-spacing: 0.02em; }
+    .bar-spacer { flex: 1; }
+    .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: #0a1527; border: 1px solid #24365a; font-size: 11px; color: #7f9cc0; white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+    .status-pill.adb-status-badge { margin: 0; }
+    .status-pill .adb-status-text { font-size: 11px; }
+    #adbDeviceInfo { display: none; font-size: 11px; color: #7fd0e0; font-family: 'Courier New', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+    .ghost-btn { padding: 4px 8px; font-size: 13px; background: transparent !important; border: 1px solid #2a3a5a !important; color: #8fb0d8 !important; }
+    .ghost-btn:hover { background: #16294a !important; }
+    .pane-bar #connectButton, .pane-bar #adbConnectButton { width: auto; margin: 0; padding: 6px 16px; font-size: 13px; border-radius: 6px; }
+    .bar-body { display: flex; align-items: center; align-content: flex-start; flex-wrap: wrap; gap: 8px; padding: 10px; flex: 1 1 auto; }
+    .bar-body > * { align-self: flex-start; }
+    .bar-body > .bar-label { line-height: 26px; }
+    .bar-label { font-size: 10px; color: #5f7ea6; text-transform: uppercase; letter-spacing: 0.08em; }
+    .field-strip { display: inline-flex; border: 1px solid #2a4170; border-radius: 6px; overflow: hidden; background: #0a1730; }
+    .strip-field { display: flex; flex-direction: column; padding: 3px 10px 4px; border-left: 1px solid #22355c; }
+    .strip-field:first-child { border-left: none; }
+    .strip-field span { font-size: 9px; color: #5f7ea6; text-transform: uppercase; letter-spacing: 0.08em; }
+    .strip-field select { background: transparent; border: none; padding: 1px 0; font-size: 13px; color: #e0ecff; font-weight: bold; cursor: pointer; }
+    .strip-field select option { background: #0f3460; }
+    .strip-field select:focus { outline: none; }
+    .bar-body .adb-quick-grid { gap: 5px; }
+    .bar-body .adb-quick-btn { padding: 4px 10px; border-radius: 999px; }
+    .bar-more { border-top: 1px solid #22314f; }
+    .bar-more summary { cursor: pointer; padding: 6px 10px; font-size: 11px; color: #6f8fb8; list-style: none; user-select: none; }
+    .bar-more summary::-webkit-details-marker { display: none; }
+    .bar-more summary::before { content: '▸ '; }
+    .bar-more[open] summary::before { content: '▾ '; }
+    .bar-more summary:hover { color: #a0cfff; }
+    .bar-more-body { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 10px 10px; }
     .conn-small-btn { font-size: 12px; padding: 4px 10px; }
-    .conn-progress { flex: 1 1 200px; padding: 5px 8px; background: #0d1929; border: 1px solid #2a3a5a; border-radius: 5px; }
-    .conn-panel #connectButton, .conn-panel #adbConnectButton { width: auto; margin-top: 0; padding: 5px 14px; }
-    .conn-panel .adb-status-badge { margin-bottom: 0; }
-    .conn-panel #adbDeviceInfo { margin-bottom: 0; padding: 4px 8px; }
+    .mono-note { font-size: 11px; color: #5a9aaa; font-family: monospace; word-break: break-all; }
+    #adbPushTargetPath { width: 170px; padding: 4px 8px; background: #0f1f3a; color: #e0e0e0; border: 1px solid #2a3a5a; border-radius: 4px; font-size: 12px; font-family: monospace; }
+    #serialUploadProgressBox, #adbPushProgressBox { flex: 1 1 100%; margin-top: 2px; padding: 5px 8px; background: #0d1929; border: 1px solid #2a3a5a; border-radius: 5px; }
 
     /* Output action buttons */
     .output-actions {
@@ -465,6 +489,8 @@
     .palette-block.math-palette { background: #c62828; border-color: #ef5350; color: #ffebee; box-shadow: 0 2px 12px rgba(239,83,80,0.35); }
     .palette-block.plot-palette { background: #e91e63; border-color: #f48fb1; color: #fce4ec; box-shadow: 0 2px 12px rgba(233,30,99,0.35); }
     .palette-block.parsestr-palette { background: #00695c; border-color: #26a69a; color: #e0f2f1; box-shadow: 0 2px 12px rgba(38,166,154,0.35); }
+    .palette-block.signal-palette { background: #0277bd; border-color: #4fc3f7; color: #e1f5fe; box-shadow: 0 2px 12px rgba(79,195,247,0.35); }
+    .palette-block.waitsignal-palette { background: #4527a0; border-color: #9575cd; color: #ede7f6; box-shadow: 0 2px 12px rgba(149,117,205,0.35); }
     .palette-block:active { cursor: grabbing; transform: scale(0.97); }
     .script-canvas {
       min-height: 180px;
@@ -579,6 +605,28 @@
       border-left-color: #00bfa5;
       box-shadow: 0 1px 8px rgba(0,191,165,0.15);
     }
+    .script-block-signal { background: #01304a; border-color: #4fc3f7; border-left-color: #0288d1; box-shadow: 0 1px 8px rgba(79,195,247,0.15); }
+    .script-block-waitsignal { background: #1f1440; border-color: #9575cd; border-left-color: #5e35b1; box-shadow: 0 1px 8px rgba(149,117,205,0.15); }
+    /* block form rows */
+    .script-block-controls { flex-direction: column; flex-wrap: nowrap; }
+    .blk-row { display: flex; align-items: center; gap: 6px; width: 100%; flex-wrap: wrap; }
+    .blk-row > label { margin: 0; font-size: 11px; color: #a8bcd8; white-space: nowrap; }
+    .script-block-controls .blk-row input[type="text"], .script-block-controls .blk-row select { width: auto; flex: 1 1 120px; min-width: 0; }
+    .blk-check { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #a8bcd8; cursor: pointer; }
+    .script-block-controls .blk-check input { width: auto; }
+    .blk-hint { font-size: 11px; color: #7f98b8; line-height: 1.4; }
+    .blk-result { font-size: 12px; color: #80e5ff; min-height: 14px; font-family: 'Courier New', monospace; }
+    .blk-branch { font-size: 12px; color: #9abcff; margin-top: 4px; }
+    .blk-test { font-size: 11px; padding: 4px 8px; flex: 0 0 auto; }
+    .builder-tips { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #8aa4c4; margin: -4px 0 12px; }
+    .builder-tips code { background: #0d1929; border: 1px solid #2a3a5a; border-radius: 3px; padding: 0 4px; color: #a0e0ff; }
+    .blk-help-btn { width: 22px; height: 22px; padding: 0; border-radius: 50%; font-size: 12px; font-weight: bold; background: #10294d; border: 1px solid #3a6aa8; color: #9cc8ff; cursor: pointer; }
+    .blk-help-btn.on { background: #2a5a9a; color: #fff; }
+    .blk-help { font-size: 12px; line-height: 1.6; color: #d8e6ff; background: rgba(5, 12, 28, 0.85); border: 1px solid #2f4f80; border-radius: 6px; padding: 8px 10px; }
+    .blk-help ul { margin: 4px 0; padding-left: 18px; }
+    .blk-help code { background: #0d1d38; border: 1px solid #2a4170; border-radius: 3px; padding: 0 4px; color: #8ff0c0; font-size: 12px; }
+    .example-select { flex: 0 0 auto; padding: 4px 8px; font-size: 12px; }
+    .signal-log { color: #4fc3f7; font-family: 'Courier New', monospace; min-height: 14px; }
     .script-block-item.running {
       box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.5), 0 0 16px rgba(255, 215, 0, 0.2);
       border-color: #ffd700;
@@ -690,16 +738,18 @@
       <div class="console-split">
         <!-- UART console -->
         <div class="console-pane" data-pane="console-uart">
-          <div class="console-pane-header">
-            <span class="console-pane-title">📡 UART</span>
-            <button id="saveButton" class="pane-btn">💾 Save</button>
-            <button id="clearButton" class="pane-btn">🗑 Clear</button>
-          </div>
-          <!-- UART connection settings -->
-          <div class="conn-panel">
-            <div class="conn-row">
-              <div class="conn-field"><label for="baudRateSelect">Baud</label>
-                <select id="baudRateSelect">
+          <div class="pane-bar">
+            <div class="bar-head">
+              <span class="bar-title">📡 UART</span>
+              <span class="status-pill"><span class="adb-status-dot" id="serialStatusDot"></span><span id="serialStatusText">Disconnected</span></span>
+              <span class="bar-spacer"></span>
+              <button id="saveButton" class="ghost-btn" title="Save UART output">💾</button>
+              <button id="clearButton" class="ghost-btn" title="Clear UART output">🗑</button>
+              <button id="connectButton">⚡ Connect</button>
+            </div>
+            <div class="bar-body">
+              <div class="field-strip" title="Serial line settings">
+                <div class="strip-field"><span>Baud</span><select id="baudRateSelect">
           <option value="300">300</option>
           <option value="600">600</option>
           <option value="1200">1200</option>
@@ -717,46 +767,41 @@
           <option value="1000000">1000000</option>
           <option value="1500000">1500000</option>
           <option value="2000000">2000000</option>
-        </select>
-              </div>
-              <div class="conn-field"><label for="dataBitsSelect">Data</label>
-                <select id="dataBitsSelect">
+        </select></div>
+                <div class="strip-field"><span>Data</span><select id="dataBitsSelect">
           <option value="5">5</option>
           <option value="6">6</option>
           <option value="7">7</option>
           <option value="8" selected>8</option>
-        </select>
-              </div>
-              <div class="conn-field"><label for="stopBitsSelect">Stop</label>
-                <select id="stopBitsSelect">
+        </select></div>
+                <div class="strip-field"><span>Stop</span><select id="stopBitsSelect">
           <option value="1" selected>1</option>
           <option value="2">2</option>
-        </select>
-              </div>
-              <div class="conn-field"><label for="paritySelect">Parity</label>
-                <select id="paritySelect">
+        </select></div>
+                <div class="strip-field"><span>Parity</span><select id="paritySelect">
           <option value="none" selected>None</option>
           <option value="even">Even</option>
           <option value="odd">Odd</option>
           <option value="mark">Mark</option>
           <option value="space">Space</option>
-        </select>
+        </select></div>
               </div>
-              <button id="connectButton">⚡ Connect</button>
             </div>
-            <div class="conn-row">
-              <span class="conn-row-label">File Upload</span>
-              <input type="file" id="serialUploadFileInput" style="display:none">
-              <button id="xmodemUploadBtn" class="conn-small-btn" disabled>📤 XMODEM Send</button>
-              <button id="ymodemUploadBtn" class="conn-small-btn" disabled>📤 YMODEM Send</button>
-              <button id="cancelSerialUploadBtn" class="conn-small-btn" style="display:none; background:#4a1a1a; border-color:#7a2a2a; color:#ff8080;">✕ Cancel Transfer</button>
-              <div id="serialUploadProgressBox" class="conn-progress" style="display:none;">
+            <details class="bar-more">
+              <summary>File transfer (XMODEM / YMODEM)</summary>
+              <div class="bar-more-body">
+                <input type="file" id="serialUploadFileInput" style="display:none">
+                <button id="xmodemUploadBtn" class="conn-small-btn" disabled>📤 XMODEM Send</button>
+                <button id="ymodemUploadBtn" class="conn-small-btn" disabled>📤 YMODEM Send</button>
+                <button id="cancelSerialUploadBtn" class="conn-small-btn" style="display:none; background:#4a1a1a; border-color:#7a2a2a; color:#ff8080;">✕ Cancel</button>
+                <div id="serialUploadProgressBox" class="conn-progress" style="display:none;">
                 <div style="font-size:11px; color:#80c8ff; margin-bottom:4px; word-break:break-all;" id="serialUploadStatus">Preparing...</div>
                 <div style="width:100%; background:#16213e; height:8px; border-radius:4px; overflow:hidden;">
                   <div id="serialUploadProgressBar" style="width:0%; height:100%; background:#2aee2a; transition:width 0.1s;"></div>
                 </div>
               </div>
-            </div>
+              </div>
+            </details>
           </div>
           <div id="uartOutput" tabindex="0" class="console-output empty"
             data-placeholder="⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom).">
@@ -765,24 +810,18 @@
 
         <!-- ADB console -->
         <div class="console-pane" data-pane="console-adb">
-          <div class="console-pane-header">
-            <span class="console-pane-title">🤖 ADB</span>
-            <button id="adbSaveButton" class="pane-btn">💾 Save</button>
-            <button id="adbClearButton" class="pane-btn">🗑 Clear</button>
-          </div>
-          <!-- ADB connection -->
-          <div class="conn-panel">
-            <div class="conn-row">
-              <div class="adb-status-badge">
-                <div class="adb-status-dot" id="adbStatusDot"></div>
-                <span class="adb-status-text" id="adbStatusText">Disconnected</span>
-              </div>
-              <div id="adbDeviceInfo"></div>
-              <button id="adbConnectButton">🤖 Connect ADB</button>
-              <button id="adbResetKeyBtn" class="conn-small-btn" title="Delete stored RSA key and generate a new one (forces re-authorization on device)" style="background:transparent;border-color:#3a2a1a;color:#7a5a3a;">🔑 Reset RSA Key</button>
+          <div class="pane-bar">
+            <div class="bar-head">
+              <span class="bar-title">🤖 ADB</span>
+              <span class="status-pill adb-status-badge"><span class="adb-status-dot" id="adbStatusDot"></span><span class="adb-status-text" id="adbStatusText">Disconnected</span></span>
+              <span id="adbDeviceInfo"></span>
+              <span class="bar-spacer"></span>
+              <button id="adbSaveButton" class="ghost-btn" title="Save ADB output">💾</button>
+              <button id="adbClearButton" class="ghost-btn" title="Clear ADB output">🗑</button>
+              <button id="adbConnectButton">🤖 Connect</button>
             </div>
-            <div class="conn-row">
-              <span class="conn-row-label">Quick</span>
+            <div class="bar-body">
+              <span class="bar-label">Quick</span>
               <div class="adb-quick-grid">
           <button class="adb-quick-btn" data-cmd="getprop ro.product.model" disabled>Model</button>
           <button class="adb-quick-btn" data-cmd="getprop ro.build.version.release" disabled>Android</button>
@@ -794,27 +833,30 @@
           <button class="adb-quick-btn" data-cmd="pm list packages -3" disabled>Apps</button>
         </div>
             </div>
-            <div class="conn-row">
-              <span class="conn-row-label">Push</span>
-              <input type="file" id="adbPushFileInput" style="display:none">
-              <button id="adbSelectFileBtn" class="conn-small-btn" style="background:#0f2040; border:1px solid #1a4060; color:#a0cfff;">📁 Select File</button>
-              <span id="adbSelectedFileLabel" style="font-size:11px; color:#5a9aaa; font-family:monospace; word-break:break-all;">No file selected</span>
-              <span style="font-size:11px; color:#4a6a8a;">→</span>
-              <input type="text" id="adbPushTargetPath" value="/sdcard/Download/" placeholder="/sdcard/Download/" title="Target location on device" style="width:170px; padding:4px 8px; background:#0f1f3a; color:#e0e0e0; border:1px solid #2a3a5a; border-radius:4px; font-size:12px; font-family:monospace;">
-              <button class="adb-path-preset" data-path="/sdcard/Download/" style="font-size:10px; padding:2px 6px; background:#0d1929; border:1px solid #2a3a5a; color:#7090c0; border-radius:3px; cursor:pointer;">/sdcard/Download/</button>
+            <details class="bar-more">
+              <summary>File push &amp; key</summary>
+              <div class="bar-more-body">
+                <input type="file" id="adbPushFileInput" style="display:none">
+                <button id="adbSelectFileBtn" class="conn-small-btn">📁 Select File</button>
+                <span id="adbSelectedFileLabel" class="mono-note">No file selected</span>
+                <span class="mono-note">→</span>
+                <input type="text" id="adbPushTargetPath" value="/sdcard/Download/" placeholder="/sdcard/Download/" title="Target location on device">
+                <button class="adb-path-preset" data-path="/sdcard/Download/" style="font-size:10px; padding:2px 6px; background:#0d1929; border:1px solid #2a3a5a; color:#7090c0; border-radius:3px; cursor:pointer;">/sdcard/Download/</button>
           <button class="adb-path-preset" data-path="/sdcard/" style="font-size:10px; padding:2px 6px; background:#0d1929; border:1px solid #2a3a5a; color:#7090c0; border-radius:3px; cursor:pointer;">/sdcard/</button>
           <button class="adb-path-preset" data-path="/data/local/tmp/" style="font-size:10px; padding:2px 6px; background:#0d1929; border:1px solid #2a3a5a; color:#7090c0; border-radius:3px; cursor:pointer;">/tmp/</button>
-              <button id="adbPushBtn" class="conn-small-btn" disabled style="background:#1a5a3a; border-color:#2a8a5a; color:#80ffb0; font-weight:bold;">📤 Push</button>
-              <div id="adbPushProgressBox" class="conn-progress" style="display:none;">
+                <button id="adbPushBtn" class="conn-small-btn" disabled style="background:#1a5a3a; border-color:#2a8a5a; color:#80ffb0; font-weight:bold;">📤 Push</button>
+                <button id="adbResetKeyBtn" class="conn-small-btn" title="Delete stored RSA key and generate a new one (forces re-authorization on device)" style="margin-left:auto; background:transparent; border-color:#3a2a1a; color:#9a7a5a;">🔑 Reset RSA Key</button>
+                <div id="adbPushProgressBox" class="conn-progress" style="display:none;">
                 <div style="font-size:11px; color:#80ffb0; margin-bottom:4px; word-break:break-all;" id="adbPushStatus">Pushing file...</div>
                 <div style="width:100%; background:#16213e; height:8px; border-radius:4px; overflow:hidden;">
                   <div id="adbPushProgressBar" style="width:0%; height:100%; background:#2aee2a; transition:width 0.1s;"></div>
                 </div>
               </div>
-            </div>
+              </div>
+            </details>
           </div>
           <div id="adbOutput" tabindex="0" class="console-output empty"
-            data-placeholder="🤖 ADB offline. Click Connect ADB (ADB tab on the left), then type commands directly in this window.">
+            data-placeholder="🤖 ADB offline. Click Connect above, then type shell commands directly in this window.">
           </div>
         </div>
       </div>
@@ -900,6 +942,15 @@
     <div class="panel">
       <div class="panel-head">
         <h2>Script Builder</h2>
+        <select id="exampleSelect" class="example-select" title="載入一個完整的範例 script"><option value="">📚 載入範例…</option></select>
+        <button id="runBothBtn" class="pane-btn" title="Run the UART and ADB scripts together">▶ Run both</button>
+        <button id="stopBothBtn" class="pane-btn" title="Stop all running scripts">■ Stop all</button>
+      </div>
+      <div class="builder-tips">
+        <span>💡 Variables: <code>$name</code> or <code>${name}</code> — works in every field. A <code>$NAME</code> the script never set is sent as-is (shell variables keep working).</span>
+        <span>🔗 Sync: <b>📣 Notify</b> in one script, <b>👂 Wait Notify</b> with the same name in the other.</span>
+        <span>❔ 每個積木右上角的 <b>?</b> 有說明和範例；不知道怎麼開始，可以從 <b>📚 載入範例</b> 看完整的 script。</span>
+        <span id="signalLog" class="signal-log"></span>
       </div>
       <div class="builder-split">
         <div class="builder-pane" data-pane="script-uart" data-builder="uart">
@@ -908,7 +959,7 @@
           <button class="script-block palette-block command-palette" data-block-type="command" draggable="true">⛳ Command</button>
           <button class="script-block palette-block delay-palette" data-block-type="delay" draggable="true">⏱ Delay</button>
           <button class="script-block palette-block read-palette" data-block-type="read" draggable="true">📥 Read</button>
-          <button class="script-block palette-block parsestr-palette" data-block-type="parsestr" draggable="true">✂️ String</button>
+          <button class="script-block palette-block parsestr-palette" data-block-type="parsestr" draggable="true">✂️ Get Value</button>
           <button class="script-block palette-block print-palette" data-block-type="print" draggable="true">🖨 Print</button>
           <button class="script-block palette-block setvar-palette" data-block-type="setvar" draggable="true">📌 Set Var</button>
           <button class="script-block palette-block waitfor-palette" data-block-type="waitfor" draggable="true">⏳ Wait For</button>
@@ -916,6 +967,8 @@
           <button class="script-block palette-block plot-palette" data-block-type="plot" draggable="true">📈 Plot</button>
           <button class="script-block palette-block condition-palette" data-block-type="condition" draggable="true">❓ If</button>
           <button class="script-block palette-block repeat-palette" data-block-type="repeat" draggable="true">🔁 Loop</button>
+          <button class="script-block palette-block signal-palette" data-block-type="signal" draggable="true">📣 Notify</button>
+          <button class="script-block palette-block waitsignal-palette" data-block-type="waitsignal" draggable="true">👂 Wait Notify</button>
         </div>
 
           <div class="script-canvas script-root-canvas" data-target="uart"></div>
@@ -938,7 +991,7 @@
           <button class="script-block palette-block command-palette" data-block-type="command" draggable="true">⛳ Command</button>
           <button class="script-block palette-block delay-palette" data-block-type="delay" draggable="true">⏱ Delay</button>
           <button class="script-block palette-block read-palette" data-block-type="read" draggable="true">📥 Read</button>
-          <button class="script-block palette-block parsestr-palette" data-block-type="parsestr" draggable="true">✂️ String</button>
+          <button class="script-block palette-block parsestr-palette" data-block-type="parsestr" draggable="true">✂️ Get Value</button>
           <button class="script-block palette-block print-palette" data-block-type="print" draggable="true">🖨 Print</button>
           <button class="script-block palette-block setvar-palette" data-block-type="setvar" draggable="true">📌 Set Var</button>
           <button class="script-block palette-block waitfor-palette" data-block-type="waitfor" draggable="true">⏳ Wait For</button>
@@ -946,6 +999,8 @@
           <button class="script-block palette-block plot-palette" data-block-type="plot" draggable="true">📈 Plot</button>
           <button class="script-block palette-block condition-palette" data-block-type="condition" draggable="true">❓ If</button>
           <button class="script-block palette-block repeat-palette" data-block-type="repeat" draggable="true">🔁 Loop</button>
+          <button class="script-block palette-block signal-palette" data-block-type="signal" draggable="true">📣 Notify</button>
+          <button class="script-block palette-block waitsignal-palette" data-block-type="waitsignal" draggable="true">👂 Wait Notify</button>
         </div>
 
           <div class="script-canvas script-root-canvas" data-target="adb"></div>
@@ -1376,6 +1431,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ansiBuffer = '';
 
       isConnected = true;
+      setSerialStatus(true);
       const btn = document.getElementById('connectButton');
       btn.textContent = '✕ Disconnect';
       btn.classList.add('disconnect');
@@ -1426,8 +1482,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function setSerialStatus(connected) {
+    document.getElementById('serialStatusDot').className = 'adb-status-dot' + (connected ? ' connected' : '');
+    document.getElementById('serialStatusText').textContent = connected
+      ? `Connected · ${document.getElementById('baudRateSelect').value} ${document.getElementById('dataBitsSelect').value}${document.getElementById('paritySelect').value[0].toUpperCase()}${document.getElementById('stopBitsSelect').value}`
+      : 'Disconnected';
+  }
+
   async function doDisconnect() {
     isConnected = false;
+    setSerialStatus(false);
     uploadCancelRequested = true;
     finishSerialUpload();
     const btn = document.getElementById('connectButton');
@@ -1992,11 +2056,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('adbPushBtn').disabled = !connected || !selectedAdbPushFile;
 
     if (connected) {
-      btn.textContent = '✕ Disconnect ADB';
+      btn.textContent = '✕ Disconnect';
       btn.classList.add('disconnect');
       setAdbStatus('Connected', 'connected');
     } else {
-      btn.textContent = '🤖 Connect ADB';
+      btn.textContent = '🤖 Connect';
       btn.classList.remove('disconnect');
       setAdbStatus('Disconnected', '');
       info.style.display = 'none';
@@ -2069,7 +2133,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Parse device banner (e.g. "device::ro.product.name=xxx;...")
       const banner = adbClient.deviceBanner;
       const info = document.getElementById('adbDeviceInfo');
-      info.style.display = 'block';
+      info.style.display = 'inline';
       const model = banner.match(/ro\.product\.model=([^;]+)/)?.[1]
                  || banner.match(/ro\.product\.name=([^;]+)/)?.[1]
                  || 'Android Device';
@@ -2183,7 +2247,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ctrl+letter → control code
     if (e.ctrlKey && !e.altKey && !e.metaKey) {
       const key = e.key.toLowerCase();
-      if (key >= 'a' && key <= 'z') {
+      if (key.length === 1 && key >= 'a' && key <= 'z') {   // ignore the Ctrl key itself
         e.preventDefault();
         const code = key.charCodeAt(0) - 96;
         // Ctrl+U clears line — reset our buffer too
@@ -2272,7 +2336,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (e.ctrlKey && !e.altKey && !e.metaKey) {
       const key = e.key.toLowerCase();
-      if (key >= 'a' && key <= 'z') {
+      if (key.length === 1 && key >= 'a' && key <= 'z') {   // ignore the Ctrl key itself
         e.preventDefault();
         const code = key.charCodeAt(0) - 96;
         await sendRawData(String.fromCharCode(code));
@@ -2410,7 +2474,8 @@ document.addEventListener('DOMContentLoaded', () => {
       stopBtn: pane.querySelector('.js-stop'),
       statusEl: pane.querySelector('.js-status'),
       consoleEl: target === 'adb' ? adbTa : ta,
-      stopRequested: false
+      stopRequested: false,
+      running: false
     };
   });
   let draggedScriptBlock = null;
@@ -2421,694 +2486,840 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.statusEl.textContent = `Status: ${message}`;
   }
 
-  function createScriptBlock(type, value = '') {
-    const block = document.createElement('div');
-    block.className = 'script-block-item';
-    block.draggable = true;
+  // ══════════════════════════════════════════════════════════════
+  // SCRIPT ENGINE HELPERS (variables, extraction, comparison, sync)
+  // ══════════════════════════════════════════════════════════════
+
+  // Variables: $name, ${name} and $(name) all work everywhere.
+  // A $NAME that the script never set is left untouched, so shell
+  // variables like $HOME or $PATH still reach the device as typed.
+  const VAR_RE = /\$\{(\w+)\}|\$\((\w+)\)|\$(\w+)/g;
+  function hasVar(vars, n) { return Object.prototype.hasOwnProperty.call(vars, n); }
+  function expandVars(text, vars) {
+    return String(text ?? '').replace(VAR_RE, (m, a, b, c) => {
+      const n = a || b || c;
+      return hasVar(vars, n) ? String(vars[n]) : m;
+    });
+  }
+  // "$x", "${x}", "$(x)" or "x" → "x"
+  function varName(text) {
+    const t = String(text ?? '').trim();
+    const m = t.match(/^\$(?:\{(\w+)\}|\((\w+)\)|(\w+))$/);
+    return m ? (m[1] || m[2] || m[3]) : t;
+  }
+  // A field that holds a value: a bare name of an existing variable means
+  // that variable (old scripts did this); anything else is text with $vars.
+  function resolveOperand(text, vars) {
+    const t = String(text ?? '').trim();
+    if (/^\w+$/.test(t) && hasVar(vars, t)) return String(vars[t]);
+    return expandVars(t, vars);
+  }
+  function toNumber(v, hex = false) {
+    const t = String(v ?? '').trim();
+    if (t === '') return NaN;
+    if (hex) return /^(0x)?[0-9a-f]+$/i.test(t) ? parseInt(t.replace(/^0x/i, ''), 16) : NaN;
+    if (/^[-+]?0x[0-9a-f]+$/i.test(t)) return parseInt(t, 16);
+    const n = Number(t);
+    return Number.isNaN(n) ? NaN : n;
+  }
+
+  // ── Simple extraction ──
+  const escRe = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const looseLit = (x) => escRe(x).replace(/\s+/g, '\\s+');
+  function nonEmptyLines(s) {
+    return String(s).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  }
+  // "Temp: * C" → value between "Temp:" and "C". "*" at the end → rest of the line.
+  // Uses the LAST match, so the newest output wins over an echoed command.
+  function matchPattern(s, pattern) {
+    if (!pattern) return s.trim();
+    const star = pattern.indexOf('*');
+    if (star < 0) {
+      const hit = nonEmptyLines(s).filter(l => l.includes(pattern));
+      return hit.length ? hit[hit.length - 1] : '';
+    }
+    const before = pattern.slice(0, star);
+    const after = pattern.slice(star + 1);
+    // nothing after * → rest of the line; a space after * → up to the next space
+    const afterRe = after.length ? '([^\\r\\n]*?)' + after.split('*').map(looseLit).join('[^\\r\\n]*?') : '([^\\r\\n]*)';
+    const re = new RegExp(looseLit(before) + afterRe, 'g');
+    let m, last = null;
+    while ((m = re.exec(s)) !== null) { last = m; if (m[0] === '') re.lastIndex++; }
+    return last ? last[1].trim() : '';
+  }
+  function pickWord(words, word) {
+    const w = String(word ?? '').trim().toLowerCase();
+    if (w === '' || w === 'last') return words[words.length - 1] ?? '';
+    const n = parseInt(w, 10);
+    if (Number.isNaN(n) || n === 0) return '';
+    return words[n > 0 ? n - 1 : words.length + n] ?? '';   // 1 = first, -1 = last, -2 = second to last
+  }
+  function wordOfLine(s, lineHas, word) {
+    const lines = nonEmptyLines(s).filter(l => !lineHas || l.includes(lineHas));
+    if (!lines.length) return '';
+    return pickWord(lines[lines.length - 1].split(/\s+/), word);
+  }
+  // rowSel: 1 = first row under the header, 2 = second…, last / -1 = last row, -2 = second to last
+  function columnUnderHeader(s, header, rowSel) {
+    if (!header) return '';
+    const lines = nonEmptyLines(s);
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const cols = lines[i].split(/\s+/);
+      const c = cols.findIndex(x => x.toLowerCase() === header.toLowerCase());
+      if (c >= 0) {
+        // rows below the header that actually have this column (skips a trailing shell prompt)
+        const rows = lines.slice(i + 1).map(l => l.split(/\s+/)).filter(r => r.length > c);
+        if (!rows.length) return '';
+        const r = pickWord(rows, rowSel === undefined || String(rowSel).trim() === '' ? '1' : rowSel);
+        return r ? (r[c] ?? '') : '';
+      }
+    }
+    return '';
+  }
+  function extractValue(text, cfg) {
+    const s = String(text ?? '');
+    switch (cfg.extract) {
+      case 'pattern': return matchPattern(s, cfg.pattern || '');
+      case 'word':    return wordOfLine(s, cfg.lineHas || '', cfg.word);
+      case 'header':  return columnUnderHeader(s, (cfg.header || '').trim(), cfg.row);
+      case 'regex': {
+        if (!cfg.regex) return s.trim();
+        try {
+          const all = [...s.matchAll(new RegExp(cfg.regex, 'gm'))];
+          const m = all[all.length - 1];
+          return m ? (m[1] !== undefined ? m[1] : m[0]).trim() : '';
+        } catch (e) { return `[regex error: ${e.message}]`; }
+      }
+      case 'legacy': {
+        try { return String(extractStringValue(s, JSON.parse(cfg.legacy || '{}'))).trim(); }
+        catch { return ''; }
+      }
+      default: return s.trim();
+    }
+  }
+  function applyHex(value, hex) {
+    if (!hex) return value;
+    const n = toNumber(value, true);
+    return Number.isNaN(n) ? value : String(n);
+  }
+
+  // ── Comparison (IF) ──
+  const COMPARE_OPS = [
+    ['=', '='], ['!=', '≠'], ['contains', 'contains'], ['not contains', 'not contains'],
+    ['starts with', 'starts with'], ['>', '>'], ['<', '<'], ['>=', '≥'], ['<=', '≤']
+  ];
+  function compareValues(left, op, right, hex = false) {
+    const ln = toNumber(left, hex), rn = toNumber(right, hex);
+    const numeric = !Number.isNaN(ln) && !Number.isNaN(rn);
+    switch (op) {
+      case '=':  return numeric ? ln === rn : left === right;
+      case '!=': return numeric ? ln !== rn : left !== right;
+      case 'contains':     return left.includes(right);
+      case 'not contains': return !left.includes(right);
+      case 'starts with':  return left.startsWith(right);
+      case '>':  return numeric && ln > rn;
+      case '<':  return numeric && ln < rn;
+      case '>=': return numeric && ln >= rn;
+      case '<=': return numeric && ln <= rn;
+    }
+    return false;
+  }
+
+  // ── Sync between the UART and ADB scripts ──
+  // Notify puts a message in a named queue; Wait Notify takes one out
+  // (or waits for it). Nothing is lost if the notify comes first.
+  const signalBus = {
+    queues: new Map(),
+    emit(name, value, from) {
+      if (!this.queues.has(name)) this.queues.set(name, []);
+      this.queues.get(name).push({ value, from });
+      logSignal(`${from === 'adb' ? '🤖 ADB' : '📡 UART'} → "${name}"${value !== '' ? ` = ${value}` : ''}`);
+    },
+    take(name) {
+      const q = this.queues.get(name);
+      return q && q.length ? q.shift() : null;
+    },
+    clear() { this.queues.clear(); }
+  };
+  function logSignal(text) {
+    const el = document.getElementById('signalLog');
+    if (!el) return;
+    const t = new Date();
+    const hh = [t.getHours(), t.getMinutes(), t.getSeconds()].map(n => String(n).padStart(2, '0')).join(':');
+    el.textContent = `Last notify ${hh}: ${text}`;
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // SCRIPT BLOCKS
+  // ══════════════════════════════════════════════════════════════
+
+  const BLOCK_TITLES = {
+    command: '⛳ Command', delay: '⏱ Delay', read: '📥 Read', parsestr: '✂️ Get Value',
+    print: '🖨 Print', setvar: '📌 Set Var', waitfor: '⏳ Wait For', math: '🧮 Math',
+    plot: '📈 Plot', condition: '❓ IF', repeat: '🔁 Loop',
+    signal: '📣 Notify', waitsignal: '👂 Wait Notify'
+  };
+
+  const EXTRACT_MODES = [
+    ['all',     'Everything'],
+    ['pattern', 'Text around the value ( * )'],
+    ['word',    'Word # of a line'],
+    ['header',  'Column under a header'],
+    ['regex',   'Regex (advanced)']
+  ];
+  const EXTRACT_HINTS = {
+    all:     '整段都要。　例：收到 87 → 值 = 87',
+    pattern: '把值的前後文字照抄，值的位置換成 *。　例：收到 Temp: 41.5 C，填 Temp: * C → 41.5 ｜ 收到 version: 1.2.3，填 version: * → 1.2.3（* 在最後 = 取到行尾）｜ 收到 ip=192.168.1.7 mask=24，填 ip=* 加一個空白 → 192.168.1.7',
+    word:    '先找含某段文字的那一行，再以空白切開取第幾個字。　例：收到 Temp: 41.5 C，Line has 填 Temp，Word 填 2 → 41.5（Temp: 是第 1 個、41.5 第 2 個、C 第 3 個）。Word 也可填 last（最後一個）、-2（倒數第二）。Line has 空白 = 最後一行',
+    header:  '表格用：找有這個欄位名稱的標題列，取它下面第幾列的同一欄。Row：1 = 標題下第一列、2 = 第二列、last = 最後一列、-2 = 倒數第二列。　例：df -h 輸出標題 Filesystem Size Used Avail，下面兩列 /dev/a 10G 2G 8G、/dev/b 32G 30G 2G；填 Avail、Row 1 → 8G，Row 2 → 2G',
+    regex:   '進階：正規表示式，第一個 ( ) 的內容就是值。　例：收到 battery 87%，填 (\\d+)% → 87',
+    legacy:  '這是從舊版 script 匯入的設定，會照舊版方式執行。改選其他方式就會換成新的設定。'
+  };
+
+  // Small DOM helpers
+  function el(tag, props = {}, children = []) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (k === 'style') e.style.cssText = v;
+      else if (k === 'dataset') Object.assign(e.dataset, v);
+      else if (k in e) e[k] = v;
+      else e.setAttribute(k, v);
+    }
+    for (const c of [].concat(children)) if (c) e.append(c);
+    return e;
+  }
+  function row(...children) { return el('div', { className: 'blk-row' }, children); }
+  function lbl(text) { return el('label', { textContent: text }); }
+  function inp(f, value, placeholder, extra = {}) {
+    return el('input', { type: 'text', value: value ?? '', placeholder: placeholder || '', dataset: { f }, ...extra });
+  }
+  function area(f, value, placeholder) {
+    return el('textarea', { value: value ?? '', placeholder: placeholder || '', dataset: { f } });
+  }
+  function sel(f, options, value) {
+    const s = el('select', { dataset: { f } });
+    for (const [v, t] of options) s.append(el('option', { value: v, textContent: t }));
+    if (value !== undefined && value !== null && options.some(o => o[0] === value)) s.value = value;
+    return s;
+  }
+  function chk(f, checked, text) {
+    return el('label', { className: 'blk-check' }, [el('input', { type: 'checkbox', checked: !!checked, dataset: { f } }), text]);
+  }
+  function resultLine() { return el('div', { className: 'blk-result' }); }
+  function nestedCanvas(attr, hint, minH = 80) {
+    const c = el('div', { className: 'script-canvas', style: `background:#09131f;min-height:${minH}px;padding:8px;border-radius:6px;` });
+    Object.assign(c.dataset, attr);
+    c.innerHTML = `<div class="script-canvas-empty">${hint}</div>`;
+    makeScriptCanvasDroppable(c);
+    return c;
+  }
+
+  // Extraction UI shared by Read and Get Value
+  function buildExtractUI(controls, d, getSourceText) {
+    const modes = d.extract === 'legacy' ? [...EXTRACT_MODES, ['legacy', 'Old script setting']] : EXTRACT_MODES;
+    const modeSel = sel('extract', modes, d.extract || 'all');
+    const pattern = inp('pattern', d.pattern, 'e.g.  temp=* C');
+    const lineHas = inp('lineHas', d.lineHas, 'line contains… (optional)');
+    const word = inp('word', d.word ?? 'last', 'word #', { style: 'max-width:90px' });
+    const header = inp('header', d.header, 'header name, e.g. Avail');
+    const rowNo = inp('row', d.row ?? '1', 'row #', { style: 'max-width:90px', title: '1 = 標題下第一列，2 = 第二列，last = 最後一列，-2 = 倒數第二列' });
+    const regex = inp('regex', d.regex, 'e.g.  ([-\\d.]+)\\s*mV');
+    const legacy = el('input', { type: 'hidden', value: d.legacy || '', dataset: { f: 'legacy' } });
+    const hint = el('div', { className: 'blk-hint' });
+    const testBtn = el('button', { className: 'blk-test', textContent: '🔍 Test', title: 'Try this on the current console output' });
+    const out = resultLine();
+
+    const rowPattern = row(lbl('Pattern'), pattern);
+    const rowWord = row(lbl('Line has'), lineHas, lbl('Word'), word);
+    const rowHeader = row(lbl('Header'), header, lbl('Row'), rowNo);
+    const rowRegex = row(lbl('Regex'), regex);
+
+    const update = () => {
+      const m = modeSel.value;
+      rowPattern.style.display = m === 'pattern' ? '' : 'none';
+      rowWord.style.display = m === 'word' ? '' : 'none';
+      rowHeader.style.display = m === 'header' ? '' : 'none';
+      rowRegex.style.display = m === 'regex' ? '' : 'none';
+      hint.textContent = EXTRACT_HINTS[m] || '';
+    };
+    modeSel.addEventListener('change', update);
+    update();
+
+    testBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const cfg = readFields(controls.closest('.script-block-item'));
+      const v = applyHex(extractValue(getSourceText(), cfg), cfg.hex);
+      out.textContent = v === '' ? 'Test → (no match)' : `Test → ${v}`;
+    });
+
+    controls.append(row(lbl('Get'), modeSel, testBtn), rowPattern, rowWord, rowHeader, rowRegex, legacy, hint);
+    return out;
+  }
+
+  function consoleTextFor(block) {
+    const root = block.closest('.script-root-canvas');
+    return (root && root.dataset.target === 'adb' ? adbTa : ta).value;
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // BLOCK HELP (shown with the ? button on each block)
+  // ══════════════════════════════════════════════════════════════
+  const ex = (s) => `<code>${s}</code>`;
+  const BLOCK_HELP = {
+    command: `
+      <b>送出一行指令。</b> UART 會送出並自動換行；ADB 會在 shell 執行並把輸出顯示在 ADB console。
+      <ul>
+        <li>${ex('ls /sdcard')}</li>
+        <li>可以放變數：${ex('ping -c 3 $ip')}</li>
+      </ul>`,
+    delay: `
+      <b>暫停一段時間再往下跑。</b>
+      <ul><li>${ex('500ms')}　${ex('1s')}　${ex('0.2s')}　${ex('100us')}</li></ul>`,
+    read: `
+      <b>送出指令，把回覆存進變數</b>（可以只取其中一段）。
+      <ul>
+        <li><b>指令框</b>：要送的指令，可空白（空白 = 不送，只收這段時間的輸出）。</li>
+        <li><b>Wait … ms</b>：UART 送出後等多久再收（ADB 會等指令跑完，不用管）。</li>
+        <li><b>Save to $</b>：存到哪個變數，例如 ${ex('temp')} → 之後用 ${ex('$temp')}。</li>
+        <li><b>Get</b>：要整段還是只取一部分，見下方說明。</li>
+      </ul>
+      例：指令 ${ex('cat /sys/class/power_supply/battery/capacity')}、Save to ${ex('bat')}、Get = Everything → ${ex('$bat')} = 87`,
+    parsestr: `
+      <b>從一段文字取出一個值。</b> 跟 Read 一樣的 Get 選項，但不送指令。
+      <ul>
+        <li><b>From</b>：要從哪裡取，例如 ${ex('$line')}；空白 = 上一個 Read 收到的內容。</li>
+        <li><b>Save to $</b>：存到哪個變數。</li>
+      </ul>
+      例：${ex('$line')} = ${ex('BOOT OK ip=192.168.1.7 mask=24')}<br>
+      From ${ex('$line')}、Get = Text around the value、Pattern ${ex('ip=*␣')}（* 後面一個空白）→ ${ex('$ip')} = 192.168.1.7`,
+    print: `
+      <b>在 console 印一行字</b>，可以混變數。
+      <ul><li>${ex('溫度 = $t °C')} → 溫度 = 41.5 °C</li></ul>`,
+    setvar: `
+      <b>設定變數。</b>
+      <ul>
+        <li>${ex('$')} ${ex('count')} = ${ex('0')}</li>
+        <li>${ex('$')} ${ex('msg')} = ${ex('IP is $ip')}</li>
+      </ul>`,
+    waitfor: `
+      <b>等 console 出現某段文字</b>才往下跑。
+      <ul>
+        <li><b>Text</b>：例如 ${ex('login:')}、${ex('Starting kernel')}（要完全一樣，大小寫有差）。</li>
+        <li><b>Timeout</b>：最多等幾 ms，${ex('0')} = 永遠等。</li>
+        <li><b>Save line to $</b>：把出現那一整行存起來，之後可用 Get Value 取值。</li>
+        <li><b>stop script on timeout</b>：勾 = 逾時就停止 script；不勾 = 逾時也繼續往下。</li>
+      </ul>`,
+    math: `
+      <b>計算</b>，結果存到左邊的變數。支援 + − × ÷ %，${ex('0x1F')} 會當 16 進位。
+      <ul>
+        <li>${ex('$')} ${ex('t')} = ${ex('$raw')} ÷ ${ex('1000')} → 41500 變 41.5</li>
+        <li>${ex('$')} ${ex('n')} = ${ex('$n')} + ${ex('1')}（計數器）</li>
+      </ul>`,
+    plot: `
+      <b>把變數畫到 Live Dashboard 圖表</b>（頁面最下方）。通常放在 Loop 裡。
+      <ul>
+        <li>每一列：變數 ${ex('$bat')}、線的名稱 ${ex('Battery')}、顏色。按 + Add Variable 可畫多條線。</li>
+        <li><b>Y-axis</b>：Y 軸標題，例如 ${ex('%')}、${ex('°C')}。</li>
+      </ul>`,
+    condition: `
+      <b>比較兩邊</b>：成立就跑 Then 裡的積木，不成立跑 Else。
+      <ul>
+        <li>${ex('$t')} ${ex('>')} ${ex('50')} → Then 放 Print ${ex('太熱了')}</li>
+        <li>${ex('$ver')} ${ex('contains')} ${ex('2024')}</li>
+      </ul>
+      <b>運算子：</b><br>
+      ${ex('=')} ${ex('≠')} 相等 / 不相等（兩邊都是數字就按數字比，${ex('1.0')} = ${ex('1')}）<br>
+      ${ex('contains')} 包含、${ex('not contains')} 不包含、${ex('starts with')} 開頭是<br>
+      ${ex('>')} ${ex('<')} ${ex('≥')} ${ex('≤')} 只比數字<br>
+      <b>hex numbers</b>：兩邊都當 16 進位，${ex('1F')} = ${ex('0x1F')} = 31`,
+    repeat: `
+      <b>重複執行</b>裡面的積木。
+      <ul>
+        <li><b>Count</b>：跑幾次，例如 ${ex('10')}，也可以填 ${ex('$n')}。</li>
+        <li><b>Forever</b>：一直跑，直到按 Stop。</li>
+        <li>迴圈裡可以用 ${ex('$loop_index')}（第幾圈：1, 2, 3…）。</li>
+      </ul>`,
+    signal: `
+      <b>通知另一個 script</b>（UART ↔ ADB）。
+      <ul>
+        <li><b>Name</b>：通知名稱，要跟對方 👂 Wait Notify 的 Name 一樣，例如 ${ex('booted')}。</li>
+        <li><b>Value</b>：可以順便帶一個值，例如 ${ex('$ip')}（可空白）。</li>
+      </ul>
+      例：UART 等到 ${ex('login:')} → Notify ${ex('booted')}；ADB 的 Wait Notify ${ex('booted')} 收到就開始跑。`,
+    waitsignal: `
+      <b>停在這裡，等另一個 script 的 📣 Notify。</b>
+      <ul>
+        <li><b>Name</b>：要等的通知名稱，例如 ${ex('booted')}。</li>
+        <li><b>Timeout</b>：最多等幾 ms，${ex('0')} = 永遠等。</li>
+        <li><b>Save value to $</b>：把對方帶來的值存起來，例如 ${ex('ip')} → ${ex('$ip')}。</li>
+      </ul>
+      對方先發通知也沒關係，會排隊等你來拿，不會漏掉。`
+  };
+  const PALETTE_TIPS = {
+    command: '送出一行指令', delay: '暫停一段時間', read: '送指令並把回覆存成變數',
+    parsestr: '從一段文字取出一個值', print: '在 console 印字', setvar: '設定變數',
+    waitfor: '等 console 出現某段文字', math: '加減乘除', plot: '畫圖表',
+    condition: '如果…就…否則…', repeat: '重複執行', signal: '通知另一個 script',
+    waitsignal: '等另一個 script 的通知'
+  };
+  document.querySelectorAll('.palette-block[data-block-type]').forEach(b => {
+    const tip = PALETTE_TIPS[b.dataset.blockType];
+    if (tip) b.title = `${tip}（拖到下方；放進積木後按 ? 看範例）`;
+  });
+
+  function createScriptBlock(type, d = {}) {
+    if (typeof d === 'string') d = type === 'delay' ? { value: d } : { command: d };
+    const block = el('div', { className: `script-block-item script-block-${type}`, draggable: true });
     block.dataset.type = type;
 
-    const header = document.createElement('div');
-    header.className = 'script-block-header';
-    
-    const dragHandle = document.createElement('div');
-    dragHandle.className = 'drag-handle';
-    dragHandle.innerHTML = '⠿';
-    dragHandle.title = 'Drag to move';
-    dragHandle.style.cssText = 'cursor:grab;color:#6a8aaa;padding:0 6px 0 0;font-size:14px;user-select:none;display:flex;align-items:center;';
+    const dragHandle = el('div', { className: 'drag-handle', textContent: '⠿', title: 'Drag to move',
+      style: 'cursor:grab;color:#6a8aaa;padding:0 6px 0 0;font-size:14px;user-select:none;display:flex;align-items:center;' });
+    const title = el('div', { className: 'block-title', textContent: BLOCK_TITLES[type] || type, style: 'flex:1' });
+    const removeBtn = el('button', { textContent: '✕',
+      style: 'font-size:12px;padding:2px 6px;background:#2a1a2a;border:1px solid #3a3a5a;color:#ff9b9b;border-radius:4px;cursor:pointer;' });
+    removeBtn.addEventListener('click', () => {
+      const root = block.closest('.script-root-canvas');
+      block.remove();
+      if (root) showEmptyCanvasHint(root);
+    });
+    const helpBtn = el('button', { className: 'blk-help-btn', textContent: '?', title: '說明與範例' });
+    const help = el('div', { className: 'blk-help', innerHTML: BLOCK_HELP[type] || '', hidden: true });
+    helpBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      help.hidden = !help.hidden;
+      helpBtn.classList.toggle('on', !help.hidden);
+    });
+    block.append(el('div', { className: 'script-block-header' }, [dragHandle, title, helpBtn, removeBtn]), help);
 
-    const title = document.createElement('div');
-    title.className = 'block-title';
-    title.style.flex = '1';
-
-    const removeBtn = document.createElement('button');
-    removeBtn.textContent = '✕';
-    removeBtn.style.cssText = 'font-size:12px;padding:2px 6px;background:#2a1a2a;border:1px solid #3a3a5a;color:#ff9b9b;border-radius:4px;cursor:pointer;';
-    removeBtn.addEventListener('click', () => { const root = block.closest('.script-root-canvas'); block.remove(); if (root) showEmptyCanvasHint(root); });
-
-    header.appendChild(dragHandle);
-    header.appendChild(title);
-    header.appendChild(removeBtn);
-    block.appendChild(header);
-
-    const controls = document.createElement('div');
-    controls.className = 'script-block-controls';
+    const c = el('div', { className: 'script-block-controls' });
 
     if (type === 'command') {
-      block.classList.add('script-block-command');
-      title.textContent = 'Command';
-      const textarea = document.createElement('textarea');
-      textarea.placeholder = 'adb/serial command...';
-      textarea.value = value;
-      controls.appendChild(textarea);
+      c.append(area('command', d.command, 'command to send…  ($var works)'));
     } else if (type === 'delay') {
-      block.classList.add('script-block-delay');
-      title.textContent = 'Delay';
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.placeholder = '1000us / 1.5ms / 0.100s';
-      input.value = value || '0.100s';
-      input.title = 'Delay value with units (us/ms/s)';
-      controls.appendChild(input);
+      c.append(row(lbl('Wait'), inp('value', d.value || '0.100s', '1000us / 1.5ms / 0.1s')));
     } else if (type === 'read') {
-      title.textContent = 'Read';
-      block.classList.add('script-block-read');
-
-      const varInput = document.createElement('input');
-      varInput.type = 'text';
-      varInput.className = 'read-variable';
-      varInput.placeholder = 'variable name (optional)';
-      varInput.title = 'Variable name to store read data';
-      controls.appendChild(varInput);
-
-      const textarea = document.createElement('textarea');
-      textarea.className = 'read-command';
-      textarea.placeholder = 'command to send before reading...';
-      textarea.value = value;
-      controls.appendChild(textarea);
-
-      const parseModeLabel = document.createElement('label');
-      parseModeLabel.textContent = 'Extract Mode:';
-      parseModeLabel.style.cssText = 'font-size:12px;margin-top:4px;';
-      controls.appendChild(parseModeLabel);
-
-      const parseModeSelect = document.createElement('select');
-      parseModeSelect.className = 'read-parsemode';
-      [
-        ['all', 'Full Output (No Extraction)'],
-        ['column', 'Column Index (Split Delimiter)'],
-        ['header', 'Header Match (Column by Header)'],
-        ['regex', 'Regex (Pattern Capture)'],
-        ['between', 'Between Substrings'],
-        ['keyword', 'Keyword Search']
-      ].forEach(([val, label]) => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = label;
-        parseModeSelect.appendChild(opt);
-      });
-      controls.appendChild(parseModeSelect);
-
-      const lineInput = document.createElement('input');
-      lineInput.type = 'text';
-      lineInput.className = 'read-line';
-      lineInput.placeholder = 'line # (e.g. last, 1, 2)';
-      lineInput.value = 'last';
-      lineInput.title = 'Target line number: "last" or "-1" for last line, "1" for 1st line, "2" for 2nd line, etc.';
-      lineInput.style.maxWidth = '150px';
-      controls.appendChild(lineInput);
-
-      const colInput = document.createElement('input');
-      colInput.type = 'text';
-      colInput.className = 'read-column';
-      colInput.placeholder = 'col # (e.g. 5 or last)';
-      colInput.value = '5';
-      colInput.title = '1-based column number (e.g. 5 for dial_d, or "last" / "-1")';
-      colInput.style.maxWidth = '150px';
-      controls.appendChild(colInput);
-
-      const delimSelect = document.createElement('select');
-      delimSelect.className = 'read-delimiter';
-      [
-        ['whitespace', 'Whitespace (Space/Tab)'],
-        ['comma', 'Comma (,)'],
-        ['tab', 'Tab (\\t)'],
-        ['newline', 'Newline (\\n)'],
-        ['semicolon', 'Semicolon (;)']
-      ].forEach(([val, label]) => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = label;
-        delimSelect.appendChild(opt);
-      });
-      delimSelect.style.maxWidth = '160px';
-      controls.appendChild(delimSelect);
-
-      const headerInput = document.createElement('input');
-      headerInput.type = 'text';
-      headerInput.className = 'read-header';
-      headerInput.placeholder = 'header name (e.g. dial_d)';
-      controls.appendChild(headerInput);
-
-      const regexInput = document.createElement('input');
-      regexInput.type = 'text';
-      regexInput.className = 'read-regex';
-      regexInput.placeholder = 'regex e.g. ([-\\d\\.]+)\\s*$';
-      controls.appendChild(regexInput);
-
-      const startInput = document.createElement('input');
-      startInput.type = 'text';
-      startInput.className = 'read-start';
-      startInput.placeholder = 'start prefix';
-      controls.appendChild(startInput);
-
-      const endInput = document.createElement('input');
-      endInput.type = 'text';
-      endInput.className = 'read-end';
-      endInput.placeholder = 'end suffix';
-      controls.appendChild(endInput);
-
-      const keywordInput = document.createElement('input');
-      keywordInput.type = 'text';
-      keywordInput.className = 'read-keyword';
-      keywordInput.placeholder = 'keyword (optional)';
-      controls.appendChild(keywordInput);
-
-      const positionSelect = document.createElement('select');
-      positionSelect.className = 'read-position';
-      ['before', 'after'].forEach(val => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = val;
-        positionSelect.appendChild(opt);
-      });
-      positionSelect.style.maxWidth = '100px';
-      controls.appendChild(positionSelect);
-
-      const lengthInput = document.createElement('input');
-      lengthInput.type = 'number';
-      lengthInput.className = 'read-length';
-      lengthInput.placeholder = 'length';
-      lengthInput.min = '1';
-      lengthInput.style.maxWidth = '80px';
-      controls.appendChild(lengthInput);
-
-      const updateVisibility = () => {
-        const mode = parseModeSelect.value;
-        lineInput.style.display = (mode === 'column') ? '' : 'none';
-        colInput.style.display = (mode === 'column') ? '' : 'none';
-        delimSelect.style.display = (mode === 'column') ? '' : 'none';
-        headerInput.style.display = (mode === 'header') ? '' : 'none';
-        regexInput.style.display = (mode === 'regex') ? '' : 'none';
-        startInput.style.display = (mode === 'between') ? '' : 'none';
-        endInput.style.display = (mode === 'between') ? '' : 'none';
-        
-        const isKw = (mode === 'keyword');
-        keywordInput.style.display = isKw ? '' : 'none';
-        positionSelect.style.display = isKw ? '' : 'none';
-        lengthInput.style.display = isKw ? '' : 'none';
-      };
-      parseModeSelect.addEventListener('change', updateVisibility);
-      keywordInput.addEventListener('input', () => {
-        if (keywordInput.value.trim() && parseModeSelect.value === 'all') {
-          parseModeSelect.value = 'keyword';
-          updateVisibility();
-        }
-      });
-      setTimeout(updateVisibility, 0);
-
-      // Data type selector: treat read value as text or number (hex/dec)
-      const dataTypeLabel = document.createElement('label');
-      dataTypeLabel.textContent = 'Data Type:';
-      dataTypeLabel.style.fontSize = '12px';
-      dataTypeLabel.style.marginTop = '4px';
-      controls.appendChild(dataTypeLabel);
-
-      const dataTypeSelect = document.createElement('select');
-      dataTypeSelect.className = 'read-datatype';
-      [['text', 'Text (String)'], ['hex', 'Number - Hex'], ['dec', 'Number - Dec']].forEach(([val, label]) => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = label;
-        dataTypeSelect.appendChild(opt);
-      });
-      controls.appendChild(dataTypeSelect);
-
-      const debugLabel = document.createElement('div');
-      debugLabel.className = 'read-value';
-      debugLabel.style.fontSize = '12px';
-      debugLabel.style.color = '#a8d4ff';
-      controls.appendChild(debugLabel);
+      c.append(
+        area('command', d.command, 'command to send, then read the reply (optional)'),
+        row(lbl('Wait'), inp('waitMs', d.waitMs ?? '300', 'ms', { style: 'max-width:80px' }), lbl('ms (UART)'),
+            lbl('Save to $'), inp('saveTo', d.saveTo, 'name'))
+      );
+      const out = buildExtractUI(c, d, () => consoleTextFor(block));
+      c.append(row(chk('hex', d.hex, 'value is hex → convert to number（例：1F → 31）')), out);
     } else if (type === 'parsestr') {
-      title.textContent = '✂️ Parse String';
-      block.classList.add('script-block-parsestr');
-
-      const inputVal = document.createElement('input');
-      inputVal.type = 'text';
-      inputVal.className = 'parsestr-input';
-      inputVal.placeholder = 'source string / ${var} (blank = last read)';
-      inputVal.title = 'Input variable (e.g. ${raw_data}) or text to parse. If left blank, uses last read data.';
-      controls.appendChild(inputVal);
-
-      const targetVal = document.createElement('input');
-      targetVal.type = 'text';
-      targetVal.className = 'parsestr-target';
-      targetVal.placeholder = 'save to variable (e.g. dial_d)';
-      targetVal.title = 'Variable name to store extracted value';
-      controls.appendChild(targetVal);
-
-      const modeLabel = document.createElement('label');
-      modeLabel.textContent = 'Extract Mode:';
-      modeLabel.style.cssText = 'font-size:12px;margin-top:4px;';
-      controls.appendChild(modeLabel);
-
-      const modeSelect = document.createElement('select');
-      modeSelect.className = 'parsestr-mode';
-      [
-        ['column', 'Column Index (Split Delimiter)'],
-        ['header', 'Header Match (Column by Header)'],
-        ['regex', 'Regex (Pattern Capture)'],
-        ['between', 'Between Substrings'],
-        ['keyword', 'Keyword Search']
-      ].forEach(([val, label]) => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = label;
-        modeSelect.appendChild(opt);
-      });
-      controls.appendChild(modeSelect);
-
-      const lineInput = document.createElement('input');
-      lineInput.type = 'text';
-      lineInput.className = 'parsestr-line';
-      lineInput.placeholder = 'line # (e.g. last, 1, 2)';
-      lineInput.value = 'last';
-      lineInput.title = 'Target line number: "last" or "-1" for last line, "1" for 1st line, "2" for 2nd line, etc.';
-      lineInput.style.maxWidth = '150px';
-      controls.appendChild(lineInput);
-
-      const colInput = document.createElement('input');
-      colInput.type = 'text';
-      colInput.className = 'parsestr-column';
-      colInput.placeholder = 'col # (e.g. 5 or last)';
-      colInput.value = '5';
-      colInput.title = '1-based column number (e.g. 5 for dial_d, or "last" / "-1")';
-      colInput.style.maxWidth = '150px';
-      controls.appendChild(colInput);
-
-      const delimSelect = document.createElement('select');
-      delimSelect.className = 'parsestr-delimiter';
-      [
-        ['whitespace', 'Whitespace (Space/Tab)'],
-        ['comma', 'Comma (,)'],
-        ['tab', 'Tab (\\t)'],
-        ['newline', 'Newline (\\n)'],
-        ['semicolon', 'Semicolon (;)']
-      ].forEach(([val, label]) => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = label;
-        delimSelect.appendChild(opt);
-      });
-      delimSelect.style.maxWidth = '160px';
-      controls.appendChild(delimSelect);
-
-      const headerInput = document.createElement('input');
-      headerInput.type = 'text';
-      headerInput.className = 'parsestr-header';
-      headerInput.placeholder = 'header name (e.g. dial_d)';
-      headerInput.title = 'Column header text in table header row (e.g. dial_d)';
-      controls.appendChild(headerInput);
-
-      const regexInput = document.createElement('input');
-      regexInput.type = 'text';
-      regexInput.className = 'parsestr-regex';
-      regexInput.placeholder = 'regex pattern e.g. ([-\\d\\.]+)\\s*$';
-      regexInput.title = 'Regex pattern with capture group ()';
-      controls.appendChild(regexInput);
-
-      const startInput = document.createElement('input');
-      startInput.type = 'text';
-      startInput.className = 'parsestr-start';
-      startInput.placeholder = 'start prefix string';
-      controls.appendChild(startInput);
-
-      const endInput = document.createElement('input');
-      endInput.type = 'text';
-      endInput.className = 'parsestr-end';
-      endInput.placeholder = 'end suffix string';
-      controls.appendChild(endInput);
-
-      const keywordInput = document.createElement('input');
-      keywordInput.type = 'text';
-      keywordInput.className = 'parsestr-keyword';
-      keywordInput.placeholder = 'keyword';
-      controls.appendChild(keywordInput);
-
-      const positionSelect = document.createElement('select');
-      positionSelect.className = 'parsestr-position';
-      ['after', 'before'].forEach(val => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = val;
-        positionSelect.appendChild(opt);
-      });
-      positionSelect.style.maxWidth = '90px';
-      controls.appendChild(positionSelect);
-
-      const lengthInput = document.createElement('input');
-      lengthInput.type = 'number';
-      lengthInput.className = 'parsestr-length';
-      lengthInput.placeholder = 'length';
-      lengthInput.value = '10';
-      lengthInput.style.maxWidth = '80px';
-      controls.appendChild(lengthInput);
-
-      const updateModeVisibility = () => {
-        const mode = modeSelect.value;
-        lineInput.style.display = (mode === 'column') ? '' : 'none';
-        colInput.style.display = (mode === 'column') ? '' : 'none';
-        delimSelect.style.display = (mode === 'column') ? '' : 'none';
-        headerInput.style.display = (mode === 'header') ? '' : 'none';
-        regexInput.style.display = (mode === 'regex') ? '' : 'none';
-        startInput.style.display = (mode === 'between') ? '' : 'none';
-        endInput.style.display = (mode === 'between') ? '' : 'none';
-        keywordInput.style.display = (mode === 'keyword') ? '' : 'none';
-        positionSelect.style.display = (mode === 'keyword') ? '' : 'none';
-        lengthInput.style.display = (mode === 'keyword') ? '' : 'none';
-      };
-      modeSelect.addEventListener('change', updateModeVisibility);
-      setTimeout(updateModeVisibility, 0);
-
-      const dataTypeLabel = document.createElement('label');
-      dataTypeLabel.textContent = 'Data Type:';
-      dataTypeLabel.style.cssText = 'font-size:12px;margin-top:4px;';
-      controls.appendChild(dataTypeLabel);
-
-      const dataTypeSelect = document.createElement('select');
-      dataTypeSelect.className = 'parsestr-datatype';
-      [['text', 'Text (String)'], ['dec', 'Number - Dec'], ['hex', 'Number - Hex']].forEach(([val, label]) => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = label;
-        dataTypeSelect.appendChild(opt);
-      });
-      controls.appendChild(dataTypeSelect);
-
-      const debugLabel = document.createElement('div');
-      debugLabel.className = 'parsestr-value';
-      debugLabel.style.cssText = 'font-size:12px;color:#80e5ff;margin-top:4px;';
-      controls.appendChild(debugLabel);
+      c.append(row(lbl('From'), inp('from', d.from, '$var  (empty = last Read)'),
+                   lbl('Save to $'), inp('saveTo', d.saveTo, 'name')));
+      const out = buildExtractUI(c, d, () => consoleTextFor(block));
+      c.append(row(chk('hex', d.hex, 'value is hex → convert to number（例：1F → 31）')), out);
     } else if (type === 'print') {
-      title.textContent = 'Print';
-      block.classList.add('script-block-print');
-
-      const templateInput = document.createElement('textarea');
-      templateInput.className = 'print-template';
-      templateInput.placeholder = 'Mix text and variables: e.g. Result is ${myVar} done';
-      templateInput.title = 'Use ${variableName} to embed variables in text';
-      controls.appendChild(templateInput);
-
-      const hint = document.createElement('div');
-      hint.style.cssText = 'font-size:11px;color:#8a6abf;margin-top:2px;';
-      hint.textContent = 'Tip: use ${varName} to insert variables';
-      controls.appendChild(hint);
+      c.append(area('template', d.template, 'e.g.  Temperature is $temp °C'));
     } else if (type === 'setvar') {
-      title.textContent = 'Set Variable';
-      block.classList.add('script-block-setvar');
-
-      const nameInput = document.createElement('input');
-      nameInput.type = 'text';
-      nameInput.className = 'setvar-name';
-      nameInput.placeholder = 'variable name';
-      nameInput.title = 'Name of the variable to set';
-      nameInput.style.maxWidth = '150px';
-      controls.appendChild(nameInput);
-
-      const valueInput = document.createElement('input');
-      valueInput.type = 'text';
-      valueInput.className = 'setvar-value';
-      valueInput.placeholder = 'value (supports ${otherVar})';
-      valueInput.title = 'Value to assign. Use ${varName} to reference other variables.';
-      controls.appendChild(valueInput);
+      c.append(row(lbl('$'), inp('name', d.name, 'name', { style: 'max-width:140px' }), lbl('='),
+                   inp('value', d.value, 'value  ($other works)')));
     } else if (type === 'waitfor') {
-      title.textContent = 'Wait For';
-      block.classList.add('script-block-waitfor');
-
-      const keywordInput = document.createElement('input');
-      keywordInput.type = 'text';
-      keywordInput.className = 'waitfor-keyword';
-      keywordInput.placeholder = 'keyword to wait for';
-      keywordInput.title = 'String to watch for in the output';
-      controls.appendChild(keywordInput);
-
-      const timeoutInput = document.createElement('input');
-      timeoutInput.type = 'number';
-      timeoutInput.className = 'waitfor-timeout';
-      timeoutInput.placeholder = 'timeout (ms)';
-      timeoutInput.title = 'Maximum time to wait in milliseconds (0 = no timeout)';
-      timeoutInput.min = '0';
-      timeoutInput.value = '5000';
-      timeoutInput.style.maxWidth = '120px';
-      controls.appendChild(timeoutInput);
-
-      const debugLabel = document.createElement('div');
-      debugLabel.className = 'waitfor-result';
-      debugLabel.style.cssText = 'font-size:11px;color:#ffee58;min-height:16px;';
-      controls.appendChild(debugLabel);
+      c.append(
+        row(lbl('Text'), inp('keyword', d.keyword, 'wait until the console shows this')),
+        row(lbl('Timeout'), inp('timeout', d.timeout ?? 5000, 'ms, 0 = forever', { style: 'max-width:90px' }), lbl('ms'),
+            lbl('Save line to $'), inp('saveTo', d.saveTo, 'optional')),
+        row(chk('stopOnTimeout', d.stopOnTimeout, 'stop script on timeout')),
+        resultLine()
+      );
     } else if (type === 'math') {
-      title.textContent = 'Math';
-      block.classList.add('script-block-math');
-
-      const resultInput = document.createElement('input');
-      resultInput.type = 'text';
-      resultInput.className = 'math-result';
-      resultInput.placeholder = 'result variable';
-      resultInput.title = 'Variable to store the result';
-      resultInput.style.maxWidth = '130px';
-      controls.appendChild(resultInput);
-
-      const eqSign = document.createElement('span');
-      eqSign.textContent = ' = ';
-      eqSign.style.cssText = 'color:#ef5350;font-weight:bold;font-size:14px;';
-      controls.appendChild(eqSign);
-
-      const leftInput = document.createElement('input');
-      leftInput.type = 'text';
-      leftInput.className = 'math-left';
-      leftInput.placeholder = 'left (number or ${var})';
-      leftInput.title = 'Left operand: number or ${varName}';
-      controls.appendChild(leftInput);
-
-      const opSelect = document.createElement('select');
-      opSelect.className = 'math-operator';
-      [['+', '+'], ['-', '-'], ['*', '×'], ['/', '÷'], ['%', '%']].forEach(([val, label]) => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = label;
-        opSelect.appendChild(opt);
-      });
-      opSelect.style.maxWidth = '60px';
-      controls.appendChild(opSelect);
-
-      const rightInput = document.createElement('input');
-      rightInput.type = 'text';
-      rightInput.className = 'math-right';
-      rightInput.placeholder = 'right (number or ${var})';
-      rightInput.title = 'Right operand: number or ${varName}';
-      controls.appendChild(rightInput);
-
-      const debugLabel = document.createElement('div');
-      debugLabel.className = 'math-debug';
-      debugLabel.style.cssText = 'font-size:11px;color:#ef9a9a;min-height:16px;';
-      controls.appendChild(debugLabel);
+      c.append(row(lbl('$'), inp('result', d.result, 'result', { style: 'max-width:110px' }), lbl('='),
+                   inp('left', d.left, '$a or number'),
+                   sel('operator', [['+', '+'], ['-', '−'], ['*', '×'], ['/', '÷'], ['%', '%']], d.operator || '+'),
+                   inp('right', d.right, '$b or number')),
+               resultLine());
     } else if (type === 'plot') {
-      title.textContent = 'Plot Sender';
-      block.classList.add('script-block-plot');
-
-      const varsContainer = document.createElement('div');
-      varsContainer.className = 'plot-vars-container';
-      controls.appendChild(varsContainer);
-
+      const varsContainer = el('div', { className: 'plot-vars-container' });
       const addVarRow = (variable = '', name = 'Data', color = '#ff3366') => {
-        const row = document.createElement('div');
-        row.className = 'plot-var-row';
-        row.style.cssText = 'display:flex; gap:4px; margin-bottom:4px; align-items:center;';
-        
-        const varInput = document.createElement('input');
-        varInput.type = 'text';
-        varInput.className = 'plot-variable';
-        varInput.placeholder = 'var (e.g. val)';
-        varInput.value = variable;
-        varInput.style.flex = '1';
-        
-        const nameInput = document.createElement('input');
-        nameInput.type = 'text';
-        nameInput.className = 'plot-name';
-        nameInput.placeholder = 'Name';
-        nameInput.value = name;
-        nameInput.style.flex = '1';
-
-        const colorInput = document.createElement('input');
-        colorInput.type = 'color';
-        colorInput.className = 'plot-color';
-        colorInput.value = color;
-        colorInput.style.width = '30px';
-        colorInput.style.padding = '0';
-        colorInput.style.border = 'none';
-        
-        const rmBtn = document.createElement('button');
-        rmBtn.textContent = '✕';
-        rmBtn.style.cssText = 'font-size:10px; padding:2px 4px; background:#4a2a2a; border:none; color:#ff9b9b; cursor:pointer;';
-        rmBtn.onclick = () => row.remove();
-
-        row.appendChild(varInput);
-        row.appendChild(nameInput);
-        row.appendChild(colorInput);
-        row.appendChild(rmBtn);
-        varsContainer.appendChild(row);
+        const r = el('div', { className: 'plot-var-row', style: 'display:flex; gap:4px; margin-bottom:4px; align-items:center;' }, [
+          el('input', { type: 'text', className: 'plot-variable', placeholder: '$var', value: variable, style: 'flex:1' }),
+          el('input', { type: 'text', className: 'plot-name', placeholder: 'Name', value: name, style: 'flex:1' }),
+          el('input', { type: 'color', className: 'plot-color', value: color, style: 'width:30px;padding:0;border:none;' })
+        ]);
+        const rm = el('button', { textContent: '✕', style: 'font-size:10px; padding:2px 4px; background:#4a2a2a; border:none; color:#ff9b9b; cursor:pointer;' });
+        rm.onclick = () => r.remove();
+        r.append(rm);
+        varsContainer.append(r);
       };
-
       block.addVarRow = addVarRow;
-      addVarRow();
-
-      const addVarBtn = document.createElement('button');
-      addVarBtn.textContent = '+ Add Variable';
-      addVarBtn.style.cssText = 'font-size:11px; margin-bottom:6px; padding:2px 6px;';
-      addVarBtn.onclick = () => addVarRow();
-      controls.appendChild(addVarBtn);
-
-      const labelInput = document.createElement('input');
-      labelInput.type = 'text';
-      labelInput.className = 'plot-label';
-      labelInput.placeholder = 'Y-Axis Label';
-      labelInput.title = 'Label for the Y-Axis (e.g. °C)';
-      labelInput.style.maxWidth = '100px';
-      controls.appendChild(labelInput);
+      const vs = Array.isArray(d.variables) && d.variables.length ? d.variables
+               : (d.variable ? [{ variable: d.variable, name: d.name || 'Data' }] : [{}]);
+      vs.forEach(v => addVarRow(v.variable, v.name, v.color));
+      const addBtn = el('button', { textContent: '+ Add Variable', style: 'font-size:11px; margin-bottom:6px; padding:2px 6px;' });
+      addBtn.onclick = () => addVarRow();
+      c.append(varsContainer, addBtn, row(lbl('Y-axis'), inp('label', d.label, 'e.g. °C')));
     } else if (type === 'condition') {
-      title.textContent = 'IF';
-      block.classList.add('script-block-condition');
-
-      // Compare mode selector
-      const modeLabel = document.createElement('label');
-      modeLabel.textContent = 'Compare Mode:';
-      modeLabel.style.fontSize = '12px';
-      controls.appendChild(modeLabel);
-
-      const modeSelect = document.createElement('select');
-      modeSelect.className = 'condition-mode';
-      [['text-exact', 'Text Exact Match'], ['text-contains', 'Text Contains'], ['hex', 'Number - Hex'], ['dec', 'Number - Dec']].forEach(([val, label]) => {
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = label;
-        modeSelect.appendChild(opt);
-      });
-      controls.appendChild(modeSelect);
-
-      const varInput = document.createElement('input');
-      varInput.type = 'text';
-      varInput.className = 'condition-variable';
-      varInput.placeholder = 'variable name';
-      varInput.title = 'Variable to compare';
-      varInput.style.maxWidth = '120px';
-      controls.appendChild(varInput);
-
-      const opSelect = document.createElement('select');
-      opSelect.className = 'condition-operator';
-      const updateOperators = () => {
-        const mode = modeSelect.value;
-        opSelect.innerHTML = '';
-        let ops;
-        if (mode === 'text-contains') {
-          ops = [['contains', 'Contains'], ['not-contains', 'Not Contains']];
-        } else if (mode === 'text-exact') {
-          ops = [['=', '='], ['!=', '!=']];
-        } else {
-          ops = [['=', '='], ['!=', '!='], ['<', '<'], ['>', '>']];
-        }
-        ops.forEach(([val, label]) => {
-          const opt = document.createElement('option');
-          opt.value = val;
-          opt.textContent = label;
-          opSelect.appendChild(opt);
-        });
-      };
-      updateOperators();
-      modeSelect.addEventListener('change', updateOperators);
-      opSelect.style.maxWidth = '100px';
-      controls.appendChild(opSelect);
-
-      const compareInput = document.createElement('input');
-      compareInput.type = 'text';
-      compareInput.className = 'condition-compare';
-      compareInput.placeholder = 'compare value';
-      compareInput.title = 'Value to compare against';
-      controls.appendChild(compareInput);
-
-      const thenLabel = document.createElement('div');
-      thenLabel.textContent = 'Then:';
-      thenLabel.style.color = '#9abcff';
-      thenLabel.style.fontSize = '12px';
-      thenLabel.style.marginTop = '6px';
-      controls.appendChild(thenLabel);
-
-      const thenCanvas = document.createElement('div');
-      thenCanvas.className = 'script-canvas';
-      thenCanvas.style.background = '#09131f';
-      thenCanvas.style.minHeight = '80px';
-      thenCanvas.style.padding = '8px';
-      thenCanvas.style.borderRadius = '6px';
-      thenCanvas.dataset.branch = 'then';
-      thenCanvas.innerHTML = '<div class="script-canvas-empty">Drop actions for true branch.</div>';
-      makeScriptCanvasDroppable(thenCanvas);
-      controls.appendChild(thenCanvas);
-
-      const elseLabel = document.createElement('div');
-      elseLabel.textContent = 'Else:';
-      elseLabel.style.color = '#9abcff';
-      elseLabel.style.fontSize = '12px';
-      elseLabel.style.marginTop = '6px';
-      controls.appendChild(elseLabel);
-
-      const elseCanvas = document.createElement('div');
-      elseCanvas.className = 'script-canvas';
-      elseCanvas.style.background = '#09131f';
-      elseCanvas.style.minHeight = '80px';
-      elseCanvas.style.padding = '8px';
-      elseCanvas.style.borderRadius = '6px';
-      elseCanvas.dataset.branch = 'else';
-      elseCanvas.innerHTML = '<div class="script-canvas-empty">Drop actions for false branch.</div>';
-      makeScriptCanvasDroppable(elseCanvas);
-      controls.appendChild(elseCanvas);
+      c.append(
+        row(inp('left', d.left, '$value'), sel('op', COMPARE_OPS, d.op || '='), inp('right', d.right, 'compare with')),
+        row(chk('hex', d.hex, 'hex numbers')),
+        el('div', { className: 'blk-hint', textContent: '兩邊都是數字就按數字比（0x.. = 16 進位），其他按文字比。按 ? 看每個運算子的意思。' }),
+        el('div', { className: 'blk-branch', textContent: 'Then:' }),
+        nestedCanvas({ branch: 'then' }, 'Drop actions for true branch.'),
+        el('div', { className: 'blk-branch', textContent: 'Else:' }),
+        nestedCanvas({ branch: 'else' }, 'Drop actions for false branch.')
+      );
     } else if (type === 'repeat') {
-      title.textContent = 'LOOP';
-      block.classList.add('script-block-repeat');
-
-      const modeSelect = document.createElement('select');
-      modeSelect.className = 'repeat-mode';
-      [['count', 'Count'], ['infinite', 'Infinite']].forEach(([v, l]) => {
-        const opt = document.createElement('option');
-        opt.value = v;
-        opt.textContent = l;
-        modeSelect.appendChild(opt);
-      });
-      controls.appendChild(modeSelect);
-
-      const repeatInput = document.createElement('input');
-      repeatInput.type = 'number';
-      repeatInput.className = 'repeat-count';
-      repeatInput.min = '1';
-      repeatInput.value = '2';
-      repeatInput.title = 'Repeat count';
-      repeatInput.style.maxWidth = '80px';
-      controls.appendChild(repeatInput);
-
-      modeSelect.addEventListener('change', () => {
-        repeatInput.style.display = modeSelect.value === 'count' ? '' : 'none';
-      });
-
-      const childLabel = document.createElement('div');
-      childLabel.style.color = '#9abcff';
-      childLabel.style.fontSize = '12px';
-      childLabel.style.marginTop = '6px';
-      childLabel.textContent = 'Drop actions into this LOOP:';
-      controls.appendChild(childLabel);
-
-      const nested = document.createElement('div');
-      nested.className = 'script-canvas';
-      nested.style.background = '#09131f';
-      nested.style.minHeight = '100px';
-      nested.style.padding = '8px';
-      nested.style.borderRadius = '6px';
-      nested.dataset.nested = 'true';
-      nested.innerHTML = '<div class="script-canvas-empty">Drop blocks here.</div>';
-      makeScriptCanvasDroppable(nested);
-      controls.appendChild(nested);
+      const modeSel = sel('mode', [['count', 'Count'], ['infinite', 'Forever']], d.mode || (d.count === 0 ? 'infinite' : 'count'));
+      const count = inp('count', d.count && d.count !== 0 ? d.count : 2, 'times or $var', { style: 'max-width:90px' });
+      const syncCount = () => { count.style.display = modeSel.value === 'count' ? '' : 'none'; };
+      modeSel.addEventListener('change', syncCount);
+      syncCount();
+      c.append(row(modeSel, count, lbl('times')), el('div', { className: 'blk-branch', textContent: 'Repeat these:' }),
+               nestedCanvas({ nested: 'true' }, 'Drop blocks here.', 100));
+    } else if (type === 'signal') {
+      c.append(
+        row(lbl('Name'), inp('name', d.name, 'e.g. boot_done')),
+        row(lbl('Value'), inp('value', d.value, 'optional, $var works')),
+        el('div', { className: 'blk-hint', textContent: '另一個 script 用 👂 Wait Notify（同一個 Name）就能收到。' })
+      );
+    } else if (type === 'waitsignal') {
+      c.append(
+        row(lbl('Name'), inp('name', d.name, 'e.g. boot_done')),
+        row(lbl('Timeout'), inp('timeout', d.timeout ?? 0, 'ms, 0 = forever', { style: 'max-width:90px' }), lbl('ms'),
+            lbl('Save value to $'), inp('saveTo', d.saveTo, 'optional')),
+        row(chk('stopOnTimeout', d.stopOnTimeout ?? true, 'stop script on timeout')),
+        resultLine()
+      );
     }
 
-    block.appendChild(controls);
+    block.append(c);
     setBlockDragHandlers(block);
+
+    // nested blocks (from import)
+    if (type === 'condition') {
+      if (d.then?.length) { const t = block.querySelector('[data-branch="then"]'); t.innerHTML = ''; importBlocksToCanvas(t, d.then); }
+      if (d.else?.length) { const e = block.querySelector('[data-branch="else"]'); e.innerHTML = ''; importBlocksToCanvas(e, d.else); }
+    } else if (type === 'repeat' && d.actions?.length) {
+      const n = block.querySelector('[data-nested]'); n.innerHTML = ''; importBlocksToCanvas(n, d.actions);
+    }
     return block;
   }
+
+  // Read this block's own fields (not those of blocks nested inside it)
+  function readFields(block) {
+    const out = {};
+    block.querySelectorAll('[data-f]').forEach(f => {
+      if (f.closest('.script-block-item') !== block) return;
+      out[f.dataset.f] = f.type === 'checkbox' ? f.checked : f.value;
+    });
+    if (block.dataset.type === 'plot') {
+      out.variables = [...block.querySelectorAll('.plot-var-row')].map(r => ({
+        variable: r.querySelector('.plot-variable').value.trim(),
+        name: r.querySelector('.plot-name').value.trim() || 'Data',
+        color: r.querySelector('.plot-color').value
+      })).filter(v => v.variable);
+    }
+    return out;
+  }
+
+  function canvasBlocks(canvasEl) {
+    return [...canvasEl.children].filter(c => c.classList.contains('script-block-item'));
+  }
+
+  // DOM → plain objects (used for both running and export)
+  function blockToData(block, withElement) {
+    const type = block.dataset.type;
+    const d = { type, ...readFields(block) };
+    if (type === 'condition') {
+      d.then = canvasToData(block.querySelector('[data-branch="then"]'), withElement);
+      d.else = canvasToData(block.querySelector('[data-branch="else"]'), withElement);
+    } else if (type === 'repeat') {
+      d.actions = canvasToData(block.querySelector('[data-nested]'), withElement);
+    }
+    if (withElement) d.element = block;
+    return d;
+  }
+  function canvasToData(canvasEl, withElement) {
+    return canvasEl ? canvasBlocks(canvasEl).map(b => blockToData(b, withElement)) : [];
+  }
+  function parseScriptCanvas(canvasEl) { return canvasToData(canvasEl, true); }
+  function serializeCanvasToJSON(canvasEl) { return canvasToData(canvasEl, false); }
+
+  // Convert blocks saved by the previous version of this page
+  function upgradeLegacyBlock(b) {
+    const d = { ...b };
+    const extractFrom = (mode, o) => {
+      if (!mode || mode === 'all') return { extract: 'all' };
+      if (mode === 'between') return { extract: 'pattern', pattern: `${o.startStr || o.start || ''}*${o.endStr || o.end || ''}` };
+      if (mode === 'regex') return { extract: 'regex', regex: o.regexPattern || o.regex || '' };
+      if (mode === 'header') return { extract: 'header', header: o.headerName || o.header || '', row: 'last' };
+      if (mode === 'column' && (!o.delimiter || o.delimiter === 'whitespace') && (!o.lineChoice || o.lineChoice === 'last')) {
+        return { extract: 'word', lineHas: '', word: o.column || 'last' };
+      }
+      const legacy = { mode, lineChoice: o.lineChoice, column: o.column, delimiter: o.delimiter, headerName: o.headerName,
+                       regexPattern: o.regexPattern, startStr: o.startStr, endStr: o.endStr,
+                       keyword: o.keyword, position: o.position, length: o.length };
+      return { extract: 'legacy', legacy: JSON.stringify(legacy) };
+    };
+    if (b.type === 'read' && b.extract === undefined) {
+      Object.assign(d, extractFrom(b.parsemode || (b.keyword ? 'keyword' : 'all'), b),
+        { saveTo: b.variable || '', hex: b.datatype === 'hex' });
+    } else if (b.type === 'parsestr' && b.extract === undefined) {
+      Object.assign(d, extractFrom(b.mode || 'column', b),
+        { from: b.inputVar || '', saveTo: b.targetVar || '', hex: b.datatype === 'hex' });
+    } else if (b.type === 'condition' && b.left === undefined) {
+      const opMap = { 'not-contains': 'not contains' };
+      Object.assign(d, { left: b.variable ? `$${b.variable}` : '', op: opMap[b.operator] || b.operator || '=',
+                         right: b.compare ?? '', hex: b.mode === 'hex' });
+    }
+    return d;
+  }
+
+  function importBlocksToCanvas(canvasEl, blocks) {
+    for (const raw of blocks || []) {
+      if (!raw || !BLOCK_TITLES[raw.type]) continue;
+      insertBlockIntoCanvas(canvasEl, createScriptBlock(raw.type, upgradeLegacyBlock(raw)));
+    }
+  }
+
+  function setActionRunning(action, running) {
+    if (action.element) action.element.classList.toggle('running', running);
+  }
+  function showResult(action, text) {
+    const r = action.element && [...action.element.querySelectorAll('.blk-result')]
+      .find(x => x.closest('.script-block-item') === action.element);
+    if (r) r.textContent = text;
+  }
+
+  async function waitUntil(ctx, timeoutMs, check) {
+    const start = Date.now();
+    while (true) {
+      if (ctx.stopRequested) throw new Error('Script stopped');
+      const r = check();
+      if (r) return r;
+      if (timeoutMs > 0 && Date.now() - start >= timeoutMs) return null;
+      await delay(50);
+    }
+  }
+
+  async function executeScriptActions(actions, vars, ctx) {
+    const status = (m) => setScriptStatus(ctx, m);
+    const conEl = ctx.consoleEl;
+    const isAdb = ctx.target === 'adb';
+
+    for (const a of actions) {
+      if (ctx.stopRequested) throw new Error('Script stopped');
+      setActionRunning(a, true);
+      try {
+        switch (a.type) {
+          case 'command': {
+            const cmd = expandVars(a.command, vars).trim();
+            if (!cmd) break;
+            if (isAdb) {
+              if (!isAdbConnected) throw new Error('ADB not connected');
+              await runAdbCommand(cmd);
+            } else {
+              if (!isConnected || !writer) throw new Error('Serial not connected');
+              addToHistory(cmd);
+              appendOutput(`\n> ${cmd}\n`);
+              await sendRawData(cmd + '\r\n');
+            }
+            break;
+          }
+          case 'delay': {
+            const ms = parseDelayValue(expandVars(a.value, vars));
+            if (Number.isNaN(ms) || ms < 0) break;
+            status(`Waiting ${ms / 1000}s...`);
+            await delay(ms);
+            break;
+          }
+          case 'read': {
+            const name = varName(a.saveTo) || '_read';
+            const cmd = expandVars(a.command, vars).trim();
+            let raw = '';
+            status(`Reading into $${name}...`);
+            if (isAdb) {
+              if (!isAdbConnected) throw new Error('ADB not connected');
+              raw = cmd ? await runAdbCommand(cmd) : '';
+            } else {
+              if (!isConnected || !writer) throw new Error('Serial not connected');
+              if (cmd) {
+                addToHistory(cmd);
+                appendOutput(`\n> ${cmd}\n`);
+              }
+              const before = conEl.value.length;
+              if (cmd) await sendRawData(cmd + '\r\n');
+              await delay(Math.max(0, parseInt(a.waitMs, 10) || 300));
+              raw = conEl.value.slice(before);
+            }
+            vars._last_read = raw;
+            const value = applyHex(extractValue(raw, a), a.hex);
+            vars[name] = value;
+            showResult(a, `$${name} = ${value === '' ? '(empty)' : value}`);
+            break;
+          }
+          case 'parsestr': {
+            const name = varName(a.saveTo) || '_value';
+            const src = a.from && a.from.trim() ? resolveOperand(a.from, vars)
+                      : (hasVar(vars, '_last_read') ? vars._last_read : conEl.value);
+            const value = applyHex(extractValue(src, a), a.hex);
+            vars[name] = value;
+            showResult(a, `$${name} = ${value === '' ? '(empty)' : value}`);
+            status(`$${name} = ${value}`);
+            break;
+          }
+          case 'print': {
+            appendOutput(`\n${expandVars(a.template, vars)}\n`, conEl);
+            break;
+          }
+          case 'setvar': {
+            const name = varName(a.name);
+            if (!name) break;
+            vars[name] = expandVars(a.value, vars);
+            status(`$${name} = ${vars[name]}`);
+            break;
+          }
+          case 'waitfor': {
+            const keyword = expandVars(a.keyword, vars);
+            if (!keyword) { status('Wait For: no text'); break; }
+            const timeout = Math.max(0, parseInt(a.timeout, 10) || 0);
+            const startLen = conEl.value.length;
+            const t0 = Date.now();
+            status(`Waiting for "${keyword}"...`);
+            const found = await waitUntil(ctx, timeout, () => conEl.value.slice(startLen).includes(keyword));
+            if (found) {
+              const name = varName(a.saveTo);
+              if (name) {
+                const lines = conEl.value.slice(startLen).split(/\r?\n/).filter(l => l.includes(keyword));
+                vars[name] = (lines[lines.length - 1] || '').trim();
+              }
+              showResult(a, `Found after ${Date.now() - t0} ms`);
+              status(`Found "${keyword}"`);
+            } else {
+              showResult(a, `Timeout (${timeout} ms)`);
+              if (a.stopOnTimeout) throw new Error(`Timeout waiting for "${keyword}"`);
+              status(`Wait For timeout (${timeout} ms)`);
+            }
+            break;
+          }
+          case 'math': {
+            const name = varName(a.result);
+            const l = toNumber(resolveOperand(a.left, vars));
+            const r = toNumber(resolveOperand(a.right, vars));
+            const L = Number.isNaN(l) ? 0 : l, R = Number.isNaN(r) ? 0 : r;
+            let res = 0;
+            switch (a.operator) {
+              case '+': res = L + R; break;
+              case '-': res = L - R; break;
+              case '*': res = L * R; break;
+              case '/': res = R !== 0 ? L / R : 0; break;
+              case '%': res = R !== 0 ? L % R : 0; break;
+            }
+            if (name) vars[name] = String(res);
+            showResult(a, `$${name} = ${L} ${a.operator} ${R} = ${res}`);
+            status(`$${name} = ${res}`);
+            break;
+          }
+          case 'plot': {
+            const pts = [];
+            for (const v of a.variables || []) {
+              const val = toNumber(resolveOperand(v.variable, vars));
+              if (!Number.isNaN(val)) pts.push({ name: v.name, value: val, color: v.color });
+            }
+            if (pts.length) {
+              updateChart(pts, a.label);
+              status(`Plot: ${pts.map(p => `${p.name}=${p.value}`).join(', ')}`);
+            }
+            break;
+          }
+          case 'condition': {
+            const left = resolveOperand(a.left, vars);
+            const right = resolveOperand(a.right, vars);
+            const result = compareValues(left, a.op || '=', right, !!a.hex);
+            status(`IF "${left}" ${a.op} "${right}" → ${result}`);
+            await executeScriptActions(result ? a.then : a.else, vars, ctx);
+            break;
+          }
+          case 'repeat': {
+            const forever = a.mode === 'infinite';
+            const n = forever ? Infinity : Math.max(1, parseInt(resolveOperand(a.count, vars), 10) || 1);
+            for (let i = 0; i < n; i++) {
+              if (ctx.stopRequested) throw new Error('Script stopped');
+              vars.loop_index = String(i + 1);
+              status(forever ? `Loop #${i + 1}` : `Loop ${i + 1}/${n}`);
+              await executeScriptActions(a.actions, vars, ctx);
+            }
+            break;
+          }
+          case 'signal': {
+            const name = expandVars(a.name, vars).trim();
+            if (!name) break;
+            const value = expandVars(a.value, vars);
+            signalBus.emit(name, value, ctx.target);
+            status(`Notified "${name}"`);
+            break;
+          }
+          case 'waitsignal': {
+            const name = expandVars(a.name, vars).trim();
+            if (!name) break;
+            const timeout = Math.max(0, parseInt(a.timeout, 10) || 0);
+            const t0 = Date.now();
+            status(`Waiting for notify "${name}"...`);
+            const msg = await waitUntil(ctx, timeout, () => signalBus.take(name));
+            if (msg) {
+              const v = varName(a.saveTo);
+              if (v) vars[v] = msg.value;
+              showResult(a, `Got "${name}" from ${msg.from.toUpperCase()} after ${Date.now() - t0} ms${msg.value !== '' ? ` (${msg.value})` : ''}`);
+              status(`Got notify "${name}"`);
+            } else {
+              showResult(a, `Timeout (${timeout} ms)`);
+              if (a.stopOnTimeout) throw new Error(`Timeout waiting for notify "${name}"`);
+              status(`Notify timeout (${timeout} ms)`);
+            }
+            break;
+          }
+        }
+      } finally {
+        setActionRunning(a, false);
+      }
+    }
+  }
+
+  // ── Run / Stop (each builder), Run both ──
+  const anyScriptRunning = () => Object.values(scriptBuilders).some(c => c.running);
+
+  async function runBuilder(ctx) {
+    if (ctx.running) return;
+    const actions = parseScriptCanvas(ctx.canvas);
+    if (actions.length === 0) { setScriptStatus(ctx, 'Add blocks first.'); return; }
+    if (!anyScriptRunning()) signalBus.clear(); // fresh start: drop old notifies
+    ctx.running = true;
+    ctx.stopRequested = false;
+    ctx.runBtn.disabled = true;
+    ctx.stopBtn.disabled = false;
+    setScriptStatus(ctx, 'Running...');
+    try {
+      await executeScriptActions(actions, {}, ctx);
+      if (!ctx.stopRequested) setScriptStatus(ctx, 'Completed.');
+    } catch (err) {
+      setScriptStatus(ctx, err.message || 'Error during run.');
+    } finally {
+      ctx.running = false;
+      ctx.stopRequested = false;
+      ctx.runBtn.disabled = false;
+      ctx.stopBtn.disabled = true;
+    }
+  }
+
+  for (const ctx of Object.values(scriptBuilders)) {
+    ctx.runBtn.addEventListener('click', () => runBuilder(ctx));
+    ctx.stopBtn.addEventListener('click', () => {
+      ctx.stopRequested = true;
+      setScriptStatus(ctx, 'Stopping...');
+    });
+  }
+
+  document.getElementById('runBothBtn').addEventListener('click', () => {
+    const ctxs = Object.values(scriptBuilders).filter(c => c.pane.style.display !== 'none' && !c.running);
+    if (!anyScriptRunning()) signalBus.clear();
+    ctxs.forEach(c => runBuilder(c));
+  });
+  document.getElementById('stopBothBtn').addEventListener('click', () => {
+    for (const c of Object.values(scriptBuilders)) {
+      if (c.running) { c.stopRequested = true; setScriptStatus(c, 'Stopping...'); }
+    }
+  });
 
   function showEmptyCanvasHint(canvasEl) {
     if (!canvasEl.querySelector('.script-block-item')) {
@@ -3385,655 +3596,92 @@ document.addEventListener('DOMContentLoaded', () => {
     return String(input);
   }
 
-  function parseScriptCanvas(canvasEl) {
-    const blocks = [];
-    for (const child of canvasEl.children) {
-      if (!child.classList.contains('script-block-item')) continue;
-      const type = child.dataset.type;
-      if (type === 'command') {
-        const cmd = child.querySelector('textarea').value.trim();
-        if (!cmd) continue;
-        blocks.push({ type: 'command', command: cmd, element: child });
-      } else if (type === 'delay') {
-        const raw = child.querySelector('input').value;
-        const ms = parseDelayValue(raw);
-        if (Number.isNaN(ms) || ms < 0) continue;
-        blocks.push({ type: 'delay', ms, element: child });
-      } else if (type === 'read') {
-        const source = child.querySelector('.read-source')?.value || 'uart';
-        const variable = child.querySelector('.read-variable')?.value.trim();
-        const command = child.querySelector('.read-command')?.value.trim();
-        const parsemode = child.querySelector('.read-parsemode')?.value || 'all';
-        const lineChoice = child.querySelector('.read-line')?.value || 'last';
-        const column = child.querySelector('.read-column')?.value || '5';
-        const delimiter = child.querySelector('.read-delimiter')?.value || 'whitespace';
-        const headerName = child.querySelector('.read-header')?.value || '';
-        const regexPattern = child.querySelector('.read-regex')?.value || '';
-        const startStr = child.querySelector('.read-start')?.value || '';
-        const endStr = child.querySelector('.read-end')?.value || '';
-        const keyword = child.querySelector('.read-keyword')?.value || '';
-        const position = child.querySelector('.read-position')?.value || 'before';
-        const length = parseInt(child.querySelector('.read-length')?.value, 10) || 0;
-        const datatype = child.querySelector('.read-datatype')?.value || 'text';
-        blocks.push({
-          type: 'read',
-          source,
-          variable,
-          command,
-          parsemode,
-          lineChoice,
-          column,
-          delimiter,
-          headerName,
-          regexPattern,
-          startStr,
-          endStr,
-          keyword,
-          position,
-          length,
-          datatype,
-          element: child
-        });
-      } else if (type === 'parsestr') {
-        const inputVar = child.querySelector('.parsestr-input')?.value || '';
-        const targetVar = child.querySelector('.parsestr-target')?.value.trim() || '';
-        const mode = child.querySelector('.parsestr-mode')?.value || 'column';
-        const lineChoice = child.querySelector('.parsestr-line')?.value || 'last';
-        const column = child.querySelector('.parsestr-column')?.value || '5';
-        const delimiter = child.querySelector('.parsestr-delimiter')?.value || 'whitespace';
-        const headerName = child.querySelector('.parsestr-header')?.value || '';
-        const regexPattern = child.querySelector('.parsestr-regex')?.value || '';
-        const startStr = child.querySelector('.parsestr-start')?.value || '';
-        const endStr = child.querySelector('.parsestr-end')?.value || '';
-        const keyword = child.querySelector('.parsestr-keyword')?.value || '';
-        const position = child.querySelector('.parsestr-position')?.value || 'after';
-        const length = parseInt(child.querySelector('.parsestr-length')?.value, 10) || 10;
-        const datatype = child.querySelector('.parsestr-datatype')?.value || 'text';
-        blocks.push({
-          type: 'parsestr',
-          inputVar,
-          targetVar,
-          mode,
-          lineChoice,
-          column,
-          delimiter,
-          headerName,
-          regexPattern,
-          startStr,
-          endStr,
-          keyword,
-          position,
-          length,
-          datatype,
-          element: child
-        });
-      } else if (type === 'print') {
-        const template = child.querySelector('.print-template')?.value || '';
-        blocks.push({ type: 'print', template, element: child });
-      } else if (type === 'condition') {
-        const variable = child.querySelector('.condition-variable')?.value.trim();
-        const operator = child.querySelector('.condition-operator')?.value || '=';
-        const compare = child.querySelector('.condition-compare')?.value ?? '';
-        const conditionMode = child.querySelector('.condition-mode')?.value || 'text-exact';
-        const thenCanvas = child.querySelector('[data-branch="then"]');
-        const elseCanvas = child.querySelector('[data-branch="else"]');
-        const thenActions = thenCanvas ? parseScriptCanvas(thenCanvas) : [];
-        const elseActions = elseCanvas ? parseScriptCanvas(elseCanvas) : [];
-        blocks.push({ type: 'condition', variable, operator, compare, conditionMode, thenActions, elseActions, element: child });
-      } else if (type === 'repeat') {
-        const mode = child.querySelector('.repeat-mode')?.value || 'count';
-        const repeatInput = child.querySelector('.repeat-count');
-        const rawCount = repeatInput ? repeatInput.value : child.querySelector('input')?.value;
-        const count = mode === 'infinite' ? 0 : Math.max(1, Number(rawCount) || 1);
-        const nested = child.querySelector('[data-nested]');
-        const nestedActions = nested ? parseScriptCanvas(nested) : [];
-        if (nestedActions.length === 0) continue;
-        blocks.push({ type: 'repeat', count, actions: nestedActions, element: child });
-      } else if (type === 'setvar') {
-        const name = child.querySelector('.setvar-name')?.value.trim() || '';
-        const value = child.querySelector('.setvar-value')?.value || '';
-        blocks.push({ type: 'setvar', name, value, element: child });
-      } else if (type === 'waitfor') {
-        const keyword = child.querySelector('.waitfor-keyword')?.value || '';
-        const tStr = child.querySelector('.waitfor-timeout')?.value;
-        const timeout = (tStr !== undefined && tStr !== '') ? parseInt(tStr, 10) : 5000;
-        blocks.push({ type: 'waitfor', keyword, timeout, element: child });
-      } else if (type === 'math') {
-        const result = child.querySelector('.math-result')?.value.trim() || '';
-        const left = child.querySelector('.math-left')?.value || '';
-        const operator = child.querySelector('.math-operator')?.value || '+';
-        const right = child.querySelector('.math-right')?.value || '';
-        blocks.push({ type: 'math', result, left, operator, right, element: child });
-      } else if (type === 'plot') {
-        const rows = child.querySelectorAll('.plot-var-row');
-        const variables = [];
-        for (const row of rows) {
-          const variable = row.querySelector('.plot-variable')?.value.trim() || '';
-          const name = row.querySelector('.plot-name')?.value.trim() || 'Data';
-          const color = row.querySelector('.plot-color')?.value || '#ff3366';
-          if (variable) variables.push({ variable, name, color });
-        }
-        const label = child.querySelector('.plot-label')?.value.trim() || '';
-        blocks.push({ type: 'plot', variables, label, element: child });
+  // ══════════════════════════════════════════════════════════════
+  // EXAMPLE SCRIPTS (📚 menu in the Script Builder header)
+  // ══════════════════════════════════════════════════════════════
+  const EXAMPLES = {
+    temp: {
+      title: 'UART：讀溫度並判斷',
+      uart: [
+        { type: 'read', command: 'cat /sys/class/thermal/thermal_zone0/temp', waitMs: '300', saveTo: 'raw',
+          extract: 'regex', regex: '^\\s*(\\d+)\\s*$' },
+        { type: 'math', result: 't', left: '$raw', operator: '/', right: '1000' },
+        { type: 'print', template: '溫度 = $t °C' },
+        { type: 'condition', left: '$t', op: '>', right: '50',
+          then: [{ type: 'print', template: '⚠ 太熱了！' }],
+          else: [{ type: 'print', template: '✓ 溫度正常' }] }
+      ]
+    },
+    battery: {
+      title: 'ADB：每秒讀電量並畫圖（10 次）',
+      adb: [
+        { type: 'repeat', mode: 'count', count: '10', actions: [
+          { type: 'read', command: 'dumpsys battery', saveTo: 'bat', extract: 'pattern', pattern: 'level: *' },
+          { type: 'print', template: '第 $loop_index 次：電量 $bat %' },
+          { type: 'plot', variables: [{ variable: '$bat', name: 'Battery', color: '#50fa7b' }], label: '%' },
+          { type: 'delay', value: '1s' }
+        ] }
+      ]
+    },
+    reboot: {
+      title: '同步：ADB 下 reboot，UART 看開機',
+      adb: [
+        { type: 'print', template: '通知 UART，準備 reboot…' },
+        { type: 'signal', name: 'rebooting', value: '' },
+        { type: 'delay', value: '0.5s' },
+        { type: 'command', command: 'reboot' }
+      ],
+      uart: [
+        { type: 'print', template: '等 ADB 的 reboot 通知…' },
+        { type: 'waitsignal', name: 'rebooting', timeout: '0', saveTo: '', stopOnTimeout: true },
+        { type: 'waitfor', keyword: 'Starting kernel', timeout: '60000', saveTo: '', stopOnTimeout: true },
+        { type: 'print', template: '✓ kernel 開始啟動' },
+        { type: 'waitfor', keyword: 'login:', timeout: '120000', saveTo: '', stopOnTimeout: true },
+        { type: 'print', template: '✓ 開機完成' }
+      ]
+    },
+    passip: {
+      title: '傳值：UART 抓 IP，交給 ADB ping',
+      uart: [
+        { type: 'read', command: 'ip -4 addr show eth0', waitMs: '500', saveTo: 'ip', extract: 'pattern', pattern: 'inet */' },
+        { type: 'print', template: '抓到 IP：$ip' },
+        { type: 'signal', name: 'got_ip', value: '$ip' }
+      ],
+      adb: [
+        { type: 'waitsignal', name: 'got_ip', timeout: '30000', saveTo: 'ip', stopOnTimeout: true },
+        { type: 'command', command: 'ping -c 3 $ip' }
+      ]
+    }
+  };
+
+  const exampleSelect = document.getElementById('exampleSelect');
+  for (const [key, e] of Object.entries(EXAMPLES)) {
+    exampleSelect.append(el('option', { value: key, textContent: e.title }));
+  }
+  exampleSelect.addEventListener('change', () => {
+    const e = EXAMPLES[exampleSelect.value];
+    exampleSelect.value = '';
+    if (!e) return;
+    const targets = ['uart', 'adb'].filter(t => e[t]);
+    const busy = targets.filter(t => scriptBuilders[t].running);
+    if (busy.length) { alertScript(busy, 'Stop the running script first.'); return; }
+    const notEmpty = targets.filter(t => canvasBlocks(scriptBuilders[t].canvas).length);
+    if (notEmpty.length && !window.confirm(`載入範例會取代目前的 ${notEmpty.map(t => t.toUpperCase()).join(' / ')} script，確定嗎？`)) return;
+    for (const t of targets) {
+      const ctx = scriptBuilders[t];
+      ctx.canvas.innerHTML = '';
+      importBlocksToCanvas(ctx.canvas, e[t]);
+      setScriptStatus(ctx, `Example loaded: ${e.title}`);
+      if (typeof viewPrefs !== 'undefined' && !viewPrefs[t]) {
+        document.querySelector(`.view-toggle[data-target="${t}"]`)?.click();
       }
     }
-    return blocks;
-  }
-
-  function setActionRunning(action, running) {
-    if (action.element) {
-      action.element.classList.toggle('running', running);
-    }
-  }
-
-  async function executeScriptActions(actions, vars, ctx) {
-    const updateScriptStatus = (m) => setScriptStatus(ctx, m);
-    const conEl = ctx.consoleEl;
-    for (const action of actions) {
-      if (ctx.stopRequested) throw new Error('Script stopped');
-      setActionRunning(action, true);
-      try {
-        if (action.type === 'command') {
-          if (ctx.target === 'adb') {
-            if (!isAdbConnected) throw new Error('ADB not connected');
-            await runAdbCommand(action.command);
-          } else {
-            if (!isConnected || !writer) throw new Error('Serial not connected');
-            addToHistory(action.command);
-            appendOutput(`\n> ${action.command}\n`);
-            await sendRawData(action.command + '\r\n');
-          }
-        } else if (action.type === 'delay') {
-          updateScriptStatus(`Waiting ${action.ms / 1000}s...`);
-          await delay(action.ms);
-        } else if (action.type === 'read') {
-          const variable = action.variable || `var_${Math.floor(Math.random() * 1000)}`;
-          const source = ctx.target;
-          const command = action.command || '';
-          let value = '';
-          updateScriptStatus(`Reading ${source} into ${variable}...`);
-          if (source === 'adb') {
-            if (!isAdbConnected) throw new Error('ADB not connected');
-            value = await runAdbCommand(command || '');
-          } else {
-            if (!isConnected || !writer) throw new Error('Serial not connected');
-            const before = ta.value;
-            if (command) {
-              addToHistory(command);
-              appendOutput(`\n> ${command}\n`);
-              await sendRawData(command + '\r\n');
-            }
-            await delay(250);
-            const after = ta.value;
-            value = after.slice(before.length);
-          }
-          vars['_last_read'] = value;
-          value = normalizeScriptValue(value);
-
-          const parsemode = action.parsemode || (action.keyword ? 'keyword' : 'all');
-          if (parsemode !== 'all') {
-            value = extractStringValue(value, {
-              mode: parsemode,
-              lineChoice: action.lineChoice,
-              column: action.column,
-              delimiter: action.delimiter,
-              headerName: action.headerName,
-              regexPattern: action.regexPattern,
-              startStr: action.startStr,
-              endStr: action.endStr,
-              keyword: action.keyword,
-              position: action.position,
-              length: action.length
-            });
-          }
-
-          // Apply data type conversion
-          const datatype = action.datatype || 'text';
-          if (datatype === 'hex') {
-            const parsed = parseInt(value.trim(), 16);
-            value = Number.isNaN(parsed) ? value : String(parsed);
-          } else if (datatype === 'dec') {
-            const parsed = parseFloat(value.trim());
-            value = Number.isNaN(parsed) ? value : String(parsed);
-          }
-          vars[variable] = value;
-          if (action.element) {
-            const debugLabel = action.element.querySelector('.read-value');
-            if (debugLabel) {
-              const typeLabel = datatype === 'hex' ? ' [Hex→Dec]' : datatype === 'dec' ? ' [Dec]' : ' [Text]';
-              debugLabel.textContent = `Value: ${value}${typeLabel}`;
-            }
-          }
-        } else if (action.type === 'parsestr') {
-          const targetVar = action.targetVar || `var_${Math.floor(Math.random() * 1000)}`;
-          let rawText = '';
-          if (action.inputVar && action.inputVar.trim()) {
-            const inputVal = action.inputVar.trim();
-            if (inputVal.startsWith('${') && inputVal.endsWith('}')) {
-              const vn = inputVal.slice(2, -1).trim();
-              rawText = vars[vn] !== undefined ? vars[vn] : '';
-            } else if (vars[inputVal] !== undefined) {
-              rawText = vars[inputVal];
-            } else {
-              rawText = inputVal.replace(/\$\{(\w+)\}/g, (_, name) => vars[name] ?? '');
-            }
-          } else {
-            rawText = (vars['_last_read'] !== undefined) ? vars['_last_read'] : conEl.value;
-          }
-
-          let value = extractStringValue(rawText, action);
-          value = normalizeScriptValue(value);
-
-          const datatype = action.datatype || 'text';
-          if (datatype === 'hex') {
-            const parsed = parseInt(value.trim(), 16);
-            value = Number.isNaN(parsed) ? value : String(parsed);
-          } else if (datatype === 'dec') {
-            const parsed = parseFloat(value.trim());
-            value = Number.isNaN(parsed) ? value : String(parsed);
-          }
-
-          vars[targetVar] = value;
-          updateScriptStatus(`Parsed string: ${targetVar} = ${value}`);
-          if (action.element) {
-            const debugLabel = action.element.querySelector('.parsestr-value');
-            if (debugLabel) {
-              const typeLabel = datatype === 'hex' ? ' [Hex→Dec]' : datatype === 'dec' ? ' [Dec]' : ' [Text]';
-              debugLabel.textContent = `Result: ${targetVar} = "${value}"${typeLabel}`;
-            }
-          }
-        } else if (action.type === 'print') {
-          const template = action.template || '';
-          const output = template.replace(/\$\{(\w+)\}/g, (_, name) => vars[name] ?? '');
-          appendOutput(`\n${output}\n`, conEl);
-          updateScriptStatus('Print output');
-        } else if (action.type === 'condition') {
-          const variable = action.variable || '';
-          const operator = action.operator || '=';
-          const compare = normalizeScriptValue(action.compare ?? '');
-          const left = normalizeScriptValue(vars[variable] ?? '');
-          const condMode = action.conditionMode || 'text-exact';
-          let result = false;
-
-          if (condMode === 'text-exact') {
-            // Text exact match
-            if (operator === '=') result = left === compare;
-            else if (operator === '!=') result = left !== compare;
-          } else if (condMode === 'text-contains') {
-            // Text partial match (substring)
-            if (operator === 'contains') result = left.includes(compare);
-            else if (operator === 'not-contains') result = !left.includes(compare);
-          } else if (condMode === 'hex') {
-            // Hex number comparison: parse both as hex
-            const leftNum = parseInt(left.trim(), 16);
-            const rightNum = parseInt(compare.trim(), 16);
-            if (!Number.isNaN(leftNum) && !Number.isNaN(rightNum)) {
-              if (operator === '=') result = leftNum === rightNum;
-              else if (operator === '!=') result = leftNum !== rightNum;
-              else if (operator === '<') result = leftNum < rightNum;
-              else if (operator === '>') result = leftNum > rightNum;
-            }
-          } else if (condMode === 'dec') {
-            // Decimal number comparison
-            const leftNum = parseFloat(left.trim());
-            const rightNum = parseFloat(compare.trim());
-            if (!Number.isNaN(leftNum) && !Number.isNaN(rightNum)) {
-              if (operator === '=') result = leftNum === rightNum;
-              else if (operator === '!=') result = leftNum !== rightNum;
-              else if (operator === '<') result = leftNum < rightNum;
-              else if (operator === '>') result = leftNum > rightNum;
-            }
-          }
-          const modeLabel = {"text-exact": "Text Exact", "text-contains": "Text Contains", "hex": "Hex Number", "dec": "Dec Number"}[condMode] || condMode;
-          updateScriptStatus(`IF [${modeLabel}] ${variable} ${operator} ${compare} => ${result}`);
-          await executeScriptActions(result ? action.thenActions : action.elseActions, vars, ctx);
-        } else if (action.type === 'repeat') {
-          const isInfinite = action.mode === 'infinite' || action.count === 0;
-          const loopCount = isInfinite ? Infinity : Math.max(1, Number(action.count) || 1);
-          updateScriptStatus(isInfinite ? 'Repeating ∞' : `Repeating ${loopCount}×`);
-          for (let i = 0; i < loopCount; i++) {
-            if (ctx.stopRequested) throw new Error('Script stopped');
-            await executeScriptActions(action.actions, vars, ctx);
-          }
-        } else if (action.type === 'setvar') {
-          const name = action.name || '';
-          const rawValue = action.value || '';
-          const resolved = rawValue.replace(/\$\{(\w+)\}/g, (_, v) => vars[v] ?? '');
-          vars[name] = resolved;
-          updateScriptStatus(`Set ${name} = ${resolved}`);
-        } else if (action.type === 'waitfor') {
-          const keyword = action.keyword || '';
-          const timeout = action.timeout !== undefined ? Math.max(0, Number(action.timeout)) : 5000;
-          if (!keyword) { updateScriptStatus('Wait For: no keyword'); }
-          else {
-            updateScriptStatus(`Waiting for "${keyword}"...`);
-            const startTime = Date.now();
-            const startLen = conEl.value.length;
-            let found = false;
-            while (!found) {
-              if (ctx.stopRequested) throw new Error('Script stopped');
-              if (timeout > 0 && (Date.now() - startTime) >= timeout) break;
-              const newContent = conEl.value.slice(startLen);
-              if (newContent.includes(keyword)) { found = true; break; }
-              await delay(100);
-            }
-            if (action.element) {
-              const dbg = action.element.querySelector('.waitfor-result');
-              if (dbg) dbg.textContent = found ? `Found "${keyword}" (${Date.now() - startTime}ms)` : `Timeout (${timeout}ms)`;
-            }
-            updateScriptStatus(found ? `Found "${keyword}"` : `Wait For timeout (${timeout}ms)`);
-          }
-        } else if (action.type === 'math') {
-          const resultVar = action.result || '';
-          const rawLeft = (action.left || '').replace(/\$\{(\w+)\}/g, (_, v) => vars[v] ?? '0');
-          const rawRight = (action.right || '').replace(/\$\{(\w+)\}/g, (_, v) => vars[v] ?? '0');
-          const l = parseFloat(rawLeft) || 0;
-          const r = parseFloat(rawRight) || 0;
-          const op = action.operator || '+';
-          let res = 0;
-          if (op === '+') res = l + r;
-          else if (op === '-') res = l - r;
-          else if (op === '*') res = l * r;
-          else if (op === '/') res = r !== 0 ? l / r : 0;
-          else if (op === '%') res = r !== 0 ? l % r : 0;
-          vars[resultVar] = String(res);
-          if (action.element) {
-            const dbg = action.element.querySelector('.math-debug');
-            if (dbg) dbg.textContent = `${resultVar} = ${l} ${op} ${r} = ${res}`;
-          }
-          updateScriptStatus(`Math: ${resultVar} = ${res}`);
-        } else if (action.type === 'plot') {
-          const dataPoints = [];
-          const varsToIterate = action.variables && action.variables.length > 0 
-                                  ? action.variables 
-                                  : [{ variable: action.variable, name: action.name, color: '#ff3366' }];
-
-          for (const v of varsToIterate) {
-            let rawVal = v.variable || '';
-            if (rawVal && !rawVal.includes('${')) {
-               rawVal = vars[rawVal] ?? '0';
-            } else {
-               rawVal = rawVal.replace(/\$\{(\w+)\}/g, (_, name) => vars[name] ?? '0');
-            }
-            const val = parseFloat(rawVal);
-            if (!Number.isNaN(val)) {
-              dataPoints.push({ name: v.name, value: val, color: v.color });
-            }
-          }
-          if (dataPoints.length > 0) {
-            updateChart(dataPoints, action.label);
-            updateScriptStatus(`Plot: ${dataPoints.map(d=>d.name+'='+d.value).join(', ')}`);
-          }
-        }
-      } finally {
-        setActionRunning(action, false);
-      }
-    }
-  }
-
-  for (const ctx of Object.values(scriptBuilders)) {
-    ctx.runBtn.addEventListener('click', async () => {
-      const actions = parseScriptCanvas(ctx.canvas);
-      if (actions.length === 0) {
-        setScriptStatus(ctx, 'Add blocks first.');
-        return;
-      }
-      ctx.stopRequested = false;
-      ctx.runBtn.disabled = true;
-      ctx.stopBtn.disabled = false;
-      setScriptStatus(ctx, 'Running...');
-      try {
-        await executeScriptActions(actions, {}, ctx);
-        if (!ctx.stopRequested) setScriptStatus(ctx, 'Completed.');
-      } catch (err) {
-        setScriptStatus(ctx, err.message || 'Error during run.');
-      } finally {
-        ctx.stopRequested = false;
-        ctx.runBtn.disabled = false;
-        ctx.stopBtn.disabled = true;
-      }
-    });
-
-    ctx.stopBtn.addEventListener('click', () => {
-      ctx.stopRequested = true;
-      setScriptStatus(ctx, 'Stopping...');
-    });
+  });
+  function alertScript(targets, msg) {
+    for (const t of targets) setScriptStatus(scriptBuilders[t], msg);
   }
 
   // ── Script Export / Import ──
-
-  function serializeCanvasToJSON(canvasEl) {
-    const blocks = [];
-    for (const child of canvasEl.children) {
-      if (!child.classList.contains('script-block-item')) continue;
-      const type = child.dataset.type;
-      if (type === 'command') {
-        const cmd = child.querySelector('textarea')?.value || '';
-        blocks.push({ type: 'command', command: cmd });
-      } else if (type === 'delay') {
-        const val = child.querySelector('input')?.value || '0.100s';
-        blocks.push({ type: 'delay', value: val });
-      } else if (type === 'read') {
-        blocks.push({
-          type: 'read',
-          source: canvasEl.closest('.script-root-canvas')?.dataset.target || 'uart',
-          variable: child.querySelector('.read-variable')?.value || '',
-          command: child.querySelector('.read-command')?.value || '',
-          parsemode: child.querySelector('.read-parsemode')?.value || 'all',
-          lineChoice: child.querySelector('.read-line')?.value || 'last',
-          column: child.querySelector('.read-column')?.value || '5',
-          delimiter: child.querySelector('.read-delimiter')?.value || 'whitespace',
-          headerName: child.querySelector('.read-header')?.value || '',
-          regexPattern: child.querySelector('.read-regex')?.value || '',
-          startStr: child.querySelector('.read-start')?.value || '',
-          endStr: child.querySelector('.read-end')?.value || '',
-          keyword: child.querySelector('.read-keyword')?.value || '',
-          position: child.querySelector('.read-position')?.value || 'before',
-          length: parseInt(child.querySelector('.read-length')?.value, 10) || 0,
-          datatype: child.querySelector('.read-datatype')?.value || 'text'
-        });
-      } else if (type === 'parsestr') {
-        blocks.push({
-          type: 'parsestr',
-          inputVar: child.querySelector('.parsestr-input')?.value || '',
-          targetVar: child.querySelector('.parsestr-target')?.value || '',
-          mode: child.querySelector('.parsestr-mode')?.value || 'column',
-          lineChoice: child.querySelector('.parsestr-line')?.value || 'last',
-          column: child.querySelector('.parsestr-column')?.value || '5',
-          delimiter: child.querySelector('.parsestr-delimiter')?.value || 'whitespace',
-          headerName: child.querySelector('.parsestr-header')?.value || '',
-          regexPattern: child.querySelector('.parsestr-regex')?.value || '',
-          startStr: child.querySelector('.parsestr-start')?.value || '',
-          endStr: child.querySelector('.parsestr-end')?.value || '',
-          keyword: child.querySelector('.parsestr-keyword')?.value || '',
-          position: child.querySelector('.parsestr-position')?.value || 'after',
-          length: parseInt(child.querySelector('.parsestr-length')?.value, 10) || 10,
-          datatype: child.querySelector('.parsestr-datatype')?.value || 'text'
-        });
-      } else if (type === 'print') {
-        blocks.push({
-          type: 'print',
-          template: child.querySelector('.print-template')?.value || ''
-        });
-      } else if (type === 'condition') {
-        const thenCanvas = child.querySelector('[data-branch="then"]');
-        const elseCanvas = child.querySelector('[data-branch="else"]');
-        blocks.push({
-          type: 'condition',
-          mode: child.querySelector('.condition-mode')?.value || 'text-exact',
-          variable: child.querySelector('.condition-variable')?.value || '',
-          operator: child.querySelector('.condition-operator')?.value || '=',
-          compare: child.querySelector('.condition-compare')?.value || '',
-          then: thenCanvas ? serializeCanvasToJSON(thenCanvas) : [],
-          else: elseCanvas ? serializeCanvasToJSON(elseCanvas) : []
-        });
-      } else if (type === 'repeat') {
-        const mode = child.querySelector('.repeat-mode')?.value || 'count';
-        const repeatInput = child.querySelector('.repeat-count');
-        const count = mode === 'infinite' ? 0 : (parseInt(repeatInput?.value, 10) || 2);
-        const nested = child.querySelector('[data-nested]');
-        blocks.push({
-          type: 'repeat',
-          mode: mode,
-          count: count,
-          actions: nested ? serializeCanvasToJSON(nested) : []
-        });
-      } else if (type === 'setvar') {
-        blocks.push({
-          type: 'setvar',
-          name: child.querySelector('.setvar-name')?.value || '',
-          value: child.querySelector('.setvar-value')?.value || ''
-        });
-      } else if (type === 'waitfor') {
-        const tStr = child.querySelector('.waitfor-timeout')?.value;
-        blocks.push({
-          type: 'waitfor',
-          keyword: child.querySelector('.waitfor-keyword')?.value || '',
-          timeout: (tStr !== undefined && tStr !== '') ? parseInt(tStr, 10) : 5000
-        });
-      } else if (type === 'math') {
-        blocks.push({
-          type: 'math',
-          result: child.querySelector('.math-result')?.value || '',
-          left: child.querySelector('.math-left')?.value || '',
-          operator: child.querySelector('.math-operator')?.value || '+',
-          right: child.querySelector('.math-right')?.value || ''
-        });
-      } else if (type === 'plot') {
-        const rows = child.querySelectorAll('.plot-var-row');
-        const variables = [];
-        for (const row of rows) {
-          const variable = row.querySelector('.plot-variable')?.value.trim() || '';
-          const name = row.querySelector('.plot-name')?.value.trim() || 'Data';
-          const color = row.querySelector('.plot-color')?.value || '#ff3366';
-          if (variable) variables.push({ variable, name, color });
-        }
-        blocks.push({
-          type: 'plot',
-          variables,
-          label: child.querySelector('.plot-label')?.value || ''
-        });
-      }
-    }
-    return blocks;
-  }
-
-  function importBlocksToCanvas(canvasEl, blocks) {
-    for (const b of blocks) {
-      let block;
-      if (b.type === 'command') {
-        block = createScriptBlock('command', b.command || '');
-      } else if (b.type === 'delay') {
-        block = createScriptBlock('delay', b.value || '0.100s');
-      } else if (b.type === 'read') {
-        block = createScriptBlock('read', b.command || '');
-        const el = block;
-        if (b.source) { const s = el.querySelector('.read-source'); if (s) s.value = b.source; }
-        if (b.variable) { const v = el.querySelector('.read-variable'); if (v) v.value = b.variable; }
-        if (b.parsemode) { const pm = el.querySelector('.read-parsemode'); if (pm) { pm.value = b.parsemode; pm.dispatchEvent(new Event('change')); } }
-        if (b.lineChoice) { const lc = el.querySelector('.read-line'); if (lc) lc.value = b.lineChoice; }
-        if (b.column) { const col = el.querySelector('.read-column'); if (col) col.value = b.column; }
-        if (b.delimiter) { const d = el.querySelector('.read-delimiter'); if (d) d.value = b.delimiter; }
-        if (b.headerName) { const h = el.querySelector('.read-header'); if (h) h.value = b.headerName; }
-        if (b.regexPattern) { const r = el.querySelector('.read-regex'); if (r) r.value = b.regexPattern; }
-        if (b.startStr) { const st = el.querySelector('.read-start'); if (st) st.value = b.startStr; }
-        if (b.endStr) { const en = el.querySelector('.read-end'); if (en) en.value = b.endStr; }
-        if (b.keyword) { const k = el.querySelector('.read-keyword'); if (k) { k.value = b.keyword; k.dispatchEvent(new Event('input')); } }
-        if (b.position) { const p = el.querySelector('.read-position'); if (p) p.value = b.position; }
-        if (b.length) { const l = el.querySelector('.read-length'); if (l) l.value = b.length; }
-        if (b.datatype) { const d = el.querySelector('.read-datatype'); if (d) d.value = b.datatype; }
-      } else if (b.type === 'parsestr') {
-        block = createScriptBlock('parsestr');
-        const el = block;
-        if (b.inputVar) { const i = el.querySelector('.parsestr-input'); if (i) i.value = b.inputVar; }
-        if (b.targetVar) { const t = el.querySelector('.parsestr-target'); if (t) t.value = b.targetVar; }
-        if (b.mode) { const m = el.querySelector('.parsestr-mode'); if (m) { m.value = b.mode; m.dispatchEvent(new Event('change')); } }
-        if (b.lineChoice) { const lc = el.querySelector('.parsestr-line'); if (lc) lc.value = b.lineChoice; }
-        if (b.column) { const c = el.querySelector('.parsestr-column'); if (c) c.value = b.column; }
-        if (b.delimiter) { const d = el.querySelector('.parsestr-delimiter'); if (d) d.value = b.delimiter; }
-        if (b.headerName) { const h = el.querySelector('.parsestr-header'); if (h) h.value = b.headerName; }
-        if (b.regexPattern) { const r = el.querySelector('.parsestr-regex'); if (r) r.value = b.regexPattern; }
-        if (b.startStr) { const s = el.querySelector('.parsestr-start'); if (s) s.value = b.startStr; }
-        if (b.endStr) { const e = el.querySelector('.parsestr-end'); if (e) e.value = b.endStr; }
-        if (b.keyword) { const k = el.querySelector('.parsestr-keyword'); if (k) k.value = b.keyword; }
-        if (b.position) { const p = el.querySelector('.parsestr-position'); if (p) p.value = b.position; }
-        if (b.length) { const l = el.querySelector('.parsestr-length'); if (l) l.value = b.length; }
-        if (b.datatype) { const dt = el.querySelector('.parsestr-datatype'); if (dt) dt.value = b.datatype; }
-      } else if (b.type === 'print') {
-        block = createScriptBlock('print');
-        const tmpl = block.querySelector('.print-template');
-        if (tmpl) tmpl.value = b.template || '';
-      } else if (b.type === 'condition') {
-        block = createScriptBlock('condition');
-        const modeSel = block.querySelector('.condition-mode');
-        if (modeSel && b.mode) { modeSel.value = b.mode; modeSel.dispatchEvent(new Event('change')); }
-        const varIn = block.querySelector('.condition-variable');
-        if (varIn && b.variable) varIn.value = b.variable;
-        const opSel = block.querySelector('.condition-operator');
-        if (opSel && b.operator) opSel.value = b.operator;
-        const cmpIn = block.querySelector('.condition-compare');
-        if (cmpIn && b.compare) cmpIn.value = b.compare;
-        if (b.then && b.then.length > 0) {
-          const thenCanvas = block.querySelector('[data-branch="then"]');
-          if (thenCanvas) { thenCanvas.innerHTML = ''; importBlocksToCanvas(thenCanvas, b.then); }
-        }
-        if (b.else && b.else.length > 0) {
-          const elseCanvas = block.querySelector('[data-branch="else"]');
-          if (elseCanvas) { elseCanvas.innerHTML = ''; importBlocksToCanvas(elseCanvas, b.else); }
-        }
-      } else if (b.type === 'repeat') {
-        block = createScriptBlock('repeat');
-        const modeSel = block.querySelector('.repeat-mode');
-        if (modeSel) {
-          modeSel.value = b.mode || (b.count === 0 ? 'infinite' : 'count');
-          modeSel.dispatchEvent(new Event('change'));
-        }
-        const countIn = block.querySelector('.repeat-count');
-        if (countIn && b.count !== undefined && b.count !== 0) countIn.value = b.count;
-        if (b.actions && b.actions.length > 0) {
-          const nested = block.querySelector('[data-nested]');
-          if (nested) { nested.innerHTML = ''; importBlocksToCanvas(nested, b.actions); }
-        }
-      } else if (b.type === 'setvar') {
-        block = createScriptBlock('setvar');
-        const nameIn = block.querySelector('.setvar-name');
-        if (nameIn && b.name) nameIn.value = b.name;
-        const valIn = block.querySelector('.setvar-value');
-        if (valIn && b.value) valIn.value = b.value;
-      } else if (b.type === 'waitfor') {
-        block = createScriptBlock('waitfor');
-        const kwIn = block.querySelector('.waitfor-keyword');
-        if (kwIn && b.keyword) kwIn.value = b.keyword;
-        const toIn = block.querySelector('.waitfor-timeout');
-        if (toIn) toIn.value = b.timeout || 5000;
-      } else if (b.type === 'math') {
-        block = createScriptBlock('math');
-        const rIn = block.querySelector('.math-result');
-        if (rIn && b.result) rIn.value = b.result;
-        const lIn = block.querySelector('.math-left');
-        if (lIn && b.left) lIn.value = b.left;
-        const opSel = block.querySelector('.math-operator');
-        if (opSel && b.operator) opSel.value = b.operator;
-        const riIn = block.querySelector('.math-right');
-        if (riIn && b.right) riIn.value = b.right;
-      } else if (b.type === 'plot') {
-        block = createScriptBlock('plot');
-        if (b.variables && b.variables.length > 0) {
-          const varsContainer = block.querySelector('.plot-vars-container');
-          if (varsContainer) varsContainer.innerHTML = '';
-          b.variables.forEach(v => block.addVarRow && block.addVarRow(v.variable, v.name, v.color));
-        } else {
-          const varIn = block.querySelector('.plot-variable');
-          if (varIn && b.variable) varIn.value = b.variable;
-          const nameIn = block.querySelector('.plot-name');
-          if (nameIn && b.name) nameIn.value = b.name;
-        }
-        const lblIn = block.querySelector('.plot-label');
-        if (lblIn && b.label) lblIn.value = b.label;
-      }
-      if (block) insertBlockIntoCanvas(canvasEl, block);
-    }
-  }
 
   for (const ctx of Object.values(scriptBuilders)) {
     const fileInput = ctx.pane.querySelector('.js-import-file');
@@ -4044,7 +3692,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setScriptStatus(ctx, 'Nothing to export.');
         return;
       }
-      const json = JSON.stringify({ version: 1, name: 'Untitled Script', target: ctx.target, blocks }, null, 2);
+      const json = JSON.stringify({ version: 2, name: 'Untitled Script', target: ctx.target, blocks }, null, 2);
       const blob = new Blob([json], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -4264,6 +3912,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let uploadCancelRequested = false;
 
   function showSerialUploadProgress(show) {
+    if (show) document.getElementById('serialUploadProgressBox').closest('details')?.setAttribute('open', '');
     document.getElementById('serialUploadProgressBox').style.display = show ? 'block' : 'none';
     document.getElementById('cancelSerialUploadBtn').style.display = show ? 'block' : 'none';
     document.getElementById('xmodemUploadBtn').disabled = show || !isConnected;
