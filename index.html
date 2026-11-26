@@ -321,6 +321,31 @@
       pointer-events: none;
     }
 
+    .quick-scripts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; padding: 10px 12px; background: #0d1929; border: 1px solid #2a3a5a; border-radius: 8px; }
+    .qs-label { font-size: 11px; color: #7f9cc0; text-transform: uppercase; letter-spacing: 0.06em; margin-right: 2px; }
+    .qs-empty { font-size: 12px; color: #4f6a8f; font-style: italic; }
+    .qs-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 13px; cursor: pointer; user-select: none; border: 1px solid; transition: filter 0.15s; }
+    .qs-chip:hover { filter: brightness(1.25); }
+    .qs-uart { background: #10351f; border-color: #2a8a50; color: #a8ffcb; }
+    .qs-adb  { background: #10284a; border-color: #2a6aaa; color: #a8d8ff; }
+    .qs-chip .qs-name { font-weight: bold; }
+    .qs-target { padding: 1px 4px; margin: -1px 0 -1px -4px; border-radius: 999px; background: rgba(255,255,255,0.08); }
+    .qs-target:hover { background: rgba(255,255,255,0.25); }
+    .save-form select { padding: 5px 6px; font-size: 12px; }
+    .qs-act { opacity: 0.45; font-size: 12px; padding: 0 2px; }
+    .qs-act:hover { opacity: 1; }
+    .qs-del.confirm { opacity: 1; color: #ff8080; font-weight: bold; }
+    .qs-chip.running { animation: qsPulse 1s ease-in-out infinite; border-color: #ffd700; }
+    .qs-chip.running .qs-name::before { content: '■ '; color: #ffd700; }
+    @keyframes qsPulse { 50% { box-shadow: 0 0 10px rgba(255,215,0,0.6); } }
+    .qs-chip.done-ok { box-shadow: 0 0 0 2px #50fa7b; }
+    .qs-chip.done-bad { box-shadow: 0 0 0 2px #ff5555; }
+    .qs-status { font-size: 12px; color: #80c8ff; margin-left: 4px; }
+    .qs-status.bad { color: #ff8a8a; }
+    .save-form { display: inline-flex; gap: 4px; align-items: center; }
+    .save-form[hidden] { display: none; }
+    .save-form input { width: 140px; padding: 6px 8px; background: #0f1f3a; color: #e0e0e0; border: 1px solid #2a5a9a; border-radius: 4px; font-size: 13px; }
+    .js-save-btn { background: #3a2f0a !important; border-color: #a08020 !important; color: #ffe08a !important; }
     .shell-tabs { display: flex; align-items: flex-end; gap: 2px; padding: 0 4px; margin-bottom: -1px; position: relative; z-index: 1; overflow-x: auto; }
     .shell-tab { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; font-size: 12px; color: #7f9cc0; background: #0d1a30; border: 1px solid #2a3a5a; border-bottom: none; border-radius: 6px 6px 0 0; cursor: pointer; white-space: nowrap; user-select: none; }
     .shell-tab:hover { color: #b8d4ff; }
@@ -907,6 +932,11 @@
         </div>
       </div>
 
+      <div class="quick-scripts" id="quickScripts">
+        <span class="qs-label">⭐ Script buttons</span>
+        <span class="qs-status" id="quickStatus"></span>
+      </div>
+
       <div class="output-actions" style="margin-top: 10px;">
         <button id="toggleConsoleSettingsBtn" style="margin-left: auto; background: #0f3460; border-color: #2a5a9a; color: #a0cfff;">⚙️ Console Customization</button>
       </div>
@@ -1026,6 +1056,16 @@
               <button class="js-export" title="Export script as JSON">📤 Export</button>
               <button class="js-import" title="Import script from JSON">📥 Import</button>
               <input type="file" class="js-import-file" accept=".json" style="display:none">
+              <button class="js-save-btn" title="把目前的積木存成一個快捷按鈕（顯示在 Console 標題下方）">⭐ Save as button</button>
+              <span class="js-save-form save-form" hidden>
+                <input type="text" class="js-save-name" placeholder="按鈕名稱" maxlength="30">
+                <select class="js-save-target" title="按下按鈕時，這個 script 要發到哪裡">
+                  <option value="uart">📡 UART</option>
+                  <option value="adb">🤖 ADB</option>
+                </select>
+                <button class="js-save-ok">Save</button>
+                <button class="js-save-cancel" title="Cancel">✕</button>
+              </span>
             </div>
           </div>
           <div class="script-status js-status">Status: ready.</div>
@@ -1058,6 +1098,16 @@
               <button class="js-export" title="Export script as JSON">📤 Export</button>
               <button class="js-import" title="Import script from JSON">📥 Import</button>
               <input type="file" class="js-import-file" accept=".json" style="display:none">
+              <button class="js-save-btn" title="把目前的積木存成一個快捷按鈕（顯示在 Console 標題下方）">⭐ Save as button</button>
+              <span class="js-save-form save-form" hidden>
+                <input type="text" class="js-save-name" placeholder="按鈕名稱" maxlength="30">
+                <select class="js-save-target" title="按下按鈕時，這個 script 要發到哪裡">
+                  <option value="uart">📡 UART</option>
+                  <option value="adb">🤖 ADB</option>
+                </select>
+                <button class="js-save-ok">Save</button>
+                <button class="js-save-cancel" title="Cancel">✕</button>
+              </span>
             </div>
           </div>
           <div class="script-status js-status">Status: ready.</div>
@@ -3619,7 +3669,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Run / Stop (each builder), Run both ──
-  const anyScriptRunning = () => Object.values(scriptBuilders).some(c => c.running);
+  const anyScriptRunning = () => Object.values(scriptBuilders).some(c => c.running) || quickRuns.size > 0;
 
   async function runBuilder(ctx) {
     if (ctx.running) return;
@@ -3661,6 +3711,7 @@ document.addEventListener('DOMContentLoaded', () => {
     for (const c of Object.values(scriptBuilders)) {
       if (c.running) { c.stopRequested = true; setScriptStatus(c, 'Stopping...'); }
     }
+    for (const q of quickButtons) if (q.ctx) stopQuick(q);
   });
 
   function showEmptyCanvasHint(canvasEl) {
@@ -4022,6 +4073,145 @@ document.addEventListener('DOMContentLoaded', () => {
   function alertScript(targets, msg) {
     for (const t of targets) setScriptStatus(scriptBuilders[t], msg);
   }
+
+  // ══════════════════════════════════════════════════════════════
+  // SCRIPT BUTTONS — save the blocks of a builder as one quick button
+  // (row under the Console title). Click = run, click again = stop.
+  // ══════════════════════════════════════════════════════════════
+  const QUICK_KEY = 'script_buttons';
+  const quickRuns = new Set();          // contexts of quick buttons that are running
+  const quickBar = document.getElementById('quickScripts');
+  let quickButtons = [];
+  try { quickButtons = JSON.parse(localStorage.getItem(QUICK_KEY)) || []; } catch { quickButtons = []; }
+  const saveQuick = () => { try { localStorage.setItem(QUICK_KEY, JSON.stringify(quickButtons)); } catch {} };
+
+  function quickStatus(text, bad) {
+    const s = document.getElementById('quickStatus');
+    if (!s) return;
+    s.textContent = text;
+    s.classList.toggle('bad', !!bad);
+  }
+
+  function renderQuickButtons() {
+    quickBar.querySelectorAll('.qs-chip, .qs-empty').forEach(n => n.remove());
+    const anchor = document.getElementById('quickStatus');
+    if (!quickButtons.length) {
+      quickBar.insertBefore(el('span', { className: 'qs-empty',
+        textContent: '在 Script Builder 排好積木，按 ⭐ Save as button，就會出現在這裡' }), anchor);
+      return;
+    }
+    for (const q of quickButtons) {
+      const chip = el('div', { className: `qs-chip qs-${q.target}` + (q.ctx ? ' running' : ''),
+        title: q.ctx ? '執行中 — 再按一次停止' : `執行「${q.name}」（${q.target.toUpperCase()}）` });
+      chip.dataset.id = q.id;
+      const edit = el('span', { className: 'qs-act', textContent: '✎', title: '載入到 Script Builder 修改' });
+      const del = el('span', { className: 'qs-act qs-del', textContent: '×', title: '刪除這個按鈕' });
+      const icon = el('span', { className: 'qs-target', textContent: q.target === 'adb' ? '🤖' : '📡',
+        title: `發到 ${q.target.toUpperCase()} — 點一下切換成 ${q.target === 'adb' ? 'UART' : 'ADB'}` });
+      icon.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (q.ctx) { quickStatus(`「${q.name}」執行中，停止後才能切換`, true); return; }
+        q.target = q.target === 'adb' ? 'uart' : 'adb';
+        saveQuick(); renderQuickButtons();
+        quickStatus(`「${q.name}」改成發到 ${q.target.toUpperCase()}`);
+      });
+      chip.append(icon,
+                  el('span', { className: 'qs-name', textContent: q.name }), edit, del);
+      chip.addEventListener('click', () => (q.ctx ? stopQuick(q) : runQuick(q)));
+      edit.addEventListener('click', (e) => { e.stopPropagation(); editQuick(q); });
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!del.classList.contains('confirm')) {          // two-step delete
+          del.classList.add('confirm'); del.textContent = '刪除?';
+          setTimeout(() => { if (del.isConnected) { del.classList.remove('confirm'); del.textContent = '×'; } }, 3000);
+          return;
+        }
+        if (q.ctx) stopQuick(q);
+        quickButtons = quickButtons.filter(x => x !== q);
+        saveQuick(); renderQuickButtons();
+      });
+      quickBar.insertBefore(chip, anchor);
+    }
+  }
+
+  async function runQuick(q) {
+    if (q.ctx) return;
+    const chipOf = () => quickBar.querySelector(`.qs-chip[data-id="${q.id}"]`);
+    const ctx = {
+      target: q.target, consoleEl: q.target === 'adb' ? adbTa : ta,
+      stopRequested: false, running: true, quick: true,
+      statusEl: { set textContent(v) { const c = chipOf(); if (c) c.title = v; } }
+    };
+    if (!anyScriptRunning()) signalBus.clear();
+    q.ctx = ctx; quickRuns.add(ctx); renderQuickButtons();
+    quickStatus(`▶ ${q.name} 執行中…`);
+    let ok = true, msg = '完成';
+    try {
+      await executeScriptActions(JSON.parse(JSON.stringify(q.blocks)), {}, ctx);
+      if (ctx.stopRequested) { ok = false; msg = '已停止'; }
+    } catch (err) {
+      ok = false; msg = ctx.stopRequested ? '已停止' : (err.message || 'Error');
+    } finally {
+      quickRuns.delete(ctx); q.ctx = null; renderQuickButtons();
+      const c = chipOf();
+      if (c) { c.classList.add(ok ? 'done-ok' : 'done-bad'); setTimeout(() => c.classList.remove('done-ok', 'done-bad'), 1500); }
+      const stopped = !ok && ctx.stopRequested;
+      quickStatus(`${ok ? '✓' : stopped ? '■' : '✗'} ${q.name}：${msg}`, !ok && !stopped);
+    }
+  }
+  function stopQuick(q) {
+    if (q.ctx) { q.ctx.stopRequested = true; quickStatus(`■ ${q.name} 停止中…`); }
+  }
+
+  function editQuick(q) {
+    const ctx = scriptBuilders[q.target];
+    if (ctx.running) { setScriptStatus(ctx, 'Stop the running script first.'); return; }
+    if (canvasBlocks(ctx.canvas).length && !window.confirm(`載入「${q.name}」會取代目前 ${q.target.toUpperCase()} Script Builder 裡的積木，確定嗎？`)) return;
+    ctx.canvas.innerHTML = '';
+    importBlocksToCanvas(ctx.canvas, q.blocks);
+    if (!canvasBlocks(ctx.canvas).length) showEmptyCanvasHint(ctx.canvas);
+    ctx.editingName = q.name;
+    if (!viewPrefs[q.target]) document.querySelector(`.view-toggle[data-target="${q.target}"]`)?.click();
+    setScriptStatus(ctx, `Editing button "${q.name}" — 改好後按 ⭐ Save as button 存回去`);
+    ctx.pane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ⭐ Save as button (in each builder)
+  for (const ctx of Object.values(scriptBuilders)) {
+    const btn = ctx.pane.querySelector('.js-save-btn');
+    const form = ctx.pane.querySelector('.js-save-form');
+    const name = ctx.pane.querySelector('.js-save-name');
+    const targetSel = ctx.pane.querySelector('.js-save-target');
+    const open = () => {
+      if (!canvasBlocks(ctx.canvas).length) { setScriptStatus(ctx, 'Add blocks first, then save them as a button.'); return; }
+      form.hidden = false; btn.hidden = true;
+      name.value = ctx.editingName || '';
+      const editing = quickButtons.find(q => q.name === ctx.editingName);
+      targetSel.value = editing ? editing.target : ctx.target;
+      name.focus(); name.select();
+    };
+    const close = () => { form.hidden = true; btn.hidden = false; };
+    const save = () => {
+      const n = name.value.trim().slice(0, 30);
+      if (!n) { name.focus(); return; }
+      const blocks = serializeCanvasToJSON(ctx.canvas);
+      const target = targetSel.value;
+      const existing = quickButtons.find(q => q.name === n);
+      if (existing) { existing.blocks = blocks; existing.target = target; }
+      else quickButtons.push({ id: `q${Date.now()}`, name: n, target, blocks });
+      saveQuick(); renderQuickButtons(); close();
+      ctx.editingName = n;
+      setScriptStatus(ctx, `${existing ? 'Updated' : 'Saved'} button "${n}" (→ ${target.toUpperCase()}) — 在 Console 下方。`);
+    };
+    btn.addEventListener('click', open);
+    ctx.pane.querySelector('.js-save-ok').addEventListener('click', save);
+    ctx.pane.querySelector('.js-save-cancel').addEventListener('click', close);
+    name.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); save(); }
+      if (e.key === 'Escape') close();
+    });
+  }
+  renderQuickButtons();
 
   // ── Script Export / Import ──
 
