@@ -340,6 +340,7 @@
     @keyframes qsPulse { 50% { box-shadow: 0 0 10px rgba(255,215,0,0.6); } }
     .qs-chip.done-ok { box-shadow: 0 0 0 2px #50fa7b; }
     .qs-chip.done-bad { box-shadow: 0 0 0 2px #ff5555; }
+    .qs-io { padding: 3px 10px; font-size: 12px; border-radius: 999px; background: transparent; border: 1px dashed #3a5a8a; color: #8fb0d8; }
     .qs-status { font-size: 12px; color: #80c8ff; margin-left: 4px; }
     .qs-status.bad { color: #ff8a8a; }
     .save-form { display: inline-flex; gap: 4px; align-items: center; }
@@ -934,6 +935,8 @@
 
       <div class="quick-scripts" id="quickScripts">
         <span class="qs-label">⭐ Script buttons</span>
+        <button id="quickImportBtn" class="qs-io" title="匯入按鈕檔（可一次選多個）；也可以選 Script Builder 匯出的 script 檔">📥 Import</button>
+        <input type="file" id="quickImportFile" accept=".json" multiple style="display:none">
         <span class="qs-status" id="quickStatus"></span>
       </div>
 
@@ -4105,6 +4108,8 @@ document.addEventListener('DOMContentLoaded', () => {
         title: q.ctx ? '執行中 — 再按一次停止' : `執行「${q.name}」（${q.target.toUpperCase()}）` });
       chip.dataset.id = q.id;
       const edit = el('span', { className: 'qs-act', textContent: '✎', title: '載入到 Script Builder 修改' });
+      const exp = el('span', { className: 'qs-act', textContent: '📤', title: '匯出這個按鈕（JSON 檔）' });
+      exp.addEventListener('click', (e) => { e.stopPropagation(); exportQuick(q); });
       const del = el('span', { className: 'qs-act qs-del', textContent: '×', title: '刪除這個按鈕' });
       const icon = el('span', { className: 'qs-target', textContent: q.target === 'adb' ? '🤖' : '📡',
         title: `發到 ${q.target.toUpperCase()} — 點一下切換成 ${q.target === 'adb' ? 'UART' : 'ADB'}` });
@@ -4116,7 +4121,7 @@ document.addEventListener('DOMContentLoaded', () => {
         quickStatus(`「${q.name}」改成發到 ${q.target.toUpperCase()}`);
       });
       chip.append(icon,
-                  el('span', { className: 'qs-name', textContent: q.name }), edit, del);
+                  el('span', { className: 'qs-name', textContent: q.name }), edit, exp, del);
       chip.addEventListener('click', () => (q.ctx ? stopQuick(q) : runQuick(q)));
       edit.addEventListener('click', (e) => { e.stopPropagation(); editQuick(q); });
       del.addEventListener('click', (e) => {
@@ -4175,6 +4180,63 @@ document.addEventListener('DOMContentLoaded', () => {
     setScriptStatus(ctx, `Editing button "${q.name}" — 改好後按 ⭐ Save as button 存回去`);
     ctx.pane.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  // ── Export one button / import button files ──
+  function exportQuick(q) {
+    const data = { type: 'minicom-button', version: 1, name: q.name, target: q.target, blocks: q.blocks };
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })),
+      download: `button_${q.name.replace(/[\\/:*?"<>|\s]+/g, '_')}.json`
+    });
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    quickStatus(`📤 已匯出「${q.name}」`);
+  }
+
+  // Accepts: one exported button, a list of buttons, or a Script Builder export
+  function buttonsFromFile(data, fileName) {
+    const base = fileName.replace(/\.json$/i, '').replace(/^button_/, '');
+    let list;
+    if (data && data.type === 'minicom-button') list = [data];
+    else if (data && Array.isArray(data.buttons)) list = data.buttons;
+    else if (data && Array.isArray(data.blocks)) {
+      list = [{ name: data.name && data.name !== 'Untitled Script' ? data.name : base, target: data.target, blocks: data.blocks }];
+    } else throw new Error('不是按鈕或 script 檔');
+    return list.filter(b => b && Array.isArray(b.blocks)).map(b => {
+      // run the blocks through the builder once, so files from older versions are upgraded
+      const tmp = document.createElement('div');
+      importBlocksToCanvas(tmp, b.blocks);
+      return { name: String(b.name || base).trim().slice(0, 30) || base,
+               target: b.target === 'adb' ? 'adb' : 'uart',
+               blocks: serializeCanvasToJSON(tmp) };
+    });
+  }
+
+  const quickImportFile = document.getElementById('quickImportFile');
+  document.getElementById('quickImportBtn').addEventListener('click', () => quickImportFile.click());
+  quickImportFile.addEventListener('change', async () => {
+    let added = 0, updated = 0;
+    const bad = [];
+    for (const f of quickImportFile.files) {
+      try {
+        for (const b of buttonsFromFile(JSON.parse(await f.text()), f.name)) {
+          const existing = quickButtons.find(q => q.name === b.name);
+          if (existing) {
+            if (existing.ctx) stopQuick(existing);
+            existing.target = b.target; existing.blocks = b.blocks; updated++;
+          } else {
+            quickButtons.push({ id: `q${Date.now()}_${added}`, ...b }); added++;
+          }
+        }
+      } catch (e) { bad.push(`${f.name}（${e instanceof SyntaxError ? '不是正確的 JSON 檔' : e.message}）`); }
+    }
+    quickImportFile.value = '';
+    saveQuick(); renderQuickButtons();
+    const parts = [];
+    if (added) parts.push(`新增 ${added} 個`);
+    if (updated) parts.push(`更新 ${updated} 個（同名覆蓋）`);
+    if (bad.length) parts.push(`失敗：${bad.join('、')}`);
+    quickStatus(`📥 ${parts.join('，') || '沒有匯入任何按鈕'}`, bad.length > 0);
+  });
 
   // ⭐ Save as button (in each builder)
   for (const ctx of Object.values(scriptBuilders)) {
