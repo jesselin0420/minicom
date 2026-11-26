@@ -321,6 +321,10 @@
       pointer-events: none;
     }
 
+    .con-cursor { background: var(--con-fg, #2aee2a); color: var(--con-bg, #000); }
+    .console-output:focus .con-cursor { animation: conBlink 1s step-end infinite; }
+    .console-output:not(:focus) .con-cursor { background: transparent; color: inherit; outline: 1px solid var(--con-fg, #2aee2a); outline-offset: -1px; }
+    @keyframes conBlink { 50% { background: transparent; color: inherit; } }
     .console-output:focus {
       outline: none;
       border-color: #2aee2a;
@@ -786,6 +790,33 @@
           <option value="space">Space</option>
         </select></div>
               </div>
+              <div class="field-strip" title="Keyboard">
+                <div class="strip-field" title="What the Enter key sends. CR = like minicom (recommended for Linux / U-Boot)."><span>Enter</span>
+                  <select id="lineEndingSelect">
+                    <option value="cr" selected>CR</option>
+                    <option value="lf">LF</option>
+                    <option value="crlf">CR+LF</option>
+                  </select>
+                </div>
+                <div class="strip-field" title="Backspace key: DEL (0x7F) like Linux terminals, or BS (0x08 / ^H)"><span>BkSp</span>
+                  <select id="bkspSelect">
+                    <option value="del" selected>DEL</option>
+                    <option value="bs">BS ^H</option>
+                  </select>
+                </div>
+                <div class="strip-field" title="↑/↓ — Device: sent to the device, its shell recalls history (like minicom). Local: recall from this page's Command History."><span>↑↓ History</span>
+                  <select id="arrowsSelect">
+                    <option value="device" selected>Device</option>
+                    <option value="local">Local</option>
+                  </select>
+                </div>
+                <div class="strip-field" title="Show what you type locally (for devices that don't echo)"><span>Echo</span>
+                  <select id="echoSelect">
+                    <option value="off" selected>Off</option>
+                    <option value="on">On</option>
+                  </select>
+                </div>
+              </div>
             </div>
             <details class="bar-more">
               <summary>File transfer (XMODEM / YMODEM)</summary>
@@ -1187,7 +1218,9 @@ document.addEventListener('DOMContentLoaded', () => {
     for (const el of [ta, adbTa]) {
       el.style.backgroundColor = consoleBgColor;
       el.style.color = consoleTextColor;
-      el.style.caretColor = consoleTextColor;
+      el.style.caretColor = 'transparent';
+      el.style.setProperty('--con-fg', consoleTextColor);
+      el.style.setProperty('--con-bg', consoleBgColor);
     }
     document.getElementById('consoleBgColorInput').value = consoleBgColor;
     document.getElementById('consoleTextColorInput').value = consoleTextColor;
@@ -1219,46 +1252,86 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function renderConsole(el) {
-    if (!el) { renderConsole(ta); renderConsole(adbTa); return; }
-    const rawConsoleContent = consoleState.get(el).raw;
-    const savedScrollTop = el.scrollTop;
-    const scrolledToBottom = (savedScrollTop + el.clientHeight) >= (el.scrollHeight - 15);
+  // Keyword highlighting for a piece of console text → HTML
+  function highlightHtml(text) {
+    let html = escapeHtml(text);
+    if (!consoleKeywordRules || consoleKeywordRules.length === 0 || !html) return html;
+    const sortedRules = [...consoleKeywordRules].sort((a, b) => b.keyword.length - a.keyword.length);
+    const patterns = sortedRules.map(r => r.keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).map(escapeHtml);
+    const combinedRegex = new RegExp(`(${patterns.join('|')})`, 'gi');
+    return html.replace(combinedRegex, (match) => {
+      const rule = sortedRules.find(r =>
+        r.matchCase ? escapeHtml(r.keyword) === match : escapeHtml(r.keyword).toLowerCase() === match.toLowerCase()
+      );
+      if (!rule) return match;
+      const bgStyle = rule.bgColor ? `background-color:${rule.bgColor};` : '';
+      const boldStyle = rule.bold ? 'font-weight:bold;' : 'font-weight:normal;';
+      return `<span style="color:${rule.textColor};${bgStyle}${boldStyle}border-radius:2px;padding:0 2px;">${match}</span>`;
+    });
+  }
 
-    if (!rawConsoleContent) {
+  // Rendering is incremental: finished lines are appended once (so a text
+  // selection survives while output keeps coming), only the line being
+  // edited is redrawn, at most once per animation frame. The newest
+  // MAX_RENDER_LINES lines are shown; Save Output still saves everything.
+  const MAX_RENDER_LINES = 5000;
+  function scheduleRender(el) {
+    const st = consoleState.get(el);
+    if (st.raf) return;
+    st.raf = requestAnimationFrame(() => { st.raf = 0; renderConsole(el); });
+  }
+
+  function renderConsole(el, full = false) {
+    if (!el) { renderConsole(ta, true); renderConsole(adbTa, true); return; }
+    const st = consoleState.get(el);
+    if (st.raf) { cancelAnimationFrame(st.raf); st.raf = 0; }
+    const raw = st.raw;
+    const savedTop = el.scrollTop;
+    const atBottom = (savedTop + el.clientHeight) >= (el.scrollHeight - 15);
+
+    if (!raw) {
       el.classList.add('empty');
       el.innerHTML = '';
+      st.dom = null;
       return;
     }
-
     el.classList.remove('empty');
-    let html = escapeHtml(rawConsoleContent);
 
-    if (consoleKeywordRules && consoleKeywordRules.length > 0) {
-      const sortedRules = [...consoleKeywordRules].sort((a, b) => b.keyword.length - a.keyword.length);
-      const patterns = sortedRules.map(r => r.keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).map(escapeHtml);
-      const combinedRegex = new RegExp(`(${patterns.join('|')})`, 'gi');
-
-      html = html.replace(combinedRegex, (match) => {
-        const rule = sortedRules.find(r => 
-          r.matchCase ? escapeHtml(r.keyword) === match : escapeHtml(r.keyword).toLowerCase() === match.toLowerCase()
-        );
-        if (rule) {
-          const bgStyle = rule.bgColor ? `background-color:${rule.bgColor};` : '';
-          const boldStyle = rule.bold ? 'font-weight:bold;' : 'font-weight:normal;';
-          return `<span style="color:${rule.textColor};${bgStyle}${boldStyle}border-radius:2px;padding:0 2px;">${match}</span>`;
-        }
-        return match;
-      });
+    const lineStart = raw.lastIndexOf('\n') + 1;
+    if (full || !st.dom || lineStart < st.rendered) {
+      el.innerHTML = '';
+      st.dom = { body: document.createElement('span'), live: document.createElement('span'), lines: 0 };
+      st.dom.live.className = 'con-live';
+      el.append(st.dom.body, st.dom.live);
+      let start = lineStart, n = 0;
+      while (start > 1 && n < MAX_RENDER_LINES) { start = raw.lastIndexOf('\n', start - 2) + 1; n++; }
+      st.rendered = n < MAX_RENDER_LINES ? 0 : start;
     }
 
-    el.innerHTML = html;
-
-    if (scrolledToBottom) {
-      el.scrollTop = el.scrollHeight;
-    } else {
-      el.scrollTop = savedScrollTop;
+    if (lineStart > st.rendered) {
+      const chunk = raw.slice(st.rendered, lineStart);
+      const span = document.createElement('span');
+      span.innerHTML = highlightHtml(chunk);
+      const nl = (chunk.match(/\n/g) || []).length;
+      span.dataset.n = nl;
+      st.dom.body.append(span);
+      st.dom.lines += nl;
+      st.rendered = lineStart;
+      while (st.dom.lines > MAX_RENDER_LINES && st.dom.body.firstChild) {
+        st.dom.lines -= +st.dom.body.firstChild.dataset.n;
+        st.dom.body.firstChild.remove();
+      }
     }
+
+    // line being edited, with the cursor
+    let line = raw.slice(lineStart);
+    const col = st.col === undefined ? line.length : st.col;
+    if (col > line.length) line += ' '.repeat(col - line.length);
+    st.dom.live.innerHTML = highlightHtml(line.slice(0, col)) +
+      `<span class="con-cursor">${escapeHtml(line[col] ?? ' ')}</span>` +
+      highlightHtml(line.slice(col + 1));
+
+    el.scrollTop = atBottom ? el.scrollHeight : savedTop;
   }
 
   function getBaseText(el = ta) {
@@ -1266,19 +1339,85 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function setTerminalText(text, el = ta) {
-    consoleState.get(el).raw = text;
-    renderConsole(el);
+    const st = consoleState.get(el);
+    st.raw = text;
+    st.col = undefined;   // cursor back to the end of the last line
+    st.pend = '';
+    renderConsole(el, true);
   }
 
+  // Minimal terminal emulation for the line being edited, so shells that
+  // redraw the prompt (↑/↓ history, Tab, Ctrl+U…) display correctly:
+  //   \r → cursor to line start, \b / ESC[nD → left, ESC[nC → right,
+  //   ESC[K → erase to end of line, ESC[nP → delete chars, ESC[n@ → insert,
+  //   printable chars overwrite at the cursor. Colors and other escape codes are dropped.
   function appendOutput(text, el = ta) {
-    let val = consoleState.get(el).raw;
-    for (let i = 0; i < text.length; i++) {
-      const c = text[i];
-      if (c === '\x08' || c === '\x7f') { val = val.slice(0, -1); }
-      else if (c === '\x00') { continue; }
-      else { val += c; }
+    const st = consoleState.get(el);
+    const raw = st.raw;
+    const lineStart = raw.lastIndexOf('\n') + 1;
+    let line = raw.slice(lineStart);
+    let col = (st.col === undefined || st.col > line.length) ? line.length : st.col;
+    const done = [];
+    const str = (st.pend || '') + text;
+    st.pend = '';
+
+    const put = (ch) => {
+      if (col > line.length) line += ' '.repeat(col - line.length);
+      line = line.slice(0, col) + ch + line.slice(col + 1);
+      col++;
+    };
+
+    for (let i = 0; i < str.length; i++) {
+      const c = str[i];
+      if (c === '\n') { done.push(line + '\n'); line = ''; col = 0; }
+      else if (c === '\r') { col = 0; }
+      else if (c === '\x08') { if (col > 0) col--; }
+      else if (c === '\x7f') { if (col > 0) { line = line.slice(0, col - 1) + line.slice(col); col--; } }
+      else if (c === '\x1b') {
+        const rest = str.slice(i);
+        if (rest.length === 1) { st.pend = rest; break; }
+        if (rest[1] === '[') {
+          const m = rest.match(/^\x1b\[([0-9;?]*)([@-~])/);
+          if (!m) {
+            if (/^\x1b\[[0-9;?]*$/.test(rest) && rest.length < 32) { st.pend = rest; break; }
+            continue;   // malformed: drop the ESC
+          }
+          const n = parseInt(m[1], 10);
+          const num = Number.isNaN(n) || n < 1 ? 1 : n;
+          switch (m[2]) {
+            case 'D': col = Math.max(0, col - num); break;
+            case 'C': col += num; break;
+            case 'G': col = num - 1; break;
+            case 'K':   // erase in line
+            case 'J':   // erase in display (busybox uses ESC[J on Backspace) — only the current line matters here
+              if (!m[1] || m[1] === '0') line = line.slice(0, col);
+              else if (m[1] === '1') line = ' '.repeat(Math.min(col + 1, line.length)) + line.slice(col + 1);
+              else if (m[1] === '2' && m[2] === 'K') line = '';
+              break;
+            case 'X':   // erase n chars (replace with spaces)
+              if (col < line.length) line = line.slice(0, col) + ' '.repeat(Math.min(num, line.length - col)) + line.slice(col + num);
+              break;
+            case 'P': line = line.slice(0, col) + line.slice(col + num); break;
+            case '@': if (col <= line.length) line = line.slice(0, col) + ' '.repeat(num) + line.slice(col); break;
+            // colors (m), cursor up/down, clear screen, etc. are ignored
+          }
+          i += m[0].length - 1;
+        } else if (rest[1] === ']') {
+          const m = rest.match(/^\x1b\][^\x07\x1b]*(\x07|\x1b\\)/);
+          if (!m) { if (rest.length < 256) { st.pend = rest; break; } continue; }
+          i += m[0].length - 1;   // window title etc.: ignore
+        } else {
+          i += 1;                 // two-byte escape (ESC 7, ESC =, …): ignore
+        }
+      }
+      else if (c === '\t') { put('\t'); }
+      else if (c < ' ') { /* other control chars (bell, NUL…) */ }
+      else { put(c); }
     }
-    setTerminalText(val, el);
+
+    st.raw = raw.slice(0, lineStart) + done.join('') + line;
+    st.col = col;
+    scheduleRender(el);
   }
 
   function appendAdbOutput(text) { appendOutput(text, adbTa); }
@@ -1291,10 +1430,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const MAX_HISTORY = 30;
 
   function loadHistory() {
-    try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; }
+    let raw;
+    try { raw = JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; }
+    // one command per entry, no line breaks (older versions could store "cmd\r\n")
+    const out = [];
+    for (const item of raw) {
+      for (const line of String(item).split(/\r\n|\r|\n/)) {
+        const c = line.trim();
+        if (c && !out.includes(c)) out.push(c);
+      }
+    }
+    return out.slice(0, MAX_HISTORY);
   }
-  function saveHistory(arr) { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); }
+  function saveHistory(arr) { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); } catch {} }
   function addToHistory(cmd) {
+    cmd = String(cmd ?? '').replace(/[\r\n]+/g, ' ').trim();
+    if (!cmd) return;
     let h = loadHistory();
     h = h.filter(c => c !== cmd);
     h.unshift(cmd);
@@ -1325,23 +1476,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.classList.contains('del-btn')) return;
         const idx = parseInt(tag.dataset.index);
         const cmd = loadHistory()[idx];
-        if (lastFocusedConsole === 'serial') {
-          if (!isConnected || !writer) return;
-          if (inputBuffer.length > 0) { await sendRawData('\x08'.repeat(inputBuffer.length)); inputBuffer = ''; }
-          inputBuffer = cmd;
-          await sendRawData(inputBuffer);
-          ta.focus();
-        } else {
-          if (isAdbConnected && adbShellStream) {
-            if (adbInputBuffer.length > 0) {
-              await adbShellStream.send('\x15');
-              adbInputBuffer = '';
-            }
-            adbInputBuffer = cmd;
-            await adbShellStream.send(cmd);
-            adbTa.focus();
-          }
-        }
+        const c = consoles[lastFocusedConsole === 'serial' ? 'serial' : 'adb'];
+        if (!c.ready()) return;
+        markLineStart(c);
+        await c.send('\x15');          // Ctrl+U: clear whatever is on the prompt
+        c.buf = cmd;
+        await c.send(cmd);
+        c.el.focus();
       });
 
       tag.addEventListener('dragstart', (e) => {
@@ -1408,9 +1549,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function displayUartOutput(data) {
-    const cleanData = stripAnsi(data);
-    appendOutput(cleanData);
+    appendOutput(data);
   }
+
+  // Enter key / script line ending for UART
+  const EOL_KEY = 'uart_line_ending';
+  const eolSelect = document.getElementById('lineEndingSelect');
+  try { const v = localStorage.getItem(EOL_KEY); if (v) eolSelect.value = v; } catch {}
+  eolSelect.addEventListener('change', () => { try { localStorage.setItem(EOL_KEY, eolSelect.value); } catch {} });
+  function uartEol() { return { cr: '\r', lf: '\n', crlf: '\r\n' }[eolSelect.value] || '\r'; }
 
   async function sendRawData(data) {
     if (!writer || writer.locked) return;
@@ -1506,6 +1653,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ta.placeholder = '⚡ Connection offline. Choose settings and click Connect to start. Once connected, type directly in this window to send data (like minicom).';
     inputBuffer = '';
     historyIndex = -1;
+    try { consoles.serial.promptSnap = null; } catch {}
     stopCursorBlink();
     try { if (writer) { writer.releaseLock(); writer = null; } } catch {}
     try { if (reader) { await reader.cancel(); reader = null; } } catch {}
@@ -2035,6 +2183,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let isAdbConnected = false;
 
   function onAdbDisconnect(reason) {
+    try { lineDone(consoles.adb); } catch {}
     isAdbConnected = false;
     adbShellStream = null;
     adbClient = null;
@@ -2146,9 +2295,7 @@ document.addEventListener('DOMContentLoaded', () => {
       adbShellStream = await adbClient.openStream(
         'shell:\0',
         (data) => {
-          // Strip ANSI codes for clean display
-          const clean = stripAnsi(data, adbAnsiState);
-          appendAdbOutput(clean);
+          appendAdbOutput(data);   // escape codes handled by the console
         },
         () => {
           appendAdbOutput('\n[ADB] Shell closed.\n');
@@ -2198,7 +2345,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       adbShellStream = await adbClient.openStream(
         'shell:\0',
-        (data) => appendAdbOutput(stripAnsi(data, adbAnsiState)),
+        (data) => appendAdbOutput(data),
         () => {
           appendAdbOutput('\n[ADB] Shell closed.\n');
           adbShellStream = null;
@@ -2228,194 +2375,201 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!adbClient || !adbClient.connected) return '';
     addToHistory(cmd);
     appendAdbOutput(`\n$ ${cmd}\n`);
-    const output = await adbClient.runCommand(cmd, (data) => appendAdbOutput(stripAnsi(data, adbAnsiState)));
+    const output = await adbClient.runCommand(cmd, (data) => appendAdbOutput(data));
     return output.trim();
-  }
-
-  // ── ADB keyboard handler (interactive shell) ──
-  let adbInputBuffer = '';    // tracks what user is typing in interactive shell
-  let adbHistoryIndex = -1;
-  let adbTempInput = '';
-
-  async function handleAdbKeydown(e) {
-    if (!isAdbConnected || !adbShellStream) return;
-
-    // Allow Ctrl+C copy
-    if (e.ctrlKey && e.key.toLowerCase() === 'c' && window.getSelection().toString() !== '') return;
-    if (e.ctrlKey && e.key.toLowerCase() === 'v') return;
-
-    // Ctrl+letter → control code
-    if (e.ctrlKey && !e.altKey && !e.metaKey) {
-      const key = e.key.toLowerCase();
-      if (key.length === 1 && key >= 'a' && key <= 'z') {   // ignore the Ctrl key itself
-        e.preventDefault();
-        const code = key.charCodeAt(0) - 96;
-        // Ctrl+U clears line — reset our buffer too
-        if (key === 'u') { adbInputBuffer = ''; adbHistoryIndex = -1; }
-        // Ctrl+C clears line
-        if (key === 'c') { adbInputBuffer = ''; adbHistoryIndex = -1; }
-        await adbShellStream.send(new Uint8Array([code]));
-        return;
-      }
-    }
-
-    const h = loadHistory();
-
-    switch (e.key) {
-      case 'Enter':
-        e.preventDefault();
-        await adbShellStream.send('\r\n');
-        if (adbInputBuffer.trim()) addToHistory(adbInputBuffer);
-        adbInputBuffer = '';
-        adbHistoryIndex = -1;
-        break;
-
-      case 'Backspace':
-        e.preventDefault();
-        await adbShellStream.send('\x08');
-        if (adbInputBuffer.length > 0) adbInputBuffer = adbInputBuffer.slice(0, -1);
-        break;
-
-      case 'ArrowUp':
-        e.preventDefault();
-        if (h.length > 0) {
-          if (adbHistoryIndex === -1) adbTempInput = adbInputBuffer;
-          if (adbHistoryIndex < h.length - 1) {
-            adbHistoryIndex++;
-            const cmd = h[adbHistoryIndex];
-            // Clear current line with Ctrl+U, then send new command
-            if (adbInputBuffer.length > 0) await adbShellStream.send('\x15');
-            adbInputBuffer = cmd;
-            await adbShellStream.send(cmd);
-          }
-        }
-        break;
-
-      case 'ArrowDown':
-        e.preventDefault();
-        if (h.length > 0 && adbHistoryIndex >= 0) {
-          adbHistoryIndex--;
-          const cmd = adbHistoryIndex >= 0 ? h[adbHistoryIndex] : adbTempInput;
-          if (adbInputBuffer.length > 0) await adbShellStream.send('\x15');
-          adbInputBuffer = adbHistoryIndex >= 0 ? cmd : adbTempInput;
-          if (adbInputBuffer) await adbShellStream.send(adbInputBuffer);
-        }
-        break;
-
-      case 'Delete':     e.preventDefault(); await adbShellStream.send('\x1b[3~'); break;
-      case 'Tab':        e.preventDefault(); await adbShellStream.send('\x09'); break;
-      case 'Escape':     e.preventDefault(); await adbShellStream.send('\x1b'); break;
-      case 'ArrowRight': e.preventDefault(); await adbShellStream.send('\x1b[C'); break;
-      case 'ArrowLeft':  e.preventDefault(); await adbShellStream.send('\x1b[D'); break;
-      case 'Home':       e.preventDefault(); await adbShellStream.send('\x1b[H'); break;
-      case 'End':        e.preventDefault(); await adbShellStream.send('\x1b[F'); break;
-      case 'PageUp':     e.preventDefault(); await adbShellStream.send('\x1b[5~'); break;
-      case 'PageDown':   e.preventDefault(); await adbShellStream.send('\x1b[6~'); break;
-      default:
-        if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
-          e.preventDefault();
-          adbInputBuffer += e.key;
-          await adbShellStream.send(e.key);
-        }
-        break;
-    }
   }
 
   // ══════════════════════════════════════════════════════════════
   // SHARED EVENT LISTENERS
   // ══════════════════════════════════════════════════════════════
 
-  adbTa.addEventListener('keydown', handleAdbKeydown);
+  // ══════════════════════════════════════════════════════════════
+  // CONSOLE KEYBOARD — minicom style: keys go to the device as-is and the
+  // device does the echo and line editing (↑/↓ history, Tab, Backspace…).
+  // ══════════════════════════════════════════════════════════════
+  let adbInputBuffer = '';    // what was typed since the last Enter (fallback when the device doesn't echo)
+  let adbHistoryIndex = -1;
+  let adbTempInput = '';
 
-  ta.addEventListener('keydown', async (e) => {
-    // ── Serial console ──
-    if (!isConnected || !writer) return;
+  const KEY_SEQ = {
+    ArrowUp: '\x1b[A', ArrowDown: '\x1b[B', ArrowRight: '\x1b[C', ArrowLeft: '\x1b[D',
+    Home: '\x1b[H', End: '\x1b[F', Insert: '\x1b[2~', Delete: '\x1b[3~',
+    PageUp: '\x1b[5~', PageDown: '\x1b[6~',
+    F1: '\x1bOP', F2: '\x1bOQ', F3: '\x1bOR', F4: '\x1bOS', F5: '\x1b[15~', F6: '\x1b[17~',
+    F7: '\x1b[18~', F8: '\x1b[19~', F9: '\x1b[20~', F10: '\x1b[21~', F11: '\x1b[23~', F12: '\x1b[24~',
+    Tab: '\t', Escape: '\x1b'
+  };
 
-    if (e.ctrlKey && e.key.toLowerCase() === 'c' && window.getSelection().toString() !== '') return;
-    if (e.ctrlKey && e.key.toLowerCase() === 'v') return;
+  // UART keyboard options (saved)
+  const KEYOPT_KEY = 'uart_key_options';
+  const KEYOPT_DEFAULT = { bs: 'del', arrows: 'device', echo: 'off' };
+  const keyOpts = { ...KEYOPT_DEFAULT };
+  try { Object.assign(keyOpts, JSON.parse(localStorage.getItem(KEYOPT_KEY)) || {}); } catch {}
+  for (const [id, k] of [['bkspSelect', 'bs'], ['arrowsSelect', 'arrows'], ['echoSelect', 'echo']]) {
+    const s = document.getElementById(id);
+    s.value = keyOpts[k];
+    if (!s.value) s.value = keyOpts[k] = KEYOPT_DEFAULT[k];
+    s.addEventListener('change', () => {
+      keyOpts[k] = s.value;
+      try { localStorage.setItem(KEYOPT_KEY, JSON.stringify(keyOpts)); } catch {}
+    });
+  }
 
-    if (e.ctrlKey && !e.altKey && !e.metaKey) {
-      const key = e.key.toLowerCase();
-      if (key.length === 1 && key >= 'a' && key <= 'z') {   // ignore the Ctrl key itself
-        e.preventDefault();
-        const code = key.charCodeAt(0) - 96;
-        await sendRawData(String.fromCharCode(code));
-        return;
-      }
+  // Local echo for devices that don't echo what you type
+  function localEcho(el, d) {
+    if (d.startsWith('\x1b')) return;
+    let out = '';
+    for (const c of d.replace(/\r\n|\r|\n/g, '\n')) {
+      if (c === '\n') out += '\r\n';
+      else if (c === '\x7f' || c === '\x08') out += '\b \b';
+      else if (c >= ' ' || c === '\t') out += c;
     }
+    if (out) appendOutput(out, el);
+  }
 
+  const consoles = {
+    serial: {
+      el: ta,
+      ready: () => isConnected && !!writer,
+      send: async (d) => { if (keyOpts.echo === 'on') localEcho(ta, d); await sendRawData(d); },
+      eol: () => uartEol(),
+      bs: () => keyOpts.bs === 'bs' ? '\x08' : '\x7f',
+      localHistory: () => keyOpts.arrows === 'local',
+      get buf() { return inputBuffer; }, set buf(v) { inputBuffer = v; },
+      get hIdx() { return historyIndex; }, set hIdx(v) { historyIndex = v; },
+      get tmp() { return tempInput; }, set tmp(v) { tempInput = v; },
+      promptSnap: null
+    },
+    adb: {
+      el: adbTa,
+      ready: () => isAdbConnected && !!adbShellStream,
+      send: (d) => adbShellStream.send(d),
+      eol: () => '\r',              // PTY: Enter = CR
+      bs: () => '\x7f',             // PTY erase key = DEL
+      localHistory: () => false,    // the device shell keeps its own history
+      get buf() { return adbInputBuffer; }, set buf(v) { adbInputBuffer = v; },
+      get hIdx() { return adbHistoryIndex; }, set hIdx(v) { adbHistoryIndex = v; },
+      get tmp() { return adbTempInput; }, set tmp(v) { adbTempInput = v; },
+      promptSnap: null
+    }
+  };
+
+  function currentLine(el) {
+    const r = consoleState.get(el).raw;
+    return r.slice(r.lastIndexOf('\n') + 1);
+  }
+  // The command on the prompt line, read from the console (works with the
+  // device's own history / Tab completion); falls back to what was typed.
+  function commandOnLine(c) {
+    const line = currentLine(c.el);
+    if (c.promptSnap !== null && line.startsWith(c.promptSnap)) {
+      const cmd = line.slice(c.promptSnap.length).trim();
+      if (cmd) return cmd;
+    }
+    const m = line.match(/^.*?[#$>%]\s(.*)$/);   // "/ # ", "$ ", "=> ", "> "
+    if (m && m[1].trim()) return m[1].trim();
+    return c.buf.trim();
+  }
+  function markLineStart(c) {
+    if (c.promptSnap === null) c.promptSnap = currentLine(c.el);
+  }
+  function lineDone(c) {
+    c.buf = ''; c.hIdx = -1; c.promptSnap = null;
+  }
+
+  // Local history (UART option "↑↓ History: Local"): replace the line with Ctrl+U
+  async function recallLocal(c, dir) {
     const h = loadHistory();
-    switch (e.key) {
-      case 'Enter':
-        e.preventDefault();
-        await sendRawData('\r\n');
-        if (inputBuffer.trim()) addToHistory(inputBuffer);
-        inputBuffer = ''; historyIndex = -1;
-        break;
-      case 'Backspace':
-        e.preventDefault();
-        if (inputBuffer.length > 0) { inputBuffer = inputBuffer.slice(0, -1); await sendRawData('\x08'); }
-        break;
-      case 'Delete':
-        e.preventDefault(); await sendRawData('\x1b[3~'); break;
-      case 'Tab':
-        e.preventDefault(); await sendRawData('\x09'); break;
-      case 'Escape':
-        e.preventDefault(); await sendRawData('\x1b'); break;
-      case 'ArrowUp':
-        e.preventDefault();
-        if (h.length > 0) {
-          if (historyIndex === -1) tempInput = inputBuffer;
-          if (historyIndex < h.length - 1) {
-            historyIndex++;
-            const cmd = h[historyIndex];
-            if (inputBuffer.length > 0) await sendRawData('\x08'.repeat(inputBuffer.length));
-            inputBuffer = cmd; await sendRawData(inputBuffer);
-          }
-        }
-        break;
-      case 'ArrowDown':
-        e.preventDefault();
-        if (h.length > 0) {
-          if (historyIndex > 0) {
-            historyIndex--;
-            const cmd = h[historyIndex];
-            if (inputBuffer.length > 0) await sendRawData('\x08'.repeat(inputBuffer.length));
-            inputBuffer = cmd; await sendRawData(inputBuffer);
-          } else if (historyIndex === 0) {
-            historyIndex = -1;
-            if (inputBuffer.length > 0) await sendRawData('\x08'.repeat(inputBuffer.length));
-            inputBuffer = tempInput; await sendRawData(inputBuffer);
-          }
-        }
-        break;
-      case 'ArrowRight': e.preventDefault(); await sendRawData('\x1b[C'); break;
-      case 'ArrowLeft':  e.preventDefault(); await sendRawData('\x1b[D'); break;
-      case 'Home':       e.preventDefault(); await sendRawData('\x1b[H'); break;
-      case 'End':        e.preventDefault(); await sendRawData('\x1b[F'); break;
-      case 'PageUp':     e.preventDefault(); await sendRawData('\x1b[5~'); break;
-      case 'PageDown':   e.preventDefault(); await sendRawData('\x1b[6~'); break;
-      default:
-        if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
-          e.preventDefault(); inputBuffer += e.key; await sendRawData(e.key);
-        }
-        break;
+    if (!h.length) return;
+    if (dir > 0) {
+      if (c.hIdx === -1) c.tmp = c.buf;
+      if (c.hIdx >= h.length - 1) return;
+      c.hIdx++;
+    } else {
+      if (c.hIdx < 0) return;
+      c.hIdx--;
     }
-  });
+    const cmd = c.hIdx >= 0 ? h[c.hIdx] : c.tmp;
+    markLineStart(c);
+    await c.send('\x15');
+    c.buf = cmd;
+    if (cmd) await c.send(cmd);
+  }
 
-  ta.addEventListener('paste', async (e) => {
-    e.preventDefault();
-    const text = (e.clipboardData || window.clipboardData).getData('text');
-    if (!text) return;
-    if (!isConnected || !writer) return;
-    inputBuffer += text;
-    await sendRawData(text);
-  });
+  async function onConsoleKey(e, c) {
+    const k = e.key;
+    const lower = k.length === 1 ? k.toLowerCase() : '';
+    if (e.ctrlKey && lower === 'c' && window.getSelection().toString() !== '') return;   // copy
+    if ((e.ctrlKey || e.metaKey) && lower === 'v') return;                               // paste event handles it
+    if (e.metaKey) return;
+    if (!c.ready()) return;
 
-  adbTa.addEventListener('paste', async (e) => {
+    let data = null;
+    if (e.ctrlKey && !e.altKey) {
+      if (lower >= 'a' && lower <= 'z' && lower.length === 1) data = String.fromCharCode(lower.charCodeAt(0) - 96);
+      else if (k === '[') data = '\x1b';
+      else if (k === '\\') data = '\x1c';
+      else if (k === ']') data = '\x1d';
+      else if (k === ' ' || k === '@') data = '\x00';
+      else if (KEY_SEQ[k]) data = KEY_SEQ[k];
+    } else if (k === 'Enter') {
+      data = c.eol();
+    } else if (k === 'Backspace') {
+      data = c.bs();
+    } else if ((k === 'ArrowUp' || k === 'ArrowDown') && c.localHistory()) {
+      e.preventDefault();
+      await recallLocal(c, k === 'ArrowUp' ? 1 : -1);
+      return;
+    } else if (KEY_SEQ[k]) {
+      data = KEY_SEQ[k];
+    } else if (k.length === 1) {
+      data = e.altKey ? '\x1b' + k : k;
+    }
+    if (data === null) return;   // Shift / Ctrl / Alt alone, etc.
     e.preventDefault();
-    const text = (e.clipboardData || window.clipboardData).getData('text');
-    if (text && isAdbConnected && adbShellStream) await adbShellStream.send(text);
+
+    if (k === 'Enter') {
+      const cmd = (c.promptSnap !== null || c.buf) ? commandOnLine(c) : '';
+      await c.send(data);
+      if (cmd) addToHistory(cmd);
+      lineDone(c);
+      return;
+    }
+
+    markLineStart(c);
+    if (data === '\x03') { await c.send(data); lineDone(c); return; }   // Ctrl+C: new prompt
+    if (data === '\x15') c.buf = '';                                     // Ctrl+U: line cleared
+    else if (k === 'Backspace') c.buf = c.buf.slice(0, -1);
+    else if (k.length === 1 && !e.ctrlKey && !e.altKey) c.buf += k;
+    if (k === 'ArrowUp' || k === 'ArrowDown') c.buf = '';               // device recalled a line; read it from the console on Enter
+    await c.send(data);
+  }
+
+  ta.addEventListener('keydown', (e) => onConsoleKey(e, consoles.serial));
+  adbTa.addEventListener('keydown', (e) => onConsoleKey(e, consoles.adb));
+
+  // Pasted text: each line that ends with a newline is run (Enter) and saved
+  // to history; a last line without newline stays on the prompt for editing.
+  async function pasteInto(c, text) {
+    if (!text || !c.ready()) return;
+    c.hIdx = -1;
+    const parts = String(text).split(/\r\n|\r|\n/);
+    const tail = parts.pop();                 // text after the last newline
+    for (const line of parts) {
+      await c.send(line + c.eol());
+      addToHistory(c.buf + line);
+      lineDone(c);
+      if (parts.length > 1) await delay(30);  // give slow consoles time between lines
+    }
+    if (tail) { markLineStart(c); await c.send(tail); c.buf += tail; }
+  }
+  ta.addEventListener('paste', (e) => {
+    e.preventDefault();
+    pasteInto(consoles.serial, (e.clipboardData || window.clipboardData).getData('text'));
+  });
+  adbTa.addEventListener('paste', (e) => {
+    e.preventDefault();
+    pasteInto(consoles.adb, (e.clipboardData || window.clipboardData).getData('text'));
   });
 
   adbTa.addEventListener('focus', () => { lastFocusedConsole = 'adb'; });
@@ -3113,7 +3267,7 @@ document.addEventListener('DOMContentLoaded', () => {
               if (!isConnected || !writer) throw new Error('Serial not connected');
               addToHistory(cmd);
               appendOutput(`\n> ${cmd}\n`);
-              await sendRawData(cmd + '\r\n');
+              await sendRawData(cmd + uartEol());
             }
             break;
           }
@@ -3139,7 +3293,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 appendOutput(`\n> ${cmd}\n`);
               }
               const before = conEl.value.length;
-              if (cmd) await sendRawData(cmd + '\r\n');
+              if (cmd) await sendRawData(cmd + uartEol());
               await delay(Math.max(0, parseInt(a.waitMs, 10) || 300));
               raw = conEl.value.slice(before);
             }
