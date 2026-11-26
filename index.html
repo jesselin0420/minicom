@@ -321,6 +321,16 @@
       pointer-events: none;
     }
 
+    .shell-tabs { display: flex; align-items: flex-end; gap: 2px; padding: 0 4px; margin-bottom: -1px; position: relative; z-index: 1; overflow-x: auto; }
+    .shell-tab { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; font-size: 12px; color: #7f9cc0; background: #0d1a30; border: 1px solid #2a3a5a; border-bottom: none; border-radius: 6px 6px 0 0; cursor: pointer; white-space: nowrap; user-select: none; }
+    .shell-tab:hover { color: #b8d4ff; }
+    .shell-tab.active { color: #e0f0ff; background: #000; border-color: #2a5a3a; font-weight: bold; }
+    .shell-tab.unread .shell-tab-name::after { content: ' ●'; color: #50fa7b; font-size: 10px; }
+    .shell-tab-close { color: #6a7a9a; font-size: 14px; line-height: 1; }
+    .shell-tab-close:hover { color: #ff7070; }
+    .shell-tab-rename { width: 90px; padding: 0 4px; font-size: 12px; background: #0f1f3a; color: #e0e0e0; border: 1px solid #2a5a9a; border-radius: 3px; }
+    .shell-tab-add { padding: 3px 10px; margin-left: 2px; font-size: 14px; background: transparent; border: 1px dashed #2a3a5a; border-bottom: none; border-radius: 6px 6px 0 0; color: #7f9cc0; }
+    .shell-tab-add:hover { color: #b8d4ff; background: #0f2040 !important; }
     .con-cursor { background: var(--con-fg, #2aee2a); color: var(--con-bg, #000); }
     .console-output:focus .con-cursor { animation: conBlink 1s step-end infinite; }
     .console-output:not(:focus) .con-cursor { background: transparent; color: inherit; outline: 1px solid var(--con-fg, #2aee2a); outline-offset: -1px; }
@@ -886,8 +896,13 @@
               </div>
             </details>
           </div>
+          <div class="shell-tabs" id="adbTabBar">
+            <button class="shell-tab-add" id="adbTabAdd" title="Open another shell on the same device (like another adb shell)">＋</button>
+          </div>
+          <div class="shell-stack" id="adbStack">
           <div id="adbOutput" tabindex="0" class="console-output empty"
             data-placeholder="🤖 ADB offline. Click Connect above, then type shell commands directly in this window.">
+          </div>
           </div>
         </div>
       </div>
@@ -1215,7 +1230,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function applyConsoleColors() {
-    for (const el of [ta, adbTa]) {
+    for (const el of consoleState.keys()) {
       el.style.backgroundColor = consoleBgColor;
       el.style.color = consoleTextColor;
       el.style.caretColor = 'transparent';
@@ -1282,7 +1297,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderConsole(el, full = false) {
-    if (!el) { renderConsole(ta, true); renderConsole(adbTa, true); return; }
+    if (!el) { for (const e of consoleState.keys()) renderConsole(e, true); return; }
     const st = consoleState.get(el);
     if (st.raf) { cancelAnimationFrame(st.raf); st.raf = 0; }
     const raw = st.raw;
@@ -1418,6 +1433,7 @@ document.addEventListener('DOMContentLoaded', () => {
     st.raw = raw.slice(0, lineStart) + done.join('') + line;
     st.col = col;
     scheduleRender(el);
+    if (st.onWrite) st.onWrite();
   }
 
   function appendAdbOutput(text) { appendOutput(text, adbTa); }
@@ -1476,7 +1492,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.classList.contains('del-btn')) return;
         const idx = parseInt(tag.dataset.index);
         const cmd = loadHistory()[idx];
-        const c = consoles[lastFocusedConsole === 'serial' ? 'serial' : 'adb'];
+        const c = lastFocusedConsole === 'serial' ? consoles.serial : activeAdbConsole();
         if (!c.ready()) return;
         markLineStart(c);
         await c.send('\x15');          // Ctrl+U: clear whatever is on the prompt
@@ -2183,7 +2199,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let isAdbConnected = false;
 
   function onAdbDisconnect(reason) {
-    try { lineDone(consoles.adb); } catch {}
+    try { lineDone(consoles.adb); adbTabsDisconnected(); } catch {}
     isAdbConnected = false;
     adbShellStream = null;
     adbClient = null;
@@ -2307,7 +2323,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       );
 
-      adbTa.focus();
+      adbTabsConnected();
+      activeAdbTab.el.focus();
 
     } catch(err) {
       if (err.name === 'NotFoundError') {
@@ -2357,6 +2374,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function disconnectAdb() {
+    try { adbTabsDisconnected(); } catch {}
     if (adbShellStream) {
       await adbShellStream.close().catch(() => {});
       adbShellStream = null;
@@ -2571,6 +2589,176 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     pasteInto(consoles.adb, (e.clipboardData || window.clipboardData).getData('text'));
   });
+
+  // ══════════════════════════════════════════════════════════════
+  // ADB SHELL TABS — several shells over the one ADB connection,
+  // like running `adb shell` in several terminals.
+  // Tab "Main" is the original console: ADB messages, Quick commands and
+  // the ADB script also write there.
+  // ══════════════════════════════════════════════════════════════
+  const adbTabBar = document.getElementById('adbTabBar');
+  const adbTabAdd = document.getElementById('adbTabAdd');
+  let adbTabSeq = 1;
+  const mainTab = {
+    id: 'main', name: 'Main', el: adbTa, console: consoles.adb, main: true,
+    get stream() { return adbShellStream; }
+  };
+  const adbTabs = [mainTab];
+  let activeAdbTab = mainTab;
+
+  function activeAdbConsole() { return activeAdbTab.console; }
+
+  function initConsoleEl(el) {
+    consoleState.set(el, { raw: '' });
+    try {
+      Object.defineProperty(el, 'value', {
+        get() { return consoleState.get(el).raw; },
+        set(val) { setTerminalText(val, el); },
+        configurable: true
+      });
+    } catch {}
+    el.style.backgroundColor = consoleBgColor;
+    el.style.color = consoleTextColor;
+    el.style.caretColor = 'transparent';
+    el.style.setProperty('--con-fg', consoleTextColor);
+    el.style.setProperty('--con-bg', consoleBgColor);
+  }
+
+  function markUnread(tab) {
+    if (tab !== activeAdbTab && !tab.unread) { tab.unread = true; renderAdbTabs(); }
+  }
+  consoleState.get(adbTa).onWrite = () => markUnread(mainTab);
+
+  function renderAdbTabs() {
+    adbTabBar.querySelectorAll('.shell-tab').forEach(b => b.remove());
+    for (const tab of adbTabs) {
+      const b = el('div', { className: 'shell-tab' + (tab === activeAdbTab ? ' active' : '') + (tab.unread ? ' unread' : ''),
+                            title: tab.main ? 'Main shell (ADB messages, Quick commands and the ADB script also show here)' : 'Double-click to rename' });
+      const label = el('span', { className: 'shell-tab-name', textContent: tab.name });
+      b.append(label);
+      b.dataset.id = tab.id;
+      if (!tab.main) {
+        const x = el('span', { className: 'shell-tab-close', textContent: '×', title: 'Close this shell' });
+        x.addEventListener('click', (e) => { e.stopPropagation(); closeAdbTab(tab); });
+        b.append(x);
+      }
+      b.addEventListener('click', () => { if (tab !== activeAdbTab) switchAdbTab(tab); else tab.el.focus({ preventScroll: true }); });
+      adbTabBar.insertBefore(b, adbTabAdd);
+    }
+  }
+
+  function switchAdbTab(tab) {
+    activeAdbTab = tab;
+    tab.unread = false;
+    for (const t of adbTabs) t.el.style.display = t === tab ? '' : 'none';
+    renderAdbTabs();
+    renderConsole(tab.el, true);
+    tab.el.focus({ preventScroll: true });
+    lastFocusedConsole = 'adb';
+  }
+
+  function renameAdbTab(tab, label) {
+    const input = el('input', { type: 'text', value: tab.name, className: 'shell-tab-rename' });
+    label.replaceWith(input);
+    input.focus(); input.select();
+    let finished = false;
+    const done = (save) => {
+      if (finished) return;   // Enter → re-render removes the input → blur fires again
+      finished = true;
+      if (save && input.value.trim()) tab.name = input.value.trim().slice(0, 24);
+      renderAdbTabs();
+      tab.el.focus({ preventScroll: true });
+    };
+    input.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') done(true);
+      if (e.key === 'Escape') done(false);
+    });
+    input.addEventListener('blur', () => done(true));
+    input.addEventListener('click', (e) => e.stopPropagation());
+  }
+
+  async function openTabShell(tab) {
+    if (tab.main || tab.stream || !adbClient || !adbClient.connected) return;
+    try {
+      tab.stream = await adbClient.openStream('shell:\0',
+        (data) => appendOutput(data, tab.el),
+        () => {
+          tab.stream = null;
+          appendOutput('\n[ADB] Shell closed. Press Enter to open a new one.\n', tab.el);
+        });
+    } catch (e) {
+      appendOutput(`\n[ADB] Could not open shell: ${e.message}\n`, tab.el);
+    }
+  }
+
+  function addAdbTab() {
+    const n = ++adbTabSeq;
+    const div = el('div', { tabindex: 0, className: 'console-output empty',
+      'data-placeholder': '🤖 ADB offline. Click Connect above; this tab opens its own shell.' });
+    div.style.display = 'none';
+    document.getElementById('adbStack').append(div);
+    initConsoleEl(div);
+    const tab = { id: `t${n}`, name: `Shell ${n}`, el: div, stream: null, unread: false };
+    tab.console = {
+      el: div,
+      ready: () => isAdbConnected && !!tab.stream,
+      send: (d) => tab.stream.send(d),
+      eol: () => '\r', bs: () => '\x7f', localHistory: () => false,
+      buf: '', hIdx: -1, tmp: '', promptSnap: null
+    };
+    consoleState.get(div).onWrite = () => markUnread(tab);
+    div.addEventListener('keydown', (e) => {
+      if (!tab.stream && isAdbConnected && e.key === 'Enter') { e.preventDefault(); openTabShell(tab); return; }
+      onConsoleKey(e, tab.console);
+    });
+    div.addEventListener('paste', (e) => {
+      e.preventDefault();
+      pasteInto(tab.console, (e.clipboardData || window.clipboardData).getData('text'));
+    });
+    div.addEventListener('focus', () => { lastFocusedConsole = 'adb'; });
+    adbTabs.push(tab);
+    switchAdbTab(tab);
+    openTabShell(tab);
+    return tab;
+  }
+
+  async function closeAdbTab(tab) {
+    if (tab.main) return;
+    const s = tab.stream; tab.stream = null;
+    if (s) await s.close().catch(() => {});
+    const i = adbTabs.indexOf(tab);
+    adbTabs.splice(i, 1);
+    consoleState.delete(tab.el);
+    tab.el.remove();
+    if (activeAdbTab === tab) switchAdbTab(adbTabs[Math.max(0, i - 1)]);
+    else renderAdbTabs();
+  }
+
+  // called from connectAdb / disconnect
+  function adbTabsConnected() {
+    for (const t of adbTabs) if (!t.main) openTabShell(t);
+  }
+  function adbTabsDisconnected() {
+    for (const t of adbTabs) {
+      if (t.main) continue;
+      t.stream = null;
+      t.console.buf = ''; t.console.promptSnap = null;
+      appendOutput('\n[ADB] Disconnected.\n', t.el);
+    }
+  }
+
+  adbTabAdd.addEventListener('click', () => addAdbTab());
+  // double-click a tab name to rename it (delegated: the bar is rebuilt on clicks)
+  adbTabBar.addEventListener('dblclick', (e) => {
+    const b = e.target.closest('.shell-tab');
+    const tab = b && adbTabs.find(t => t.id === b.dataset.id);
+    if (!tab || tab.main) return;
+    const label = adbTabBar.querySelector(`.shell-tab[data-id="${tab.id}"] .shell-tab-name`);
+    if (label) renameAdbTab(tab, label);
+  });
+  adbTa.addEventListener('focus', () => { if (activeAdbTab !== mainTab) switchAdbTab(mainTab); });
+  renderAdbTabs();
 
   adbTa.addEventListener('focus', () => { lastFocusedConsole = 'adb'; });
 
@@ -3943,20 +4131,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('adbSaveButton').addEventListener('click', () => {
+    const tab = activeAdbTab;
     const a = Object.assign(document.createElement('a'), {
-      href: URL.createObjectURL(new Blob([getBaseText(adbTa)], { type: 'text/plain' })),
-      download: 'adb_output.txt'
+      href: URL.createObjectURL(new Blob([getBaseText(tab.el)], { type: 'text/plain' })),
+      download: tab.main ? 'adb_output.txt' : `adb_${tab.name.replace(/[^\w.-]+/g, '_')}.txt`
     });
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   });
 
-  document.getElementById('clearButton').addEventListener('click', () => {
-    setTerminalText('');
-    inputBuffer = ''; historyIndex = -1;
-  });
-
   document.getElementById('adbClearButton').addEventListener('click', () => {
-    setTerminalText('', adbTa);
+    setTerminalText('', activeAdbTab.el);
   });
 
   document.getElementById('clearHistoryBtn').addEventListener('click', () => {
