@@ -1958,7 +1958,12 @@ document.addEventListener('DOMContentLoaded', () => {
       while (!this.closed && this._buf.length < needed) {
         let result;
         try {
-          result = await this.device.transferIn(this.inEp.endpointNumber, 16384);
+          // Ask for exactly the bytes still missing (24-byte header, then the
+          // payload length), like the real adb host. A fixed large request
+          // never completes when a payload is an exact multiple of the USB
+          // packet size (e.g. 4096) and the device sends no zero-length
+          // packet — the data then sat in the browser until the next output.
+          result = await this.device.transferIn(this.inEp.endpointNumber, needed - this._buf.length);
         } catch(e) {
           if (this.closed) return;
           throw e;
